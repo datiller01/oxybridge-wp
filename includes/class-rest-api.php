@@ -236,6 +236,36 @@ class REST_API {
             )
         );
 
+        // Global styles endpoint - read global Oxygen/Breakdance styles.
+        register_rest_route(
+            self::NAMESPACE,
+            '/styles/global',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_global_styles' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
+                'args'                => array(
+                    'category' => array(
+                        'description'       => __( 'Style category to retrieve (colors, fonts, spacing, or all).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'default'           => 'all',
+                        'enum'              => array( 'colors', 'fonts', 'spacing', 'all' ),
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'include_variables' => array(
+                        'description' => __( 'Include design variables in response.', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => true,
+                    ),
+                    'include_selectors' => array(
+                        'description' => __( 'Include CSS class selectors in response.', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => false,
+                    ),
+                ),
+            )
+        );
+
         /**
          * Fires after Oxybridge REST routes are registered.
          *
@@ -1018,6 +1048,246 @@ class REST_API {
                 'message'       => __( 'Element schema generation will be implemented in subsequent subtasks.', 'oxybridge-wp' ),
             )
         );
+    }
+
+    /**
+     * Get global styles endpoint callback.
+     *
+     * Returns global design tokens including colors, fonts, spacing, and CSS variables
+     * from Oxygen/Breakdance global settings.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response object or error.
+     */
+    public function get_global_styles( \WP_REST_Request $request ) {
+        $category           = $request->get_param( 'category' );
+        $include_variables  = $request->get_param( 'include_variables' );
+        $include_selectors  = $request->get_param( 'include_selectors' );
+
+        // Try using Oxygen_Data class if available.
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data = new Oxygen_Data();
+            $styles      = $oxygen_data->get_global_styles( $category );
+        } else {
+            // Fallback: get styles directly.
+            $styles = $this->get_global_styles_fallback( $category );
+        }
+
+        // Add variables if requested.
+        if ( $include_variables ) {
+            $variables = $this->get_design_variables();
+            if ( ! empty( $variables ) && ! isset( $styles['variables'] ) ) {
+                $styles['variables'] = $variables;
+            }
+        }
+
+        // Add selectors if requested.
+        if ( $include_selectors ) {
+            $selectors = $this->get_css_selectors();
+            if ( ! empty( $selectors ) ) {
+                $styles['selectors'] = $selectors;
+            }
+        }
+
+        // Add breakpoints information.
+        $styles['breakpoints'] = $this->get_breakpoints();
+
+        // Add metadata about the styles source.
+        $styles['_meta'] = array(
+            'builder'   => $this->get_builder_name(),
+            'version'   => $this->get_oxygen_version(),
+            'category'  => $category,
+            'timestamp' => current_time( 'c' ),
+        );
+
+        /**
+         * Filters the global styles data before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $styles  The global styles data.
+         * @param string           $category The requested category.
+         * @param \WP_REST_Request $request The request object.
+         */
+        $styles = apply_filters( 'oxybridge_rest_global_styles', $styles, $category, $request );
+
+        return rest_ensure_response( $styles );
+    }
+
+    /**
+     * Fallback method for getting global styles when Oxygen_Data is unavailable.
+     *
+     * @since 1.0.0
+     * @param string $category The style category to retrieve.
+     * @return array The global styles data.
+     */
+    private function get_global_styles_fallback( string $category ): array {
+        $meta_prefix     = $this->get_meta_prefix();
+        $global_settings = get_option( $meta_prefix . 'global_settings_json_string', '' );
+
+        if ( is_string( $global_settings ) && ! empty( $global_settings ) ) {
+            $settings = json_decode( $global_settings, true );
+        } else {
+            $settings = is_array( $global_settings ) ? $global_settings : array();
+        }
+
+        $styles = array(
+            'colors'  => array(),
+            'fonts'   => array(),
+            'spacing' => array(),
+            'other'   => array(),
+        );
+
+        // Extract color settings.
+        if ( isset( $settings['colors'] ) ) {
+            $styles['colors'] = $settings['colors'];
+        }
+
+        // Extract typography/font settings.
+        if ( isset( $settings['typography'] ) ) {
+            $styles['fonts'] = $settings['typography'];
+        }
+
+        // Extract spacing settings.
+        if ( isset( $settings['spacing'] ) ) {
+            $styles['spacing'] = $settings['spacing'];
+        }
+
+        // Add any other top-level settings.
+        $excluded_keys = array( 'colors', 'typography', 'spacing' );
+        foreach ( $settings as $key => $value ) {
+            if ( ! in_array( $key, $excluded_keys, true ) ) {
+                $styles['other'][ $key ] = $value;
+            }
+        }
+
+        // Return specific category if requested.
+        if ( $category !== 'all' && isset( $styles[ $category ] ) ) {
+            return array( $category => $styles[ $category ] );
+        }
+
+        return $styles;
+    }
+
+    /**
+     * Get design variables from global settings.
+     *
+     * @since 1.0.0
+     * @return array Design variables.
+     */
+    private function get_design_variables(): array {
+        // Try using Oxygen_Data class if available.
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data = new Oxygen_Data();
+            return $oxygen_data->get_variables();
+        }
+
+        // Fallback: get variables directly.
+        $meta_prefix = $this->get_meta_prefix();
+        $variables   = get_option( $meta_prefix . 'variables_json_string', '' );
+
+        if ( is_string( $variables ) && ! empty( $variables ) ) {
+            $decoded = json_decode( $variables, true );
+            return is_array( $decoded ) ? $decoded : array();
+        }
+
+        return is_array( $variables ) ? $variables : array();
+    }
+
+    /**
+     * Get CSS selectors/classes from global settings.
+     *
+     * @since 1.0.0
+     * @return array CSS selectors.
+     */
+    private function get_css_selectors(): array {
+        // Try using Oxygen_Data class if available.
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data = new Oxygen_Data();
+            return $oxygen_data->get_selectors();
+        }
+
+        // Fallback: get selectors directly.
+        $meta_prefix = $this->get_meta_prefix();
+        $selectors   = get_option( $meta_prefix . 'breakdance_classes_json_string', '' );
+
+        if ( is_string( $selectors ) && ! empty( $selectors ) ) {
+            $decoded = json_decode( $selectors, true );
+            return is_array( $decoded ) ? $decoded : array();
+        }
+
+        return is_array( $selectors ) ? $selectors : array();
+    }
+
+    /**
+     * Get responsive breakpoints configuration.
+     *
+     * Returns the breakpoints used by Oxygen/Breakdance for responsive styling.
+     *
+     * @since 1.0.0
+     * @return array Breakpoint configuration.
+     */
+    private function get_breakpoints(): array {
+        // Try to get breakpoints from Breakdance settings.
+        $meta_prefix = $this->get_meta_prefix();
+        $breakpoints = get_option( $meta_prefix . 'breakpoints', array() );
+
+        if ( ! empty( $breakpoints ) && is_array( $breakpoints ) ) {
+            return $breakpoints;
+        }
+
+        // Return default breakpoints based on common Oxygen/Breakdance configuration.
+        // These align with the CoLabs design tokens specification.
+        return array(
+            'base' => array(
+                'label' => 'Base (Mobile)',
+                'value' => 0,
+                'unit'  => 'px',
+            ),
+            'sm'   => array(
+                'label' => 'Small',
+                'value' => 640,
+                'unit'  => 'px',
+            ),
+            'md'   => array(
+                'label' => 'Medium (Tablet)',
+                'value' => 768,
+                'unit'  => 'px',
+            ),
+            'lg'   => array(
+                'label' => 'Large (Desktop)',
+                'value' => 1024,
+                'unit'  => 'px',
+            ),
+            'xl'   => array(
+                'label' => 'Extra Large',
+                'value' => 1280,
+                'unit'  => 'px',
+            ),
+            '2xl'  => array(
+                'label' => 'Extra Extra Large',
+                'value' => 1536,
+                'unit'  => 'px',
+            ),
+        );
+    }
+
+    /**
+     * Get the current builder name.
+     *
+     * @since 1.0.0
+     * @return string Builder name (oxygen or breakdance).
+     */
+    private function get_builder_name(): string {
+        if ( defined( 'BREAKDANCE_MODE' ) && BREAKDANCE_MODE === 'oxygen' ) {
+            return 'oxygen';
+        }
+
+        if ( defined( '__BREAKDANCE_VERSION' ) ) {
+            return 'breakdance';
+        }
+
+        return 'unknown';
     }
 
     /**
