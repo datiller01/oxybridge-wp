@@ -170,6 +170,31 @@ class REST_API {
             )
         );
 
+        // Single template endpoint - get template details.
+        register_rest_route(
+            self::NAMESPACE,
+            '/templates/(?P<id>\d+)',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_template' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
+                'args'                => array(
+                    'id'               => array(
+                        'description'       => __( 'Template post ID.', 'oxybridge-wp' ),
+                        'type'              => 'integer',
+                        'required'          => true,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => array( $this, 'validate_template_id' ),
+                    ),
+                    'include_elements' => array(
+                        'description' => __( 'Include parsed element tree in response.', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => true,
+                    ),
+                ),
+            )
+        );
+
         // Global settings endpoint - read global Oxygen settings.
         register_rest_route(
             self::NAMESPACE,
@@ -370,6 +395,307 @@ class REST_API {
                 'total'          => count( $templates ),
                 'template_types' => $this->get_available_template_types(),
             )
+        );
+    }
+
+    /**
+     * Get template details endpoint callback.
+     *
+     * Returns the full details of a specific Oxygen/Breakdance template
+     * including the JSON structure and parsed element tree.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response object or error.
+     */
+    public function get_template( \WP_REST_Request $request ) {
+        $template_id      = $request->get_param( 'id' );
+        $include_elements = $request->get_param( 'include_elements' );
+
+        // Get the template post.
+        $post = get_post( $template_id );
+
+        if ( ! $post ) {
+            return new \WP_Error(
+                'rest_template_not_found',
+                __( 'Template not found.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        // Verify it's a valid template post type.
+        $valid_post_types = $this->get_all_template_post_types();
+
+        if ( ! in_array( $post->post_type, $valid_post_types, true ) ) {
+            return new \WP_Error(
+                'rest_invalid_template_type',
+                __( 'The specified post is not a valid template.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Get basic template data using existing format method.
+        $template_data = $this->format_template( $post );
+
+        // Get the raw JSON data.
+        $json_data = $this->get_template_json( $template_id );
+        $template_data['json'] = $json_data;
+
+        // Include parsed element tree if requested.
+        if ( $include_elements ) {
+            $template_data['elements'] = $this->get_template_element_tree( $template_id );
+        }
+
+        // Add additional metadata.
+        $template_data['excerpt']      = $post->post_excerpt;
+        $template_data['author']       = (int) $post->post_author;
+        $template_data['author_name']  = get_the_author_meta( 'display_name', $post->post_author );
+        $template_data['conditions']   = $this->get_template_conditions( $template_id );
+        $template_data['preview_url']  = get_permalink( $template_id );
+
+        /**
+         * Filters the template data before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $template_data The template data.
+         * @param \WP_Post         $post          The template post object.
+         * @param \WP_REST_Request $request       The request object.
+         */
+        $template_data = apply_filters( 'oxybridge_rest_template_data', $template_data, $post, $request );
+
+        return rest_ensure_response( $template_data );
+    }
+
+    /**
+     * Get the raw JSON data for a template.
+     *
+     * @since 1.0.0
+     * @param int $template_id The template post ID.
+     * @return array|null The parsed JSON data or null if not found.
+     */
+    private function get_template_json( int $template_id ) {
+        // Try using Oxygen_Data class if available.
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data = new Oxygen_Data();
+            $tree        = $oxygen_data->get_template_tree( $template_id );
+
+            if ( $tree !== false ) {
+                return $tree;
+            }
+        }
+
+        // Fallback: get directly from post meta.
+        $meta_prefix = $this->get_meta_prefix();
+        $tree_data   = get_post_meta( $template_id, $meta_prefix . 'data', true );
+
+        if ( ! empty( $tree_data ) ) {
+            $decoded = is_string( $tree_data ) ? json_decode( $tree_data, true ) : $tree_data;
+
+            if ( is_array( $decoded ) && isset( $decoded['tree_json_string'] ) ) {
+                $tree = json_decode( $decoded['tree_json_string'], true );
+
+                if ( is_array( $tree ) ) {
+                    return $tree;
+                }
+            }
+
+            // If tree_json_string is not present, return the decoded data directly.
+            if ( is_array( $decoded ) ) {
+                return $decoded;
+            }
+        }
+
+        // Try classic Oxygen meta key as fallback.
+        $classic_data = get_post_meta( $template_id, 'ct_builder_json', true );
+
+        if ( ! empty( $classic_data ) ) {
+            $decoded = is_string( $classic_data ) ? json_decode( $classic_data, true ) : $classic_data;
+
+            if ( is_array( $decoded ) ) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the parsed element tree for a template.
+     *
+     * @since 1.0.0
+     * @param int $template_id The template post ID.
+     * @return array The element tree array.
+     */
+    private function get_template_element_tree( int $template_id ): array {
+        $json_data = $this->get_template_json( $template_id );
+
+        if ( empty( $json_data ) ) {
+            return array();
+        }
+
+        // Check for root/children structure (Breakdance/Oxygen 6 format).
+        if ( isset( $json_data['root']['children'] ) ) {
+            return $this->parse_element_tree( $json_data['root']['children'] );
+        }
+
+        // Check for direct children array.
+        if ( isset( $json_data['children'] ) ) {
+            return $this->parse_element_tree( $json_data['children'] );
+        }
+
+        // If it's a flat array at root level, parse directly.
+        if ( is_array( $json_data ) && ! isset( $json_data['root'] ) ) {
+            return $this->parse_element_tree( $json_data );
+        }
+
+        return array();
+    }
+
+    /**
+     * Parse an element tree recursively.
+     *
+     * @since 1.0.0
+     * @param array  $children The children array from tree.
+     * @param string $parent_path The parent path for hierarchy tracking.
+     * @return array Parsed element tree with normalized structure.
+     */
+    private function parse_element_tree( array $children, string $parent_path = '' ): array {
+        $elements = array();
+
+        foreach ( $children as $index => $child ) {
+            if ( ! is_array( $child ) ) {
+                continue;
+            }
+
+            $element_id   = isset( $child['id'] ) ? $child['id'] : 'element-' . $index;
+            $element_type = isset( $child['type'] ) ? $child['type'] : 'unknown';
+            $current_path = $parent_path ? $parent_path . '/' . $element_id : $element_id;
+
+            $element = array(
+                'id'         => $element_id,
+                'type'       => $element_type,
+                'path'       => $current_path,
+                'properties' => $this->extract_element_properties( $child ),
+            );
+
+            // Parse nested children recursively.
+            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
+                $element['children'] = $this->parse_element_tree( $child['children'], $current_path );
+            } else {
+                $element['children'] = array();
+            }
+
+            $elements[] = $element;
+        }
+
+        return $elements;
+    }
+
+    /**
+     * Extract relevant properties from an element.
+     *
+     * @since 1.0.0
+     * @param array $element The raw element data.
+     * @return array Extracted properties.
+     */
+    private function extract_element_properties( array $element ): array {
+        $properties = array();
+
+        // Common properties to extract.
+        $property_keys = array(
+            'data',
+            'settings',
+            'styles',
+            'classes',
+            'attributes',
+            'content',
+            'text',
+            'html',
+            'tag',
+            'name',
+            'label',
+        );
+
+        foreach ( $property_keys as $key ) {
+            if ( isset( $element[ $key ] ) ) {
+                $properties[ $key ] = $element[ $key ];
+            }
+        }
+
+        return $properties;
+    }
+
+    /**
+     * Get template conditions (where it applies).
+     *
+     * @since 1.0.0
+     * @param int $template_id The template post ID.
+     * @return array Template conditions.
+     */
+    private function get_template_conditions( int $template_id ): array {
+        $conditions = array();
+        $meta_prefix = $this->get_meta_prefix();
+
+        // Check for template assignment conditions.
+        $template_conditions = get_post_meta( $template_id, $meta_prefix . 'template_conditions', true );
+
+        if ( ! empty( $template_conditions ) ) {
+            $decoded = is_string( $template_conditions ) ? json_decode( $template_conditions, true ) : $template_conditions;
+
+            if ( is_array( $decoded ) ) {
+                $conditions['rules'] = $decoded;
+            }
+        }
+
+        // Check for classic Oxygen template meta.
+        $single_all   = get_post_meta( $template_id, 'ct_template_single_all', true );
+        $post_types   = get_post_meta( $template_id, 'ct_template_post_types', true );
+        $archive_all  = get_post_meta( $template_id, 'ct_template_archive_all', true );
+
+        if ( $single_all ) {
+            $conditions['single_all'] = true;
+        }
+
+        if ( ! empty( $post_types ) ) {
+            $conditions['post_types'] = is_string( $post_types ) ? maybe_unserialize( $post_types ) : $post_types;
+        }
+
+        if ( $archive_all ) {
+            $conditions['archive_all'] = true;
+        }
+
+        // Check for Breakdance fallback meta.
+        $fallback_meta = get_post_meta( $template_id, $meta_prefix . 'fallback', true );
+
+        if ( ! empty( $fallback_meta ) ) {
+            $conditions['is_fallback'] = (bool) $fallback_meta;
+        }
+
+        return $conditions;
+    }
+
+    /**
+     * Get all valid template post types.
+     *
+     * @since 1.0.0
+     * @return array Array of valid template post types.
+     */
+    private function get_all_template_post_types(): array {
+        return array(
+            // Oxygen 6 / Breakdance post types.
+            'oxygen_template',
+            'oxygen_header',
+            'oxygen_footer',
+            'oxygen_block',
+            'oxygen_part',
+            'breakdance_template',
+            'breakdance_header',
+            'breakdance_footer',
+            'breakdance_block',
+            'breakdance_popup',
+            'breakdance_part',
+            // Classic Oxygen post type.
+            'ct_template',
         );
     }
 
@@ -775,6 +1101,51 @@ class REST_API {
                 'rest_post_not_found',
                 __( 'Post not found.', 'oxybridge-wp' ),
                 array( 'status' => 404 )
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate template ID.
+     *
+     * Validates that the provided value is a valid template post ID.
+     *
+     * @since 1.0.0
+     * @param mixed            $value   The parameter value.
+     * @param \WP_REST_Request $request The request object.
+     * @param string           $param   The parameter name.
+     * @return bool|\WP_Error True if valid, WP_Error otherwise.
+     */
+    public function validate_template_id( $value, \WP_REST_Request $request, $param ) {
+        if ( ! is_numeric( $value ) || (int) $value < 1 ) {
+            return new \WP_Error(
+                'rest_invalid_param',
+                /* translators: %s: parameter name */
+                sprintf( __( '%s must be a valid positive integer.', 'oxybridge-wp' ), $param ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $post = get_post( (int) $value );
+
+        if ( ! $post ) {
+            return new \WP_Error(
+                'rest_template_not_found',
+                __( 'Template not found.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        // Validate post type is a valid template type.
+        $valid_post_types = $this->get_all_template_post_types();
+
+        if ( ! in_array( $post->post_type, $valid_post_types, true ) ) {
+            return new \WP_Error(
+                'rest_invalid_template_type',
+                __( 'The specified post is not a valid template.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
             );
         }
 
