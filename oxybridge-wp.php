@@ -84,6 +84,11 @@ require_once OXYBRIDGE_PLUGIN_DIR . '/includes/class-autoloader.php';
  * @return void
  */
 function oxybridge_init() {
+    // Initialize admin page (works regardless of Oxygen status for informational purposes).
+    if ( is_admin() && class_exists( 'Oxybridge\\Admin_Page' ) ) {
+        new \Oxybridge\Admin_Page();
+    }
+
     // Check if Oxygen/Breakdance is active.
     if ( ! oxybridge_is_oxygen_active() ) {
         add_action( 'admin_notices', 'oxybridge_oxygen_missing_notice' );
