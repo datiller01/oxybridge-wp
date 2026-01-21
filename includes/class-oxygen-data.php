@@ -1072,4 +1072,162 @@ class Oxygen_Data {
             'post_id'    => $post_id,
         );
     }
+
+    /**
+     * Update an element's properties in the document tree.
+     *
+     * Finds the element by ID and performs a partial update by merging
+     * the provided properties with existing properties.
+     *
+     * @since 1.0.0
+     *
+     * @param int    $post_id    The post ID containing the tree.
+     * @param string $element_id The ID of the element to update.
+     * @param array  $properties The properties to merge/update.
+     * @return bool True if update was successful, false otherwise.
+     */
+    public function update_element( int $post_id, string $element_id, array $properties ): bool {
+        // Get the current tree.
+        $tree = $this->get_template_tree( $post_id );
+
+        if ( $tree === false ) {
+            return false;
+        }
+
+        // Update the element in the tree.
+        $updated = $this->update_element_in_tree( $tree, $element_id, $properties );
+
+        if ( ! $updated ) {
+            return false;
+        }
+
+        // Save the modified tree.
+        $save_result = $this->save_tree( $post_id, $tree );
+
+        return $save_result['success'];
+    }
+
+    /**
+     * Update an element's properties in a tree structure.
+     *
+     * Recursively searches the tree and updates the element's properties
+     * by merging with existing values.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $tree       The tree to search (passed by reference).
+     * @param string $element_id The element ID to update.
+     * @param array  $properties The properties to merge.
+     * @return bool True if element was found and updated, false otherwise.
+     */
+    private function update_element_in_tree( array &$tree, string $element_id, array $properties ): bool {
+        // Check if this is the root level with 'root' key.
+        if ( isset( $tree['root'] ) ) {
+            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
+                $this->merge_element_properties( $tree['root'], $properties );
+                return true;
+            }
+            // Search in root's children.
+            if ( isset( $tree['root']['children'] ) && is_array( $tree['root']['children'] ) ) {
+                return $this->update_element_in_children( $tree['root']['children'], $element_id, $properties );
+            }
+            return false;
+        }
+
+        // Check current element.
+        if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
+            $this->merge_element_properties( $tree, $properties );
+            return true;
+        }
+
+        // Search in children.
+        if ( isset( $tree['children'] ) && is_array( $tree['children'] ) ) {
+            return $this->update_element_in_children( $tree['children'], $element_id, $properties );
+        }
+
+        return false;
+    }
+
+    /**
+     * Update an element in a children array.
+     *
+     * Helper method for recursive element update.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $children   Array of child elements (passed by reference).
+     * @param string $element_id The element ID to update.
+     * @param array  $properties The properties to merge.
+     * @return bool True if element was found and updated, false otherwise.
+     */
+    private function update_element_in_children( array &$children, string $element_id, array $properties ): bool {
+        foreach ( $children as &$child ) {
+            if ( isset( $child['id'] ) && $child['id'] === $element_id ) {
+                $this->merge_element_properties( $child, $properties );
+                return true;
+            }
+
+            // Recursively search in children.
+            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
+                if ( $this->update_element_in_children( $child['children'], $element_id, $properties ) ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Merge properties into an element.
+     *
+     * Performs a deep merge of properties, preserving existing values
+     * that are not being updated.
+     *
+     * @since 1.0.0
+     *
+     * @param array $element    The element to update (passed by reference).
+     * @param array $properties The properties to merge.
+     */
+    private function merge_element_properties( array &$element, array $properties ): void {
+        // Ensure data and properties structure exists.
+        if ( ! isset( $element['data'] ) ) {
+            $element['data'] = array();
+        }
+        if ( ! isset( $element['data']['properties'] ) ) {
+            $element['data']['properties'] = array();
+        }
+
+        // Merge properties recursively.
+        $element['data']['properties'] = $this->array_merge_recursive_distinct(
+            $element['data']['properties'],
+            $properties
+        );
+    }
+
+    /**
+     * Recursively merge arrays, replacing values rather than appending.
+     *
+     * Unlike array_merge_recursive, this replaces scalar values instead
+     * of converting them to arrays.
+     *
+     * @since 1.0.0
+     *
+     * @param array $array1 The base array.
+     * @param array $array2 The array to merge into base.
+     * @return array The merged array.
+     */
+    private function array_merge_recursive_distinct( array $array1, array $array2 ): array {
+        $merged = $array1;
+
+        foreach ( $array2 as $key => $value ) {
+            if ( is_array( $value ) && isset( $merged[ $key ] ) && is_array( $merged[ $key ] ) ) {
+                $merged[ $key ] = $this->array_merge_recursive_distinct( $merged[ $key ], $value );
+            } else {
+                $merged[ $key ] = $value;
+            }
+        }
+
+        return $merged;
+    }
 }
