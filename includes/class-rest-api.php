@@ -286,6 +286,49 @@ class REST_API {
             )
         );
 
+        // Create element endpoint - add new element to a document.
+        register_rest_route(
+            self::NAMESPACE,
+            '/documents/(?P<id>\d+)/elements',
+            array(
+                'methods'             => \WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'create_element' ),
+                'permission_callback' => array( $this, 'check_write_permission' ),
+                'args'                => array(
+                    'id'           => array(
+                        'description'       => __( 'WordPress post/page ID.', 'oxybridge-wp' ),
+                        'type'              => 'integer',
+                        'required'          => true,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => array( $this, 'validate_post_id' ),
+                    ),
+                    'parent_id'    => array(
+                        'description'       => __( 'Parent element ID to append to (use "root" for top-level).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'element_type' => array(
+                        'description'       => __( 'Element type (e.g., "EssentialElements\\Section").', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'properties'   => array(
+                        'description' => __( 'Element properties object.', 'oxybridge-wp' ),
+                        'type'        => 'object',
+                        'default'     => array(),
+                    ),
+                    'position'     => array(
+                        'description'       => __( 'Position within parent: "first", "last", or numeric index.', 'oxybridge-wp' ),
+                        'type'              => array( 'string', 'integer' ),
+                        'default'           => 'last',
+                        'sanitize_callback' => array( $this, 'sanitize_position' ),
+                    ),
+                ),
+            )
+        );
+
         /**
          * Fires after Oxybridge REST routes are registered.
          *
@@ -1213,6 +1256,420 @@ class REST_API {
                 array( 'status' => 500 )
             );
         }
+    }
+
+    /**
+     * Create element endpoint callback.
+     *
+     * Creates a new element in the document tree at the specified parent location.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response object or error.
+     */
+    public function create_element( \WP_REST_Request $request ) {
+        $post_id      = $request->get_param( 'id' );
+        $parent_id    = $request->get_param( 'parent_id' );
+        $element_type = $request->get_param( 'element_type' );
+        $properties   = $request->get_param( 'properties' );
+        $position     = $request->get_param( 'position' );
+
+        // Verify the post exists.
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return new \WP_Error(
+                'rest_post_not_found',
+                __( 'Post not found.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        // Get the existing document tree.
+        $tree = $this->get_document_tree( $post_id );
+        if ( $tree === null ) {
+            // Initialize empty tree if document doesn't have Oxygen content yet.
+            $tree = $this->create_empty_tree();
+        }
+
+        // Generate unique element ID.
+        $element_id = $this->generate_element_id();
+
+        // Create the new element structure.
+        $new_element = array(
+            'id'       => $element_id,
+            'data'     => array(
+                'type'       => $element_type,
+                'properties' => is_array( $properties ) ? $properties : array(),
+            ),
+            'children' => array(),
+        );
+
+        /**
+         * Filters the new element data before insertion.
+         *
+         * @since 1.0.0
+         * @param array            $new_element  The new element data.
+         * @param string           $parent_id    The parent element ID.
+         * @param \WP_REST_Request $request      The request object.
+         */
+        $new_element = apply_filters( 'oxybridge_create_element_data', $new_element, $parent_id, $request );
+
+        // Find parent and insert element.
+        $result = $this->insert_element_into_tree( $tree, $parent_id, $new_element, $position );
+
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        $tree = $result;
+
+        // Validate tree structure before saving.
+        if ( function_exists( '\Breakdance\Data\is_valid_tree' ) ) {
+            if ( ! \Breakdance\Data\is_valid_tree( $tree ) ) {
+                return new \WP_Error(
+                    'rest_invalid_tree',
+                    __( 'The resulting tree structure is invalid.', 'oxybridge-wp' ),
+                    array( 'status' => 400 )
+                );
+            }
+        }
+
+        // Save the updated tree.
+        $save_result = $this->save_document_tree( $post_id, $tree );
+        if ( is_wp_error( $save_result ) ) {
+            return $save_result;
+        }
+
+        // Trigger CSS regeneration.
+        if ( function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
+            try {
+                \Breakdance\Render\generateCacheForPost( $post_id );
+            } catch ( \Exception $e ) {
+                // Log error but don't fail the request - element was created successfully.
+                error_log( 'Oxybridge: CSS regeneration failed after element creation: ' . $e->getMessage() );
+            }
+        }
+
+        /**
+         * Fires after an element has been created.
+         *
+         * @since 1.0.0
+         * @param array  $new_element The created element data.
+         * @param int    $post_id     The post ID.
+         * @param string $parent_id   The parent element ID.
+         */
+        do_action( 'oxybridge_element_created', $new_element, $post_id, $parent_id );
+
+        $response = rest_ensure_response(
+            array(
+                'success'    => true,
+                'element'    => array(
+                    'id'           => $element_id,
+                    'type'         => $element_type,
+                    'parent_id'    => $parent_id,
+                    'properties'   => $new_element['data']['properties'],
+                ),
+                'post_id'    => $post_id,
+                'message'    => __( 'Element created successfully.', 'oxybridge-wp' ),
+            )
+        );
+
+        $response->set_status( 201 );
+
+        return $response;
+    }
+
+    /**
+     * Get the document tree for a post.
+     *
+     * @since 1.0.0
+     * @param int $post_id The post ID.
+     * @return array|null The document tree or null if not found.
+     */
+    private function get_document_tree( int $post_id ) {
+        // Try using Oxygen_Data class if available.
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data = new Oxygen_Data();
+            $tree        = $oxygen_data->get_template_tree( $post_id );
+
+            if ( $tree !== false ) {
+                return $tree;
+            }
+        }
+
+        // Fallback: get directly from post meta.
+        $meta_prefix = $this->get_meta_prefix();
+        $tree_data   = get_post_meta( $post_id, $meta_prefix . 'data', true );
+
+        if ( ! empty( $tree_data ) ) {
+            $decoded = is_string( $tree_data ) ? json_decode( $tree_data, true ) : $tree_data;
+
+            if ( is_array( $decoded ) && isset( $decoded['tree_json_string'] ) ) {
+                $tree = json_decode( $decoded['tree_json_string'], true );
+
+                if ( is_array( $tree ) ) {
+                    return $tree;
+                }
+            }
+
+            // If tree_json_string is not present, return the decoded data directly.
+            if ( is_array( $decoded ) ) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Create an empty document tree structure.
+     *
+     * @since 1.0.0
+     * @return array Empty tree structure.
+     */
+    private function create_empty_tree(): array {
+        return array(
+            'root' => array(
+                'id'       => 'root',
+                'data'     => array(
+                    'type'       => 'root',
+                    'properties' => array(),
+                ),
+                'children' => array(),
+            ),
+        );
+    }
+
+    /**
+     * Generate a unique element ID.
+     *
+     * Uses WordPress's UUID generation function for guaranteed uniqueness.
+     *
+     * @since 1.0.0
+     * @return string Unique element ID.
+     */
+    private function generate_element_id(): string {
+        if ( function_exists( 'wp_generate_uuid4' ) ) {
+            return wp_generate_uuid4();
+        }
+
+        // Fallback for older WordPress versions.
+        return sprintf(
+            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand( 0, 0xffff ),
+            mt_rand( 0, 0xffff ),
+            mt_rand( 0, 0xffff ),
+            mt_rand( 0, 0x0fff ) | 0x4000,
+            mt_rand( 0, 0x3fff ) | 0x8000,
+            mt_rand( 0, 0xffff ),
+            mt_rand( 0, 0xffff ),
+            mt_rand( 0, 0xffff )
+        );
+    }
+
+    /**
+     * Insert an element into the tree at the specified parent location.
+     *
+     * @since 1.0.0
+     * @param array        $tree        The document tree.
+     * @param string       $parent_id   The parent element ID.
+     * @param array        $new_element The new element to insert.
+     * @param string|int   $position    Position within parent ("first", "last", or index).
+     * @return array|\WP_Error The modified tree or error.
+     */
+    private function insert_element_into_tree( array $tree, string $parent_id, array $new_element, $position ) {
+        // Handle "root" as special case.
+        if ( 'root' === $parent_id ) {
+            if ( isset( $tree['root'] ) ) {
+                $tree['root']['children'] = $this->insert_at_position(
+                    $tree['root']['children'] ?? array(),
+                    $new_element,
+                    $position
+                );
+                return $tree;
+            }
+
+            // Tree might not have root wrapper.
+            if ( isset( $tree['children'] ) ) {
+                $tree['children'] = $this->insert_at_position(
+                    $tree['children'],
+                    $new_element,
+                    $position
+                );
+                return $tree;
+            }
+
+            return new \WP_Error(
+                'rest_invalid_tree_structure',
+                __( 'Unable to locate root element in tree structure.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Find parent element in tree recursively.
+        $modified_tree = $this->find_and_insert_element( $tree, $parent_id, $new_element, $position );
+
+        if ( $modified_tree === false ) {
+            return new \WP_Error(
+                'rest_parent_not_found',
+                sprintf(
+                    /* translators: %s: parent element ID */
+                    __( 'Parent element with ID "%s" not found in document tree.', 'oxybridge-wp' ),
+                    $parent_id
+                ),
+                array( 'status' => 404 )
+            );
+        }
+
+        return $modified_tree;
+    }
+
+    /**
+     * Recursively find parent element and insert new element.
+     *
+     * @since 1.0.0
+     * @param array      $node        Current node in tree.
+     * @param string     $parent_id   The parent element ID to find.
+     * @param array      $new_element The new element to insert.
+     * @param string|int $position    Position within parent.
+     * @return array|false Modified node or false if parent not found.
+     */
+    private function find_and_insert_element( array $node, string $parent_id, array $new_element, $position ) {
+        // Check if current node has 'root' wrapper.
+        if ( isset( $node['root'] ) ) {
+            $result = $this->find_and_insert_element( $node['root'], $parent_id, $new_element, $position );
+            if ( $result !== false ) {
+                $node['root'] = $result;
+                return $node;
+            }
+            return false;
+        }
+
+        // Check if this node is the parent.
+        if ( isset( $node['id'] ) && $node['id'] === $parent_id ) {
+            $node['children'] = $this->insert_at_position(
+                $node['children'] ?? array(),
+                $new_element,
+                $position
+            );
+            return $node;
+        }
+
+        // Search children.
+        if ( isset( $node['children'] ) && is_array( $node['children'] ) ) {
+            foreach ( $node['children'] as $index => $child ) {
+                $result = $this->find_and_insert_element( $child, $parent_id, $new_element, $position );
+                if ( $result !== false ) {
+                    $node['children'][ $index ] = $result;
+                    return $node;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Insert element at specified position in children array.
+     *
+     * @since 1.0.0
+     * @param array      $children    The children array.
+     * @param array      $element     The element to insert.
+     * @param string|int $position    Position ("first", "last", or index).
+     * @return array Modified children array.
+     */
+    private function insert_at_position( array $children, array $element, $position ): array {
+        if ( 'first' === $position ) {
+            array_unshift( $children, $element );
+        } elseif ( 'last' === $position || ! is_numeric( $position ) ) {
+            $children[] = $element;
+        } else {
+            $index = (int) $position;
+            // Ensure index is within bounds.
+            $index = max( 0, min( $index, count( $children ) ) );
+            array_splice( $children, $index, 0, array( $element ) );
+        }
+
+        return $children;
+    }
+
+    /**
+     * Save the document tree to post meta.
+     *
+     * @since 1.0.0
+     * @param int   $post_id The post ID.
+     * @param array $tree    The document tree.
+     * @return true|\WP_Error True on success or WP_Error on failure.
+     */
+    private function save_document_tree( int $post_id, array $tree ) {
+        $meta_prefix = $this->get_meta_prefix();
+
+        // Encode tree to JSON string.
+        $tree_json = wp_json_encode( $tree );
+
+        if ( false === $tree_json ) {
+            return new \WP_Error(
+                'rest_json_encode_failed',
+                __( 'Failed to encode document tree to JSON.', 'oxybridge-wp' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        // Prepare meta data in Breakdance format.
+        $meta_data = array(
+            'tree_json_string' => $tree_json,
+        );
+
+        // Update post meta.
+        $result = update_post_meta( $post_id, $meta_prefix . 'data', $meta_data );
+
+        if ( false === $result ) {
+            // Check if it's because the value is unchanged.
+            $existing = get_post_meta( $post_id, $meta_prefix . 'data', true );
+            if ( $existing === $meta_data ) {
+                // Value unchanged, treat as success.
+                return true;
+            }
+
+            return new \WP_Error(
+                'rest_meta_update_failed',
+                __( 'Failed to save document tree to post meta.', 'oxybridge-wp' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        // Trigger WordPress revision for undo capability.
+        wp_update_post(
+            array(
+                'ID'            => $post_id,
+                'post_modified' => current_time( 'mysql' ),
+            )
+        );
+
+        return true;
+    }
+
+    /**
+     * Sanitize position parameter.
+     *
+     * @since 1.0.0
+     * @param mixed $value The parameter value.
+     * @return string|int Sanitized position value.
+     */
+    public function sanitize_position( $value ) {
+        if ( is_numeric( $value ) ) {
+            return absint( $value );
+        }
+
+        $value = sanitize_text_field( $value );
+
+        // Only allow specific string values.
+        if ( in_array( $value, array( 'first', 'last' ), true ) ) {
+            return $value;
+        }
+
+        // Default to 'last' for invalid values.
+        return 'last';
     }
 
     /**
