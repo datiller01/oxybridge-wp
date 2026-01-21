@@ -819,4 +819,257 @@ class Oxygen_Data {
         $counts = wp_count_posts( self::TEMPLATE_POST_TYPE );
         return isset( $counts->publish ) ? (int) $counts->publish : 0;
     }
+
+    /**
+     * Generate a unique element ID.
+     *
+     * Uses WordPress's UUID generation for unique element identifiers.
+     *
+     * @since 1.0.0
+     *
+     * @return string UUID v4 string.
+     */
+    public function generate_element_id(): string {
+        return wp_generate_uuid4();
+    }
+
+    /**
+     * Find an element by ID in the tree structure.
+     *
+     * Recursively searches the tree to find an element with the given ID.
+     * Returns a reference to the element array for direct modification.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $tree       The tree or subtree to search. Pass by reference for modification.
+     * @param string $element_id The element ID to find.
+     * @return array|null Reference to the found element, or null if not found.
+     */
+    public function find_element_in_tree( array &$tree, string $element_id ): ?array {
+        // Check if this is the root level with 'root' key.
+        if ( isset( $tree['root'] ) ) {
+            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
+                return $tree['root'];
+            }
+            // Search in root's children.
+            if ( isset( $tree['root']['children'] ) && is_array( $tree['root']['children'] ) ) {
+                $result = $this->find_element_in_children( $tree['root']['children'], $element_id );
+                if ( $result !== null ) {
+                    return $result;
+                }
+            }
+            return null;
+        }
+
+        // Check current element.
+        if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
+            return $tree;
+        }
+
+        // Search in children.
+        if ( isset( $tree['children'] ) && is_array( $tree['children'] ) ) {
+            return $this->find_element_in_children( $tree['children'], $element_id );
+        }
+
+        return null;
+    }
+
+    /**
+     * Find an element in a children array.
+     *
+     * Helper method for recursive element search.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $children   Array of child elements.
+     * @param string $element_id The element ID to find.
+     * @return array|null The found element, or null if not found.
+     */
+    private function find_element_in_children( array $children, string $element_id ): ?array {
+        foreach ( $children as $child ) {
+            if ( isset( $child['id'] ) && $child['id'] === $element_id ) {
+                return $child;
+            }
+
+            // Recursively search in children.
+            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
+                $result = $this->find_element_in_children( $child['children'], $element_id );
+                if ( $result !== null ) {
+                    return $result;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Find and return a reference to an element's children array for modification.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $tree       The tree to search (passed by reference).
+     * @param string $element_id The element ID whose children to find.
+     * @return array|null Reference to children array, or null if not found.
+     */
+    private function &find_element_children_ref( array &$tree, string $element_id ): ?array {
+        $null = null;
+
+        // Check if this is the root level with 'root' key.
+        if ( isset( $tree['root'] ) ) {
+            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
+                if ( ! isset( $tree['root']['children'] ) ) {
+                    $tree['root']['children'] = array();
+                }
+                return $tree['root']['children'];
+            }
+            // Search in root's children.
+            if ( isset( $tree['root']['children'] ) && is_array( $tree['root']['children'] ) ) {
+                $result = &$this->find_children_in_array( $tree['root']['children'], $element_id );
+                if ( $result !== null ) {
+                    return $result;
+                }
+            }
+            return $null;
+        }
+
+        // Check current element.
+        if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
+            if ( ! isset( $tree['children'] ) ) {
+                $tree['children'] = array();
+            }
+            return $tree['children'];
+        }
+
+        // Search in children.
+        if ( isset( $tree['children'] ) && is_array( $tree['children'] ) ) {
+            return $this->find_children_in_array( $tree['children'], $element_id );
+        }
+
+        return $null;
+    }
+
+    /**
+     * Find children array reference in a children array.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $children   Array of child elements (passed by reference).
+     * @param string $element_id The element ID whose children to find.
+     * @return array|null Reference to children array, or null if not found.
+     */
+    private function &find_children_in_array( array &$children, string $element_id ): ?array {
+        $null = null;
+
+        foreach ( $children as &$child ) {
+            if ( isset( $child['id'] ) && $child['id'] === $element_id ) {
+                if ( ! isset( $child['children'] ) ) {
+                    $child['children'] = array();
+                }
+                return $child['children'];
+            }
+
+            // Recursively search in children.
+            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
+                $result = &$this->find_children_in_array( $child['children'], $element_id );
+                if ( $result !== null ) {
+                    return $result;
+                }
+            }
+        }
+
+        return $null;
+    }
+
+    /**
+     * Create a new element in a document tree.
+     *
+     * Creates a new element with a unique UUID, validates that the parent exists,
+     * and inserts it at the specified position in the parent's children array.
+     *
+     * @since 1.0.0
+     *
+     * @param int    $post_id      The post ID containing the tree.
+     * @param string $parent_id    The ID of the parent element to insert into.
+     * @param string $element_type The element type (e.g., "EssentialElements\\Section").
+     * @param array  $properties   Optional. Element properties. Default empty array.
+     * @param mixed  $position     Optional. Position: 'first', 'last', or integer index. Default 'last'.
+     * @return array {
+     *     Response array.
+     *
+     *     @type bool   $success    Whether the creation was successful.
+     *     @type string $message    Success or error message.
+     *     @type string $element_id The new element's UUID (only on success).
+     *     @type int    $post_id    The post ID.
+     * }
+     */
+    public function create_element( int $post_id, string $parent_id, string $element_type, array $properties = array(), $position = 'last' ): array {
+        // Get the current tree.
+        $tree = $this->get_template_tree( $post_id );
+
+        if ( $tree === false ) {
+            return array(
+                'success' => false,
+                'message' => __( 'Could not retrieve document tree. Post may not exist or have no Oxygen content.', 'oxybridge' ),
+                'post_id' => $post_id,
+            );
+        }
+
+        // Find the parent element's children array.
+        $parent_children = &$this->find_element_children_ref( $tree, $parent_id );
+
+        if ( $parent_children === null ) {
+            return array(
+                'success' => false,
+                'message' => sprintf(
+                    /* translators: %s: parent element ID */
+                    __( 'Parent element with ID "%s" not found in tree.', 'oxybridge' ),
+                    $parent_id
+                ),
+                'post_id' => $post_id,
+            );
+        }
+
+        // Generate unique ID for the new element.
+        $element_id = $this->generate_element_id();
+
+        // Create the new element structure.
+        $new_element = array(
+            'id'       => $element_id,
+            'data'     => array(
+                'type'       => $element_type,
+                'properties' => $properties,
+            ),
+            'children' => array(),
+        );
+
+        // Insert at the specified position.
+        if ( $position === 'first' ) {
+            array_unshift( $parent_children, $new_element );
+        } elseif ( $position === 'last' || ! is_numeric( $position ) ) {
+            $parent_children[] = $new_element;
+        } else {
+            $index = absint( $position );
+            $index = min( $index, count( $parent_children ) ); // Clamp to array bounds.
+            array_splice( $parent_children, $index, 0, array( $new_element ) );
+        }
+
+        // Save the modified tree.
+        $save_result = $this->save_tree( $post_id, $tree );
+
+        if ( ! $save_result['success'] ) {
+            return array(
+                'success' => false,
+                'message' => $save_result['message'],
+                'post_id' => $post_id,
+            );
+        }
+
+        return array(
+            'success'    => true,
+            'message'    => __( 'Element created successfully.', 'oxybridge' ),
+            'element_id' => $element_id,
+            'post_id'    => $post_id,
+        );
+    }
 }
