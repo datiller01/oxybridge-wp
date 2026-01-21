@@ -274,6 +274,42 @@ class Admin_Page {
                 </ul>
             </div>
 
+            <div class="card" id="oxybridge-server-management">
+                <h2><?php esc_html_e( 'MCP Server Management', 'oxybridge-wp' ); ?></h2>
+                <p>
+                    <?php esc_html_e( 'Manage the oxybridge-mcp Node.js server directly from WordPress. Install dependencies, start and stop the server, and monitor its status.', 'oxybridge-wp' ); ?>
+                </p>
+
+                <div class="oxybridge-status-wrapper">
+                    <span class="oxybridge-status-label"><?php esc_html_e( 'Server Status:', 'oxybridge-wp' ); ?></span>
+                    <span id="oxybridge-server-status" class="oxybridge-status-indicator oxybridge-status-checking">
+                        <span class="dashicons dashicons-update oxybridge-spin"></span>
+                        <?php esc_html_e( 'Checking...', 'oxybridge-wp' ); ?>
+                    </span>
+                </div>
+
+                <p class="oxybridge-actions">
+                    <button type="button" id="oxybridge-install-btn" class="button">
+                        <span class="dashicons dashicons-download"></span>
+                        <?php esc_html_e( 'Install Dependencies', 'oxybridge-wp' ); ?>
+                    </button>
+                    <button type="button" id="oxybridge-launch-btn" class="button button-primary">
+                        <span class="dashicons dashicons-controls-play"></span>
+                        <?php esc_html_e( 'Launch Server', 'oxybridge-wp' ); ?>
+                    </button>
+                    <button type="button" id="oxybridge-stop-btn" class="button">
+                        <span class="dashicons dashicons-controls-pause"></span>
+                        <?php esc_html_e( 'Stop Server', 'oxybridge-wp' ); ?>
+                    </button>
+                    <button type="button" id="oxybridge-status-btn" class="button">
+                        <span class="dashicons dashicons-update"></span>
+                        <?php esc_html_e( 'Refresh Status', 'oxybridge-wp' ); ?>
+                    </button>
+                </p>
+
+                <div id="oxybridge-output" class="oxybridge-output" style="display: none;"></div>
+            </div>
+
             <div class="card">
                 <h2><?php esc_html_e( 'Plugin Information', 'oxybridge-wp' ); ?></h2>
                 <table class="widefat striped">
