@@ -361,6 +361,33 @@ class REST_API {
             )
         );
 
+        // Delete element endpoint - delete existing element from a document.
+        register_rest_route(
+            self::NAMESPACE,
+            '/documents/(?P<id>\d+)/elements/(?P<element_id>[a-zA-Z0-9-]+)',
+            array(
+                'methods'             => \WP_REST_Server::DELETABLE,
+                'callback'            => array( $this, 'delete_element' ),
+                'permission_callback' => array( $this, 'check_write_permission' ),
+                'args'                => array(
+                    'id'         => array(
+                        'description'       => __( 'WordPress post/page ID.', 'oxybridge-wp' ),
+                        'type'              => 'integer',
+                        'required'          => true,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => array( $this, 'validate_post_id' ),
+                    ),
+                    'element_id' => array(
+                        'description'       => __( 'Element ID to delete.', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                        'validate_callback' => array( $this, 'validate_element_id' ),
+                    ),
+                ),
+            )
+        );
+
         /**
          * Fires after Oxybridge REST routes are registered.
          *
@@ -1737,6 +1764,203 @@ class REST_API {
         }
 
         return $array1;
+    }
+
+    /**
+     * Delete element endpoint callback.
+     *
+     * Deletes an element from a document's tree structure.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response object or error.
+     */
+    public function delete_element( \WP_REST_Request $request ) {
+        $post_id    = $request->get_param( 'id' );
+        $element_id = $request->get_param( 'element_id' );
+
+        // Verify the post exists.
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return new \WP_Error(
+                'rest_post_not_found',
+                __( 'Post not found.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        // Get the existing document tree.
+        $tree = $this->get_document_tree( $post_id );
+        if ( $tree === null ) {
+            return new \WP_Error(
+                'rest_no_content',
+                __( 'This document does not have Oxygen/Breakdance content.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        // Find the element in the tree before deleting (for response).
+        $element = $this->find_element_in_tree( $tree, $element_id );
+        if ( $element === null ) {
+            return new \WP_Error(
+                'rest_element_not_found',
+                sprintf(
+                    /* translators: %s: element ID */
+                    __( 'Element with ID "%s" not found in document tree.', 'oxybridge-wp' ),
+                    $element_id
+                ),
+                array( 'status' => 404 )
+            );
+        }
+
+        /**
+         * Fires before an element is deleted.
+         *
+         * @since 1.0.0
+         * @param array            $element    The element data being deleted.
+         * @param int              $post_id    The post ID.
+         * @param \WP_REST_Request $request    The request object.
+         */
+        do_action( 'oxybridge_before_element_delete', $element, $post_id, $request );
+
+        // Delete the element from the tree.
+        $result = $this->delete_element_from_tree( $tree, $element_id );
+
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        $tree = $result;
+
+        // Validate tree structure before saving.
+        if ( function_exists( '\Breakdance\Data\is_valid_tree' ) ) {
+            if ( ! \Breakdance\Data\is_valid_tree( $tree ) ) {
+                return new \WP_Error(
+                    'rest_invalid_tree',
+                    __( 'The resulting tree structure is invalid.', 'oxybridge-wp' ),
+                    array( 'status' => 400 )
+                );
+            }
+        }
+
+        // Save the updated tree.
+        $save_result = $this->save_document_tree( $post_id, $tree );
+        if ( is_wp_error( $save_result ) ) {
+            return $save_result;
+        }
+
+        // Trigger CSS regeneration.
+        if ( function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
+            try {
+                \Breakdance\Render\generateCacheForPost( $post_id );
+            } catch ( \Exception $e ) {
+                // Log error but don't fail the request - element was deleted successfully.
+                error_log( 'Oxybridge: CSS regeneration failed after element delete: ' . $e->getMessage() );
+            }
+        }
+
+        /**
+         * Fires after an element has been deleted.
+         *
+         * @since 1.0.0
+         * @param array  $element The deleted element data.
+         * @param int    $post_id The post ID.
+         */
+        do_action( 'oxybridge_element_deleted', $element, $post_id );
+
+        return rest_ensure_response(
+            array(
+                'success'    => true,
+                'element_id' => $element_id,
+                'post_id'    => $post_id,
+                'message'    => __( 'Element deleted successfully.', 'oxybridge-wp' ),
+            )
+        );
+    }
+
+    /**
+     * Delete an element from the document tree.
+     *
+     * @since 1.0.0
+     * @param array  $tree       The document tree.
+     * @param string $element_id The element ID to delete.
+     * @return array|\WP_Error The updated tree or WP_Error on failure.
+     */
+    private function delete_element_from_tree( array $tree, string $element_id ) {
+        // Handle 'root' wrapper.
+        if ( isset( $tree['root'] ) ) {
+            // Cannot delete the root element.
+            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
+                return new \WP_Error(
+                    'rest_cannot_delete_root',
+                    __( 'Cannot delete the root element of a document.', 'oxybridge-wp' ),
+                    array( 'status' => 400 )
+                );
+            }
+
+            $result = $this->delete_element_recursive( $tree['root'], $element_id );
+            if ( $result !== false ) {
+                $tree['root'] = $result;
+                return $tree;
+            }
+        } else {
+            // Direct tree without root wrapper - cannot delete the root.
+            if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
+                return new \WP_Error(
+                    'rest_cannot_delete_root',
+                    __( 'Cannot delete the root element of a document.', 'oxybridge-wp' ),
+                    array( 'status' => 400 )
+                );
+            }
+
+            $result = $this->delete_element_recursive( $tree, $element_id );
+            if ( $result !== false ) {
+                return $result;
+            }
+        }
+
+        return new \WP_Error(
+            'rest_element_not_found',
+            sprintf(
+                /* translators: %s: element ID */
+                __( 'Element with ID "%s" not found in document tree.', 'oxybridge-wp' ),
+                $element_id
+            ),
+            array( 'status' => 404 )
+        );
+    }
+
+    /**
+     * Recursively delete an element from the tree.
+     *
+     * @since 1.0.0
+     * @param array  $node       Current node in tree.
+     * @param string $element_id The element ID to delete.
+     * @return array|false The updated node or false if element not found in this branch.
+     */
+    private function delete_element_recursive( array $node, string $element_id ) {
+        // Search in children.
+        if ( isset( $node['children'] ) && is_array( $node['children'] ) ) {
+            foreach ( $node['children'] as $index => $child ) {
+                // Check if this child is the element to delete.
+                if ( isset( $child['id'] ) && $child['id'] === $element_id ) {
+                    // Remove the element from children array.
+                    array_splice( $node['children'], $index, 1 );
+                    // Re-index the children array.
+                    $node['children'] = array_values( $node['children'] );
+                    return $node;
+                }
+
+                // Recursively search in child's children.
+                $result = $this->delete_element_recursive( $child, $element_id );
+                if ( $result !== false ) {
+                    $node['children'][ $index ] = $result;
+                    return $node;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
