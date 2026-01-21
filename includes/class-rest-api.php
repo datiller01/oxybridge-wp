@@ -1186,10 +1186,10 @@ class REST_API {
 
             return rest_ensure_response(
                 array(
-                    'success'  => true,
-                    'post_id'  => $post_id,
-                    'message'  => __( 'CSS cache regenerated successfully.', 'oxybridge-wp' ),
-                    'duration' => $duration,
+                    'success'              => true,
+                    'post_id'              => $post_id,
+                    'message'              => __( 'CSS cache regenerated successfully.', 'oxybridge-wp' ),
+                    'regeneration_time_ms' => $duration,
                 )
             );
         } catch ( \Exception $e ) {
