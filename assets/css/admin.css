@@ -98,6 +98,32 @@
 }
 
 /**
+ * Status: Not Installed (amber)
+ */
+.oxybridge-server-status.status-not_installed {
+    background-color: #fff3e0;
+    color: #8b5a00;
+    border: 1px solid #dba617;
+}
+
+.oxybridge-server-status.status-not_installed .dashicons {
+    color: #dba617;
+}
+
+/**
+ * Status: Not Built (amber)
+ */
+.oxybridge-server-status.status-not_built {
+    background-color: #fff3e0;
+    color: #8b5a00;
+    border: 1px solid #dba617;
+}
+
+.oxybridge-server-status.status-not_built .dashicons {
+    color: #dba617;
+}
+
+/**
  * Dashicons within status indicator
  */
 .oxybridge-server-status .dashicons {
@@ -230,6 +256,64 @@
     font-family: inherit;
     font-size: inherit;
     color: inherit;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* ==========================================================================
+   Message Types within Output Area
+   ========================================================================== */
+
+/**
+ * Base message styles
+ */
+.oxybridge-message {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+
+.oxybridge-message:last-child {
+    margin-bottom: 0;
+}
+
+/**
+ * Success message (green)
+ */
+.oxybridge-message-success {
+    background-color: #d7f5d7;
+    color: #1e4620;
+    border-left: 4px solid #46b450;
+}
+
+/**
+ * Error message (red)
+ */
+.oxybridge-message-error {
+    background-color: #fde8e8;
+    color: #8b1c1c;
+    border-left: 4px solid #dc3232;
+}
+
+/**
+ * Info message (blue)
+ */
+.oxybridge-message-info {
+    background-color: #e5f5fa;
+    color: #0a4b78;
+    border-left: 4px solid #00a0d2;
+}
+
+/**
+ * Code output (dark console style)
+ */
+.oxybridge-message-code {
+    background-color: #1d2327;
+    color: #f0f0f1;
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    padding: 12px;
+    border-left: none;
     white-space: pre-wrap;
     word-wrap: break-word;
 }

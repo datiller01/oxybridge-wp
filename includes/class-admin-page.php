@@ -346,8 +346,8 @@ class Admin_Page {
 
                 <div class="oxybridge-status-wrapper">
                     <span class="oxybridge-status-label"><?php esc_html_e( 'Server Status:', 'oxybridge-wp' ); ?></span>
-                    <span id="oxybridge-server-status" class="oxybridge-status-indicator oxybridge-status-checking">
-                        <span class="dashicons dashicons-update oxybridge-spin"></span>
+                    <span id="oxybridge-server-status" class="oxybridge-server-status status-checking">
+                        <span class="dashicons dashicons-update spin"></span>
                         <?php esc_html_e( 'Checking...', 'oxybridge-wp' ); ?>
                     </span>
                 </div>
