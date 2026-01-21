@@ -21,9 +21,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 use function Breakdance\Data\get_tree;
 use function Breakdance\Data\is_valid_tree;
 use function Breakdance\Data\get_meta;
+use function Breakdance\Data\set_meta;
 use function Breakdance\Data\get_global_option;
 use function Breakdance\Data\get_tree_elements;
 use function Breakdance\BreakdanceOxygen\Strings\__bdox;
+use function Breakdance\Render\generateCacheForPost;
 
 /**
  * Class Oxygen_Data
@@ -237,6 +239,139 @@ class Oxygen_Data {
         }
 
         return true;
+    }
+
+    /**
+     * Save a tree structure to a post.
+     *
+     * Validates the tree, saves it using the appropriate meta format,
+     * triggers WordPress revision system, and regenerates CSS cache.
+     *
+     * @since 1.0.0
+     *
+     * @param int   $post_id The post ID to save the tree to.
+     * @param array $tree    The complete tree structure to save.
+     * @return array {
+     *     Response array.
+     *
+     *     @type bool   $success Whether the save was successful.
+     *     @type string $message Success or error message.
+     *     @type int    $post_id The post ID that was saved.
+     * }
+     */
+    public function save_tree( int $post_id, array $tree ): array {
+        // Verify post exists.
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return array(
+                'success' => false,
+                'message' => __( 'Post not found.', 'oxybridge' ),
+                'post_id' => $post_id,
+            );
+        }
+
+        // Validate tree structure using Breakdance function or fallback.
+        if ( ! $this->validate_tree( $tree ) ) {
+            return array(
+                'success' => false,
+                'message' => __( 'Invalid tree structure. Tree must have a root element with id, data, and children properties.', 'oxybridge' ),
+                'post_id' => $post_id,
+            );
+        }
+
+        // Encode tree to JSON string.
+        $tree_json = wp_json_encode( $tree );
+        if ( false === $tree_json ) {
+            return array(
+                'success' => false,
+                'message' => __( 'Failed to encode tree to JSON.', 'oxybridge' ),
+                'post_id' => $post_id,
+            );
+        }
+
+        // Get the correct meta prefix for Oxygen/Breakdance.
+        $meta_prefix = $this->get_meta_prefix();
+
+        // Prepare data in Breakdance format.
+        $data = array(
+            'tree_json_string' => $tree_json,
+        );
+
+        // Try using Breakdance set_meta function if available.
+        if ( function_exists( 'Breakdance\Data\set_meta' ) ) {
+            set_meta( $post_id, 'data', wp_json_encode( $data ) );
+        } else {
+            // Fallback to direct meta update.
+            update_post_meta( $post_id, $meta_prefix . 'data', wp_json_encode( $data ) );
+        }
+
+        // Trigger WordPress revision by updating the post.
+        $update_result = wp_update_post(
+            array(
+                'ID'            => $post_id,
+                'post_modified' => current_time( 'mysql' ),
+            )
+        );
+
+        if ( is_wp_error( $update_result ) ) {
+            return array(
+                'success' => false,
+                'message' => __( 'Failed to update post revision.', 'oxybridge' ),
+                'post_id' => $post_id,
+            );
+        }
+
+        // Regenerate CSS cache using Breakdance function if available.
+        $css_regenerated = $this->regenerate_css_for_post( $post_id );
+
+        return array(
+            'success'         => true,
+            'message'         => __( 'Tree saved successfully.', 'oxybridge' ),
+            'post_id'         => $post_id,
+            'css_regenerated' => $css_regenerated,
+        );
+    }
+
+    /**
+     * Regenerate CSS cache for a post.
+     *
+     * @since 1.0.0
+     *
+     * @param int $post_id The post ID to regenerate CSS for.
+     * @return bool True if CSS was regenerated, false otherwise.
+     */
+    public function regenerate_css_for_post( int $post_id ): bool {
+        // Try Breakdance render function first.
+        if ( function_exists( 'Breakdance\Render\generateCacheForPost' ) ) {
+            try {
+                generateCacheForPost( $post_id );
+                return true;
+            } catch ( \Exception $e ) {
+                // Log error but don't fail the save operation.
+                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                    error_log( 'Oxybridge: Failed to regenerate CSS for post ' . $post_id . ': ' . $e->getMessage() );
+                }
+                return false;
+            }
+        }
+
+        // Try Oxygen classic CSS regeneration.
+        if ( class_exists( 'OxyEl' ) && method_exists( 'OxyEl', 'generate_stylesheet' ) ) {
+            try {
+                \OxyEl::generate_stylesheet( $post_id );
+                return true;
+            } catch ( \Exception $e ) {
+                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                    error_log( 'Oxybridge: Failed to regenerate CSS for post ' . $post_id . ': ' . $e->getMessage() );
+                }
+                return false;
+            }
+        }
+
+        // No CSS regeneration function available.
+        return false;
     }
 
     /**
