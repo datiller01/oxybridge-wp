@@ -38,7 +38,7 @@ class Server_Manager {
      *
      * @var string
      */
-    const MCP_DIR_RELATIVE = '../../../../oxybridge-mcp';
+    const MCP_DIR_RELATIVE = '../../../oxybridge-mcp';
 
     /**
      * Required capability to manage the server.
