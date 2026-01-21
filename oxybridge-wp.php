@@ -89,6 +89,11 @@ function oxybridge_init() {
         new \Oxybridge\Admin_Page();
     }
 
+    // Initialize Server Manager for MCP server process management (admin AJAX handlers).
+    if ( is_admin() && class_exists( 'Oxybridge\\Server_Manager' ) ) {
+        new \Oxybridge\Server_Manager();
+    }
+
     // Check if Oxygen/Breakdance is active.
     if ( ! oxybridge_is_oxygen_active() ) {
         add_action( 'admin_notices', 'oxybridge_oxygen_missing_notice' );
