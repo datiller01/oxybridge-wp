@@ -92,7 +92,7 @@ class Admin_Page {
             'oxybridgeAdmin',
             array(
                 'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-                'nonce'   => wp_create_nonce( 'oxybridge_nonce' ),
+                'nonce'   => wp_create_nonce( 'oxybridge_server_nonce' ),
                 'strings' => array(
                     'installing'       => __( 'Installing dependencies...', 'oxybridge-wp' ),
                     'launching'        => __( 'Launching server...', 'oxybridge-wp' ),
@@ -338,7 +338,7 @@ class Admin_Page {
                 </ul>
             </div>
 
-            <div class="card" id="oxybridge-server-management">
+            <div class="card oxybridge-server-card" id="oxybridge-server-management">
                 <h2><?php esc_html_e( 'MCP Server Management', 'oxybridge-wp' ); ?></h2>
                 <p>
                     <?php esc_html_e( 'Manage the oxybridge-mcp Node.js server directly from WordPress. Install dependencies, start and stop the server, and monitor its status.', 'oxybridge-wp' ); ?>
