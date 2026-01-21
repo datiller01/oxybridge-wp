@@ -489,6 +489,9 @@ class Server_Manager {
     /**
      * AJAX handler for checking server status.
      *
+     * Returns comprehensive status information including server state,
+     * environment details, and configuration suggestions.
+     *
      * @since 1.0.0
      *
      * @return void
@@ -498,7 +501,115 @@ class Server_Manager {
 
         $status = $this->get_server_status();
 
-        wp_send_json_success( $status );
+        // Build comprehensive response with additional context.
+        $response = array_merge(
+            $status,
+            $this->get_additional_status_info( $status )
+        );
+
+        wp_send_json_success( $response );
+    }
+
+    /**
+     * Get additional status information for comprehensive AJAX response.
+     *
+     * Provides human-readable messages, warnings, and configuration info.
+     *
+     * @since 1.0.0
+     *
+     * @param array $status The base server status from get_server_status().
+     * @return array {
+     *     Additional status information.
+     *
+     *     @type string $status_label      Human-readable status label (running, stopped, error).
+     *     @type string $status_message    Detailed status message.
+     *     @type array  $warnings          Array of warning messages.
+     *     @type array  $config            WordPress/REST API configuration info for MCP.
+     *     @type string $timestamp         ISO 8601 timestamp of status check.
+     *     @type bool   $can_install       Whether install operation is available.
+     *     @type bool   $can_launch        Whether launch operation is available.
+     *     @type bool   $can_stop          Whether stop operation is available.
+     * }
+     */
+    private function get_additional_status_info( array $status ): array {
+        $warnings = array();
+        $status_label   = 'stopped';
+        $status_message = '';
+
+        // Determine status label and message.
+        if ( $status['running'] ) {
+            $status_label   = 'running';
+            $status_message = sprintf(
+                /* translators: %d: Process ID */
+                __( 'MCP server is running (PID: %d).', 'oxybridge-wp' ),
+                $status['pid']
+            );
+        } elseif ( ! $status['directory_exists'] ) {
+            $status_label   = 'error';
+            $status_message = __( 'MCP server directory not found. Please verify the oxybridge-mcp folder exists.', 'oxybridge-wp' );
+        } elseif ( ! $status['node_available'] ) {
+            $status_label   = 'error';
+            $status_message = __( 'Node.js is not installed or not available in PATH.', 'oxybridge-wp' );
+        } elseif ( ! $status['is_installed'] ) {
+            $status_label   = 'not_installed';
+            $status_message = __( 'Dependencies not installed. Click "Install Dependencies" to set up the MCP server.', 'oxybridge-wp' );
+        } elseif ( ! $status['is_built'] ) {
+            $status_label   = 'not_built';
+            $status_message = __( 'Server not built. Please run "Install Dependencies" to build the project.', 'oxybridge-wp' );
+        } else {
+            $status_label   = 'stopped';
+            $status_message = __( 'MCP server is stopped. Click "Launch Server" to start.', 'oxybridge-wp' );
+        }
+
+        // Collect warnings.
+        if ( ! $status['node_available'] ) {
+            $warnings[] = __( 'Node.js is not installed or not in PATH. Install Node.js 18+ to manage the MCP server.', 'oxybridge-wp' );
+        }
+
+        if ( ! $status['npm_available'] ) {
+            $warnings[] = __( 'npm is not available. npm is required to install dependencies.', 'oxybridge-wp' );
+        }
+
+        if ( $status['directory_exists'] && ! $status['is_installed'] ) {
+            $warnings[] = __( 'Node modules not installed. Run "Install Dependencies" first.', 'oxybridge-wp' );
+        }
+
+        if ( $status['is_installed'] && ! $status['is_built'] ) {
+            $warnings[] = __( 'Server not compiled. The dist/index.js file is missing.', 'oxybridge-wp' );
+        }
+
+        // Check for orphaned PID (PID stored but process not running).
+        $stored_pid = $this->get_stored_pid();
+        if ( $stored_pid > 0 && ! $status['running'] ) {
+            $warnings[] = __( 'Stale process ID detected. The server may have crashed or been stopped externally.', 'oxybridge-wp' );
+            // Clean up the stale PID.
+            $this->clear_pid();
+        }
+
+        // Determine available operations.
+        $can_install = $status['directory_exists'] && $status['npm_available'];
+        $can_launch  = $status['directory_exists'] && $status['is_built'] && $status['node_available'] && ! $status['running'];
+        $can_stop    = $status['running'];
+
+        // Build configuration info for MCP server setup.
+        $config = array(
+            'site_url'       => get_site_url(),
+            'rest_url'       => get_rest_url( null, 'oxybridge/v1/' ),
+            'rest_namespace' => 'oxybridge/v1',
+            'admin_url'      => admin_url(),
+            'plugin_version' => defined( 'OXYBRIDGE_VERSION' ) ? OXYBRIDGE_VERSION : 'unknown',
+        );
+
+        return array(
+            'status_label'   => $status_label,
+            'status_message' => $status_message,
+            'warnings'       => $warnings,
+            'config'         => $config,
+            'timestamp'      => gmdate( 'c' ),
+            'can_install'    => $can_install,
+            'can_launch'     => $can_launch,
+            'can_stop'       => $can_stop,
+        );
     }
 
     /**
