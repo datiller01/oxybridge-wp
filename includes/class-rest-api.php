@@ -329,6 +329,38 @@ class REST_API {
             )
         );
 
+        // Update element endpoint - update existing element in a document.
+        register_rest_route(
+            self::NAMESPACE,
+            '/documents/(?P<id>\d+)/elements/(?P<element_id>[a-zA-Z0-9-]+)',
+            array(
+                'methods'             => \WP_REST_Server::EDITABLE,
+                'callback'            => array( $this, 'update_element' ),
+                'permission_callback' => array( $this, 'check_write_permission' ),
+                'args'                => array(
+                    'id'         => array(
+                        'description'       => __( 'WordPress post/page ID.', 'oxybridge-wp' ),
+                        'type'              => 'integer',
+                        'required'          => true,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => array( $this, 'validate_post_id' ),
+                    ),
+                    'element_id' => array(
+                        'description'       => __( 'Element ID to update.', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                        'validate_callback' => array( $this, 'validate_element_id' ),
+                    ),
+                    'properties' => array(
+                        'description' => __( 'Element properties to update (merged with existing).', 'oxybridge-wp' ),
+                        'type'        => 'object',
+                        'default'     => array(),
+                    ),
+                ),
+            )
+        );
+
         /**
          * Fires after Oxybridge REST routes are registered.
          *
@@ -1380,6 +1412,334 @@ class REST_API {
     }
 
     /**
+     * Update element endpoint callback.
+     *
+     * Updates an existing element's properties in the document tree.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response object or error.
+     */
+    public function update_element( \WP_REST_Request $request ) {
+        $post_id    = $request->get_param( 'id' );
+        $element_id = $request->get_param( 'element_id' );
+        $properties = $request->get_param( 'properties' );
+
+        // Verify the post exists.
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return new \WP_Error(
+                'rest_post_not_found',
+                __( 'Post not found.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        // Get the existing document tree.
+        $tree = $this->get_document_tree( $post_id );
+        if ( $tree === null ) {
+            return new \WP_Error(
+                'rest_no_content',
+                __( 'This document does not have Oxygen/Breakdance content.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        // Find the element in the tree.
+        $element = $this->find_element_in_tree( $tree, $element_id );
+        if ( $element === null ) {
+            return new \WP_Error(
+                'rest_element_not_found',
+                sprintf(
+                    /* translators: %s: element ID */
+                    __( 'Element with ID "%s" not found in document tree.', 'oxybridge-wp' ),
+                    $element_id
+                ),
+                array( 'status' => 404 )
+            );
+        }
+
+        /**
+         * Filters the properties before updating an element.
+         *
+         * @since 1.0.0
+         * @param array            $properties The new properties to merge.
+         * @param array            $element    The existing element data.
+         * @param int              $post_id    The post ID.
+         * @param \WP_REST_Request $request    The request object.
+         */
+        $properties = apply_filters( 'oxybridge_update_element_properties', $properties, $element, $post_id, $request );
+
+        // Update the element in the tree.
+        $result = $this->update_element_in_tree( $tree, $element_id, $properties );
+
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        $tree = $result['tree'];
+        $updated_element = $result['element'];
+
+        // Validate tree structure before saving.
+        if ( function_exists( '\Breakdance\Data\is_valid_tree' ) ) {
+            if ( ! \Breakdance\Data\is_valid_tree( $tree ) ) {
+                return new \WP_Error(
+                    'rest_invalid_tree',
+                    __( 'The resulting tree structure is invalid.', 'oxybridge-wp' ),
+                    array( 'status' => 400 )
+                );
+            }
+        }
+
+        // Save the updated tree.
+        $save_result = $this->save_document_tree( $post_id, $tree );
+        if ( is_wp_error( $save_result ) ) {
+            return $save_result;
+        }
+
+        // Trigger CSS regeneration.
+        if ( function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
+            try {
+                \Breakdance\Render\generateCacheForPost( $post_id );
+            } catch ( \Exception $e ) {
+                // Log error but don't fail the request - element was updated successfully.
+                error_log( 'Oxybridge: CSS regeneration failed after element update: ' . $e->getMessage() );
+            }
+        }
+
+        /**
+         * Fires after an element has been updated.
+         *
+         * @since 1.0.0
+         * @param array  $updated_element The updated element data.
+         * @param array  $properties      The properties that were applied.
+         * @param int    $post_id         The post ID.
+         */
+        do_action( 'oxybridge_element_updated', $updated_element, $properties, $post_id );
+
+        return rest_ensure_response(
+            array(
+                'success'  => true,
+                'element'  => array(
+                    'id'         => $element_id,
+                    'type'       => isset( $updated_element['data']['type'] ) ? $updated_element['data']['type'] : null,
+                    'properties' => isset( $updated_element['data']['properties'] ) ? $updated_element['data']['properties'] : array(),
+                ),
+                'post_id'  => $post_id,
+                'message'  => __( 'Element updated successfully.', 'oxybridge-wp' ),
+            )
+        );
+    }
+
+    /**
+     * Find an element in the document tree by ID.
+     *
+     * @since 1.0.0
+     * @param array  $tree       The document tree.
+     * @param string $element_id The element ID to find.
+     * @return array|null The element data or null if not found.
+     */
+    private function find_element_in_tree( array $tree, string $element_id ) {
+        // Check if tree has 'root' wrapper.
+        if ( isset( $tree['root'] ) ) {
+            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
+                return $tree['root'];
+            }
+            return $this->find_element_recursive( $tree['root'], $element_id );
+        }
+
+        // Check if current node is the element.
+        if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
+            return $tree;
+        }
+
+        // Search in children if present.
+        if ( isset( $tree['children'] ) && is_array( $tree['children'] ) ) {
+            foreach ( $tree['children'] as $child ) {
+                $found = $this->find_element_recursive( $child, $element_id );
+                if ( $found !== null ) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Recursively find an element by ID.
+     *
+     * @since 1.0.0
+     * @param array  $node       Current node in tree.
+     * @param string $element_id The element ID to find.
+     * @return array|null The element data or null if not found.
+     */
+    private function find_element_recursive( array $node, string $element_id ) {
+        // Check if this node is the element.
+        if ( isset( $node['id'] ) && $node['id'] === $element_id ) {
+            return $node;
+        }
+
+        // Search children.
+        if ( isset( $node['children'] ) && is_array( $node['children'] ) ) {
+            foreach ( $node['children'] as $child ) {
+                $found = $this->find_element_recursive( $child, $element_id );
+                if ( $found !== null ) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Update an element's properties in the tree.
+     *
+     * @since 1.0.0
+     * @param array  $tree       The document tree.
+     * @param string $element_id The element ID to update.
+     * @param array  $properties The properties to merge.
+     * @return array|\WP_Error Array with 'tree' and 'element' keys, or WP_Error on failure.
+     */
+    private function update_element_in_tree( array $tree, string $element_id, array $properties ) {
+        // Handle 'root' wrapper.
+        if ( isset( $tree['root'] ) ) {
+            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
+                $tree['root'] = $this->merge_element_properties( $tree['root'], $properties );
+                return array(
+                    'tree'    => $tree,
+                    'element' => $tree['root'],
+                );
+            }
+
+            $result = $this->update_element_recursive( $tree['root'], $element_id, $properties );
+            if ( $result !== false ) {
+                $tree['root'] = $result['node'];
+                return array(
+                    'tree'    => $tree,
+                    'element' => $result['element'],
+                );
+            }
+        } else {
+            // Direct tree without root wrapper.
+            if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
+                $tree = $this->merge_element_properties( $tree, $properties );
+                return array(
+                    'tree'    => $tree,
+                    'element' => $tree,
+                );
+            }
+
+            $result = $this->update_element_recursive( $tree, $element_id, $properties );
+            if ( $result !== false ) {
+                return array(
+                    'tree'    => $result['node'],
+                    'element' => $result['element'],
+                );
+            }
+        }
+
+        return new \WP_Error(
+            'rest_element_not_found',
+            sprintf(
+                /* translators: %s: element ID */
+                __( 'Element with ID "%s" not found in document tree.', 'oxybridge-wp' ),
+                $element_id
+            ),
+            array( 'status' => 404 )
+        );
+    }
+
+    /**
+     * Recursively update element properties in the tree.
+     *
+     * @since 1.0.0
+     * @param array  $node       Current node in tree.
+     * @param string $element_id The element ID to update.
+     * @param array  $properties The properties to merge.
+     * @return array|false Array with 'node' and 'element' keys, or false if not found.
+     */
+    private function update_element_recursive( array $node, string $element_id, array $properties ) {
+        // Check if this node is the element to update.
+        if ( isset( $node['id'] ) && $node['id'] === $element_id ) {
+            $updated_node = $this->merge_element_properties( $node, $properties );
+            return array(
+                'node'    => $updated_node,
+                'element' => $updated_node,
+            );
+        }
+
+        // Search and update in children.
+        if ( isset( $node['children'] ) && is_array( $node['children'] ) ) {
+            foreach ( $node['children'] as $index => $child ) {
+                $result = $this->update_element_recursive( $child, $element_id, $properties );
+                if ( $result !== false ) {
+                    $node['children'][ $index ] = $result['node'];
+                    return array(
+                        'node'    => $node,
+                        'element' => $result['element'],
+                    );
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Merge new properties into an element's existing properties.
+     *
+     * Performs a deep merge of properties, preserving existing values
+     * that are not explicitly overwritten.
+     *
+     * @since 1.0.0
+     * @param array $element    The element to update.
+     * @param array $properties The new properties to merge.
+     * @return array The updated element.
+     */
+    private function merge_element_properties( array $element, array $properties ): array {
+        // Ensure data structure exists.
+        if ( ! isset( $element['data'] ) ) {
+            $element['data'] = array();
+        }
+
+        if ( ! isset( $element['data']['properties'] ) ) {
+            $element['data']['properties'] = array();
+        }
+
+        // Deep merge the properties.
+        $element['data']['properties'] = $this->deep_merge_arrays(
+            $element['data']['properties'],
+            $properties
+        );
+
+        return $element;
+    }
+
+    /**
+     * Deep merge two arrays recursively.
+     *
+     * @since 1.0.0
+     * @param array $array1 The base array.
+     * @param array $array2 The array to merge into base.
+     * @return array The merged array.
+     */
+    private function deep_merge_arrays( array $array1, array $array2 ): array {
+        foreach ( $array2 as $key => $value ) {
+            if ( is_array( $value ) && isset( $array1[ $key ] ) && is_array( $array1[ $key ] ) ) {
+                // Recursively merge arrays.
+                $array1[ $key ] = $this->deep_merge_arrays( $array1[ $key ], $value );
+            } else {
+                // Overwrite with new value.
+                $array1[ $key ] = $value;
+            }
+        }
+
+        return $array1;
+    }
+
+    /**
      * Get the document tree for a post.
      *
      * @since 1.0.0
@@ -1968,6 +2328,53 @@ class REST_API {
                 'rest_post_not_found',
                 __( 'Post not found.', 'oxybridge-wp' ),
                 array( 'status' => 404 )
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate element ID format.
+     *
+     * Validates that the provided value is a valid element ID format
+     * (alphanumeric with dashes, typically a UUID).
+     *
+     * @since 1.0.0
+     * @param mixed            $value   The parameter value.
+     * @param \WP_REST_Request $request The request object.
+     * @param string           $param   The parameter name.
+     * @return bool|\WP_Error True if valid, WP_Error otherwise.
+     */
+    public function validate_element_id( $value, \WP_REST_Request $request, $param ) {
+        if ( ! is_string( $value ) || empty( $value ) ) {
+            return new \WP_Error(
+                'rest_invalid_param',
+                /* translators: %s: parameter name */
+                sprintf( __( '%s must be a non-empty string.', 'oxybridge-wp' ), $param ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Allow UUID format, alphanumeric with dashes, and common element ID patterns.
+        // Element IDs can be UUIDs (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+        // or simple identifiers (e.g., "element-1", "root", "section-abc123").
+        if ( ! preg_match( '/^[a-zA-Z0-9][a-zA-Z0-9\-_]*$/', $value ) ) {
+            return new \WP_Error(
+                'rest_invalid_param',
+                /* translators: %s: parameter name */
+                sprintf( __( '%s must contain only alphanumeric characters, dashes, and underscores.', 'oxybridge-wp' ), $param ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Maximum length check to prevent abuse.
+        if ( strlen( $value ) > 100 ) {
+            return new \WP_Error(
+                'rest_invalid_param',
+                /* translators: %s: parameter name */
+                sprintf( __( '%s exceeds maximum length of 100 characters.', 'oxybridge-wp' ), $param ),
+                array( 'status' => 400 )
             );
         }
 
