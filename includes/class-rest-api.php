@@ -266,6 +266,26 @@ class REST_API {
             )
         );
 
+        // CSS regeneration endpoint - regenerate CSS cache for a specific post.
+        register_rest_route(
+            self::NAMESPACE,
+            '/regenerate-css/(?P<id>\d+)',
+            array(
+                'methods'             => \WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'regenerate_css' ),
+                'permission_callback' => array( $this, 'check_write_permission' ),
+                'args'                => array(
+                    'id' => array(
+                        'description'       => __( 'Post ID to regenerate CSS for.', 'oxybridge-wp' ),
+                        'type'              => 'integer',
+                        'required'          => true,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => array( $this, 'validate_oxygen_post_id' ),
+                    ),
+                ),
+            )
+        );
+
         /**
          * Fires after Oxybridge REST routes are registered.
          *
@@ -1115,6 +1135,87 @@ class REST_API {
     }
 
     /**
+     * Regenerate CSS cache endpoint callback.
+     *
+     * Triggers CSS regeneration for a specific post using Oxygen/Breakdance's
+     * built-in cache regeneration function.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response object or error.
+     */
+    public function regenerate_css( \WP_REST_Request $request ) {
+        $post_id = $request->get_param( 'id' );
+
+        // Verify the post exists (already validated by validate_post_id, but double-check).
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return new \WP_Error(
+                'rest_post_not_found',
+                __( 'Post not found.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        // Check if the Breakdance render function exists.
+        if ( ! function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
+            return new \WP_Error(
+                'rest_regeneration_unavailable',
+                __( 'CSS regeneration function is not available. Oxygen/Breakdance may not be active.', 'oxybridge-wp' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        // Record start time for duration tracking.
+        $start_time = microtime( true );
+
+        try {
+            // Call Oxygen/Breakdance's built-in cache regeneration function.
+            \Breakdance\Render\generateCacheForPost( $post_id );
+
+            $duration = round( ( microtime( true ) - $start_time ) * 1000 );
+
+            /**
+             * Fires after CSS cache has been regenerated for a post.
+             *
+             * @since 1.0.0
+             * @param int   $post_id  The post ID.
+             * @param float $duration The regeneration duration in milliseconds.
+             */
+            do_action( 'oxybridge_css_regenerated', $post_id, $duration );
+
+            return rest_ensure_response(
+                array(
+                    'success'  => true,
+                    'post_id'  => $post_id,
+                    'message'  => __( 'CSS cache regenerated successfully.', 'oxybridge-wp' ),
+                    'duration' => $duration,
+                )
+            );
+        } catch ( \Exception $e ) {
+            return new \WP_Error(
+                'rest_regeneration_failed',
+                sprintf(
+                    /* translators: %s: error message */
+                    __( 'CSS regeneration failed: %s', 'oxybridge-wp' ),
+                    $e->getMessage()
+                ),
+                array( 'status' => 500 )
+            );
+        } catch ( \Error $e ) {
+            return new \WP_Error(
+                'rest_regeneration_error',
+                sprintf(
+                    /* translators: %s: error message */
+                    __( 'CSS regeneration encountered an error: %s', 'oxybridge-wp' ),
+                    $e->getMessage()
+                ),
+                array( 'status' => 500 )
+            );
+        }
+    }
+
+    /**
      * Fallback method for getting global styles when Oxygen_Data is unavailable.
      *
      * @since 1.0.0
@@ -1347,6 +1448,45 @@ class REST_API {
     }
 
     /**
+     * Check if user has write permission.
+     *
+     * Verifies that the current user has sufficient capabilities to perform
+     * write operations such as CSS regeneration and element modifications.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return bool|\WP_Error True if permitted, WP_Error otherwise.
+     */
+    public function check_write_permission( \WP_REST_Request $request ) {
+        // User must be authenticated.
+        if ( ! is_user_logged_in() ) {
+            return new \WP_Error(
+                'rest_forbidden',
+                __( 'Authentication required.', 'oxybridge-wp' ),
+                array( 'status' => 401 )
+            );
+        }
+
+        // Check for edit_posts capability (minimum required for write operations).
+        if ( ! current_user_can( 'edit_posts' ) ) {
+            return new \WP_Error(
+                'rest_forbidden',
+                __( 'You do not have permission to modify this resource.', 'oxybridge-wp' ),
+                array( 'status' => 403 )
+            );
+        }
+
+        /**
+         * Filters whether the current user can access Oxybridge write endpoints.
+         *
+         * @since 1.0.0
+         * @param bool             $allowed Whether access is allowed.
+         * @param \WP_REST_Request $request The request object.
+         */
+        return apply_filters( 'oxybridge_rest_write_permission', true, $request );
+    }
+
+    /**
      * Validate post ID.
      *
      * @since 1.0.0
@@ -1420,6 +1560,86 @@ class REST_API {
         }
 
         return true;
+    }
+
+    /**
+     * Validate Oxygen post ID.
+     *
+     * Validates that the provided value is a valid post ID AND that the post
+     * has Oxygen/Breakdance content (page builder data).
+     *
+     * @since 1.0.0
+     * @param mixed            $value   The parameter value.
+     * @param \WP_REST_Request $request The request object.
+     * @param string           $param   The parameter name.
+     * @return bool|\WP_Error True if valid, WP_Error otherwise.
+     */
+    public function validate_oxygen_post_id( $value, \WP_REST_Request $request, $param ) {
+        if ( ! is_numeric( $value ) || (int) $value < 1 ) {
+            return new \WP_Error(
+                'rest_invalid_param',
+                /* translators: %s: parameter name */
+                sprintf( __( '%s must be a valid positive integer.', 'oxybridge-wp' ), $param ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $post = get_post( (int) $value );
+
+        if ( ! $post ) {
+            return new \WP_Error(
+                'rest_post_not_found',
+                __( 'Post not found.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        // Check if the post has Oxygen/Breakdance content.
+        if ( ! $this->has_oxygen_content( (int) $value ) ) {
+            return new \WP_Error(
+                'rest_no_oxygen_content',
+                __( 'The specified post does not have Oxygen/Breakdance content.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if a post has Oxygen/Breakdance content.
+     *
+     * Checks for the presence of builder data in post meta using both
+     * modern (Oxygen 6/Breakdance) and classic (Oxygen) meta key formats.
+     *
+     * @since 1.0.0
+     * @param int $post_id The post ID to check.
+     * @return bool True if post has Oxygen/Breakdance content, false otherwise.
+     */
+    private function has_oxygen_content( int $post_id ): bool {
+        // Check for modern Oxygen 6 / Breakdance data format.
+        $meta_prefix = $this->get_meta_prefix();
+        $builder_data = get_post_meta( $post_id, $meta_prefix . 'data', true );
+
+        if ( ! empty( $builder_data ) ) {
+            return true;
+        }
+
+        // Check for classic Oxygen data format (ct_builder_json).
+        $classic_data = get_post_meta( $post_id, 'ct_builder_json', true );
+
+        if ( ! empty( $classic_data ) ) {
+            return true;
+        }
+
+        // Check for Oxygen shortcodes meta (another classic format).
+        $shortcodes = get_post_meta( $post_id, 'ct_builder_shortcodes', true );
+
+        if ( ! empty( $shortcodes ) ) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
