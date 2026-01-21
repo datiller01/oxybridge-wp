@@ -102,6 +102,36 @@ class REST_API {
             )
         );
 
+        // Document save endpoint - save complete Oxygen/Breakdance document tree.
+        register_rest_route(
+            self::NAMESPACE,
+            '/documents/(?P<id>\d+)',
+            array(
+                'methods'             => \WP_REST_Server::EDITABLE,
+                'callback'            => array( $this, 'save_document' ),
+                'permission_callback' => array( $this, 'check_write_permission' ),
+                'args'                => array(
+                    'id'              => array(
+                        'description'       => __( 'WordPress post/page ID.', 'oxybridge-wp' ),
+                        'type'              => 'integer',
+                        'required'          => true,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => array( $this, 'validate_post_id' ),
+                    ),
+                    'tree'            => array(
+                        'description' => __( 'The complete document tree to save.', 'oxybridge-wp' ),
+                        'type'        => 'object',
+                        'required'    => true,
+                    ),
+                    'regenerate_css'  => array(
+                        'description' => __( 'Whether to regenerate CSS after saving.', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => true,
+                    ),
+                ),
+            )
+        );
+
         // Page/Post navigator endpoint - list and search content.
         register_rest_route(
             self::NAMESPACE,
@@ -474,6 +504,158 @@ class REST_API {
                 'message' => __( 'Document reading will be implemented in subsequent subtasks.', 'oxybridge-wp' ),
             )
         );
+    }
+
+    /**
+     * Save document endpoint callback.
+     *
+     * Saves a complete document tree to a post, replacing the existing content.
+     * This is a batch operation that saves the entire tree structure at once.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response object or error.
+     */
+    public function save_document( \WP_REST_Request $request ) {
+        $post_id        = $request->get_param( 'id' );
+        $tree           = $request->get_param( 'tree' );
+        $regenerate_css = $request->get_param( 'regenerate_css' );
+
+        // Verify the post exists.
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return new \WP_Error(
+                'rest_post_not_found',
+                __( 'Post not found.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        // Validate tree structure.
+        if ( empty( $tree ) || ! is_array( $tree ) ) {
+            return new \WP_Error(
+                'rest_invalid_tree',
+                __( 'The tree parameter must be a valid object.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Validate tree has required structure.
+        if ( ! isset( $tree['root'] ) || ! is_array( $tree['root'] ) ) {
+            return new \WP_Error(
+                'rest_invalid_tree_structure',
+                __( 'The tree must contain a "root" object.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Validate root has required properties.
+        if ( ! isset( $tree['root']['id'] ) ) {
+            return new \WP_Error(
+                'rest_invalid_root',
+                __( 'The root element must have an "id" property.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        /**
+         * Filters the document tree before saving.
+         *
+         * Allows modification of the tree structure before it is saved to the database.
+         *
+         * @since 1.0.0
+         * @param array            $tree    The document tree to save.
+         * @param int              $post_id The post ID.
+         * @param \WP_REST_Request $request The request object.
+         */
+        $tree = apply_filters( 'oxybridge_save_document_tree', $tree, $post_id, $request );
+
+        // Validate tree structure using Breakdance validation if available.
+        if ( function_exists( '\Breakdance\Data\is_valid_tree' ) ) {
+            if ( ! \Breakdance\Data\is_valid_tree( $tree ) ) {
+                return new \WP_Error(
+                    'rest_invalid_tree',
+                    __( 'The tree structure failed validation.', 'oxybridge-wp' ),
+                    array( 'status' => 400 )
+                );
+            }
+        }
+
+        // Save the document tree.
+        $save_result = $this->save_document_tree( $post_id, $tree );
+        if ( is_wp_error( $save_result ) ) {
+            return $save_result;
+        }
+
+        // Trigger CSS regeneration if requested.
+        if ( $regenerate_css && function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
+            try {
+                \Breakdance\Render\generateCacheForPost( $post_id );
+            } catch ( \Exception $e ) {
+                // Log error but don't fail the request - document was saved successfully.
+                error_log( 'Oxybridge: CSS regeneration failed after document save: ' . $e->getMessage() );
+            }
+        }
+
+        /**
+         * Fires after a document has been saved.
+         *
+         * @since 1.0.0
+         * @param array $tree    The saved document tree.
+         * @param int   $post_id The post ID.
+         */
+        do_action( 'oxybridge_document_saved', $tree, $post_id );
+
+        // Count elements in the tree for response.
+        $element_count = $this->count_tree_elements( $tree );
+
+        return rest_ensure_response(
+            array(
+                'success'       => true,
+                'post_id'       => $post_id,
+                'element_count' => $element_count,
+                'message'       => __( 'Document saved successfully.', 'oxybridge-wp' ),
+            )
+        );
+    }
+
+    /**
+     * Count elements in a document tree.
+     *
+     * @since 1.0.0
+     * @param array $tree The document tree.
+     * @return int The number of elements in the tree.
+     */
+    private function count_tree_elements( array $tree ): int {
+        $count = 0;
+
+        if ( isset( $tree['root'] ) ) {
+            $count = 1; // Count the root.
+            if ( isset( $tree['root']['children'] ) && is_array( $tree['root']['children'] ) ) {
+                $count += $this->count_children_recursive( $tree['root']['children'] );
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Recursively count children in a tree.
+     *
+     * @since 1.0.0
+     * @param array $children The children array.
+     * @return int The number of child elements.
+     */
+    private function count_children_recursive( array $children ): int {
+        $count = count( $children );
+
+        foreach ( $children as $child ) {
+            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
+                $count += $this->count_children_recursive( $child['children'] );
+            }
+        }
+
+        return $count;
     }
 
     /**
