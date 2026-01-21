@@ -266,6 +266,29 @@ class REST_API {
             )
         );
 
+        // Schema elements endpoint - list available element types with property schemas.
+        register_rest_route(
+            self::NAMESPACE,
+            '/schema/elements',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_schema_elements' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
+                'args'                => array(
+                    'category'         => array(
+                        'description'       => __( 'Filter by element category (layout, basic, forms, interactive, wordpress).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'include_schemas'  => array(
+                        'description' => __( 'Include property schemas for each element type.', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => true,
+                    ),
+                ),
+            )
+        );
+
         // Global styles endpoint - read global Oxygen/Breakdance styles.
         register_rest_route(
             self::NAMESPACE,
@@ -1351,6 +1374,591 @@ class REST_API {
                 'categories'    => array(),
                 'message'       => __( 'Element schema generation will be implemented in subsequent subtasks.', 'oxybridge-wp' ),
             )
+        );
+    }
+
+    /**
+     * Get schema elements endpoint callback.
+     *
+     * Returns available element types with their property schemas for use by
+     * MCP clients to understand what elements can be created and their properties.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_schema_elements( \WP_REST_Request $request ) {
+        $category        = $request->get_param( 'category' );
+        $include_schemas = $request->get_param( 'include_schemas' );
+
+        // Get element types from Oxygen_Data if available.
+        $element_types = array();
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data   = new Oxygen_Data();
+            $element_types = $oxygen_data->get_available_element_types();
+        } else {
+            // Fallback: use built-in list.
+            $element_types = $this->get_fallback_element_types();
+        }
+
+        // Filter by category if specified.
+        if ( ! empty( $category ) ) {
+            $element_types = array_filter(
+                $element_types,
+                function ( $element ) use ( $category ) {
+                    return isset( $element['category'] ) &&
+                           strtolower( $element['category'] ) === strtolower( $category );
+                }
+            );
+            $element_types = array_values( $element_types ); // Re-index array.
+        }
+
+        // Add property schemas if requested.
+        if ( $include_schemas ) {
+            $element_types = array_map(
+                function ( $element ) {
+                    $element['properties_schema'] = $this->get_element_property_schema( $element['type'] );
+                    return $element;
+                },
+                $element_types
+            );
+        }
+
+        // Build category list from unique categories.
+        $categories = array_unique( array_column( $element_types, 'category' ) );
+        sort( $categories );
+
+        /**
+         * Filters the schema elements data before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $element_types The element types data.
+         * @param string|null      $category      The requested category filter.
+         * @param \WP_REST_Request $request       The request object.
+         */
+        $element_types = apply_filters( 'oxybridge_rest_schema_elements', $element_types, $category, $request );
+
+        return rest_ensure_response(
+            array(
+                'elements'   => $element_types,
+                'categories' => $categories,
+                'total'      => count( $element_types ),
+                '_meta'      => array(
+                    'builder'   => $this->get_builder_name(),
+                    'version'   => $this->get_oxygen_version(),
+                    'timestamp' => current_time( 'c' ),
+                ),
+            )
+        );
+    }
+
+    /**
+     * Get property schema for a specific element type.
+     *
+     * Returns the property schema definition for an element type, describing
+     * what properties can be set and their types.
+     *
+     * @since 1.0.0
+     * @param string $element_type The element type (e.g., "EssentialElements\\Section").
+     * @return array The property schema for the element.
+     */
+    private function get_element_property_schema( string $element_type ): array {
+        // Common properties shared by all elements.
+        $common_properties = array(
+            'id'      => array(
+                'type'        => 'string',
+                'description' => __( 'Unique element ID (auto-generated if not provided).', 'oxybridge-wp' ),
+                'required'    => false,
+            ),
+            'cssClass' => array(
+                'type'        => 'string',
+                'description' => __( 'Custom CSS class names.', 'oxybridge-wp' ),
+                'required'    => false,
+            ),
+            'cssId'   => array(
+                'type'        => 'string',
+                'description' => __( 'Custom CSS ID.', 'oxybridge-wp' ),
+                'required'    => false,
+            ),
+        );
+
+        // Get element-specific properties based on type.
+        $specific_properties = $this->get_type_specific_properties( $element_type );
+
+        return array_merge( $common_properties, $specific_properties );
+    }
+
+    /**
+     * Get type-specific properties for an element type.
+     *
+     * @since 1.0.0
+     * @param string $element_type The element type.
+     * @return array Type-specific property schemas.
+     */
+    private function get_type_specific_properties( string $element_type ): array {
+        // Extract the base element name from the namespace.
+        $parts     = explode( '\\', $element_type );
+        $base_name = strtolower( end( $parts ) );
+
+        // Define property schemas for common element types.
+        $schemas = array(
+            'section'   => array(
+                'tag'             => array(
+                    'type'        => 'string',
+                    'description' => __( 'HTML tag to use (section, div, article, etc.).', 'oxybridge-wp' ),
+                    'default'     => 'section',
+                    'enum'        => array( 'section', 'div', 'article', 'aside', 'header', 'footer', 'main', 'nav' ),
+                ),
+                'fullWidth'       => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Make section full width.', 'oxybridge-wp' ),
+                    'default'     => false,
+                ),
+            ),
+            'container' => array(
+                'tag'             => array(
+                    'type'        => 'string',
+                    'description' => __( 'HTML tag to use.', 'oxybridge-wp' ),
+                    'default'     => 'div',
+                    'enum'        => array( 'div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav', 'span' ),
+                ),
+                'direction'       => array(
+                    'type'        => 'string',
+                    'description' => __( 'Flex direction.', 'oxybridge-wp' ),
+                    'default'     => 'vertical',
+                    'enum'        => array( 'vertical', 'horizontal' ),
+                ),
+            ),
+            'heading'   => array(
+                'text'            => array(
+                    'type'        => 'string',
+                    'description' => __( 'Heading text content.', 'oxybridge-wp' ),
+                    'required'    => true,
+                ),
+                'tag'             => array(
+                    'type'        => 'string',
+                    'description' => __( 'Heading level (h1-h6).', 'oxybridge-wp' ),
+                    'default'     => 'h2',
+                    'enum'        => array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ),
+                ),
+            ),
+            'text'      => array(
+                'text'            => array(
+                    'type'        => 'string',
+                    'description' => __( 'Text content (supports HTML).', 'oxybridge-wp' ),
+                    'required'    => true,
+                ),
+                'tag'             => array(
+                    'type'        => 'string',
+                    'description' => __( 'HTML tag to use.', 'oxybridge-wp' ),
+                    'default'     => 'p',
+                    'enum'        => array( 'p', 'span', 'div' ),
+                ),
+            ),
+            'richtext'  => array(
+                'text'            => array(
+                    'type'        => 'string',
+                    'description' => __( 'Rich text content (supports full HTML).', 'oxybridge-wp' ),
+                    'required'    => true,
+                ),
+            ),
+            'image'     => array(
+                'src'             => array(
+                    'type'        => 'string',
+                    'description' => __( 'Image URL or attachment ID.', 'oxybridge-wp' ),
+                    'required'    => true,
+                ),
+                'alt'             => array(
+                    'type'        => 'string',
+                    'description' => __( 'Image alt text.', 'oxybridge-wp' ),
+                ),
+                'width'           => array(
+                    'type'        => 'string',
+                    'description' => __( 'Image width (px, %, auto).', 'oxybridge-wp' ),
+                ),
+                'height'          => array(
+                    'type'        => 'string',
+                    'description' => __( 'Image height (px, %, auto).', 'oxybridge-wp' ),
+                ),
+            ),
+            'button'    => array(
+                'text'            => array(
+                    'type'        => 'string',
+                    'description' => __( 'Button text.', 'oxybridge-wp' ),
+                    'required'    => true,
+                ),
+                'link'            => array(
+                    'type'        => 'string',
+                    'description' => __( 'Button link URL.', 'oxybridge-wp' ),
+                ),
+                'target'          => array(
+                    'type'        => 'string',
+                    'description' => __( 'Link target.', 'oxybridge-wp' ),
+                    'default'     => '_self',
+                    'enum'        => array( '_self', '_blank' ),
+                ),
+                'type'            => array(
+                    'type'        => 'string',
+                    'description' => __( 'Button type.', 'oxybridge-wp' ),
+                    'default'     => 'primary',
+                    'enum'        => array( 'primary', 'secondary', 'outline', 'text' ),
+                ),
+            ),
+            'icon'      => array(
+                'icon'            => array(
+                    'type'        => 'string',
+                    'description' => __( 'Icon name or SVG code.', 'oxybridge-wp' ),
+                    'required'    => true,
+                ),
+                'size'            => array(
+                    'type'        => 'string',
+                    'description' => __( 'Icon size.', 'oxybridge-wp' ),
+                ),
+            ),
+            'video'     => array(
+                'src'             => array(
+                    'type'        => 'string',
+                    'description' => __( 'Video URL (supports YouTube, Vimeo, or direct video URL).', 'oxybridge-wp' ),
+                    'required'    => true,
+                ),
+                'autoplay'        => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Autoplay video.', 'oxybridge-wp' ),
+                    'default'     => false,
+                ),
+                'loop'            => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Loop video.', 'oxybridge-wp' ),
+                    'default'     => false,
+                ),
+                'muted'           => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Mute video.', 'oxybridge-wp' ),
+                    'default'     => false,
+                ),
+            ),
+            'spacer'    => array(
+                'height'          => array(
+                    'type'        => 'string',
+                    'description' => __( 'Spacer height.', 'oxybridge-wp' ),
+                    'default'     => '20px',
+                ),
+            ),
+            'columns'   => array(
+                'columns'         => array(
+                    'type'        => 'integer',
+                    'description' => __( 'Number of columns.', 'oxybridge-wp' ),
+                    'default'     => 2,
+                    'minimum'     => 1,
+                    'maximum'     => 12,
+                ),
+                'gap'             => array(
+                    'type'        => 'string',
+                    'description' => __( 'Gap between columns.', 'oxybridge-wp' ),
+                    'default'     => '20px',
+                ),
+            ),
+            'column'    => array(
+                'width'           => array(
+                    'type'        => 'string',
+                    'description' => __( 'Column width (fraction or percentage).', 'oxybridge-wp' ),
+                ),
+            ),
+            'div'       => array(
+                'tag'             => array(
+                    'type'        => 'string',
+                    'description' => __( 'HTML tag to use.', 'oxybridge-wp' ),
+                    'default'     => 'div',
+                    'enum'        => array( 'div', 'span', 'article', 'aside', 'header', 'footer', 'main', 'nav' ),
+                ),
+            ),
+            'accordion' => array(
+                'openFirst'       => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Open first item by default.', 'oxybridge-wp' ),
+                    'default'     => true,
+                ),
+                'allowMultiple'   => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Allow multiple items open at once.', 'oxybridge-wp' ),
+                    'default'     => false,
+                ),
+            ),
+            'tabs'      => array(
+                'defaultTab'      => array(
+                    'type'        => 'integer',
+                    'description' => __( 'Index of default active tab.', 'oxybridge-wp' ),
+                    'default'     => 0,
+                ),
+                'orientation'     => array(
+                    'type'        => 'string',
+                    'description' => __( 'Tab orientation.', 'oxybridge-wp' ),
+                    'default'     => 'horizontal',
+                    'enum'        => array( 'horizontal', 'vertical' ),
+                ),
+            ),
+            'slider'    => array(
+                'autoplay'        => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Enable autoplay.', 'oxybridge-wp' ),
+                    'default'     => false,
+                ),
+                'interval'        => array(
+                    'type'        => 'integer',
+                    'description' => __( 'Autoplay interval in milliseconds.', 'oxybridge-wp' ),
+                    'default'     => 5000,
+                ),
+                'showArrows'      => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Show navigation arrows.', 'oxybridge-wp' ),
+                    'default'     => true,
+                ),
+                'showDots'        => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Show navigation dots.', 'oxybridge-wp' ),
+                    'default'     => true,
+                ),
+            ),
+            'modal'     => array(
+                'trigger'         => array(
+                    'type'        => 'string',
+                    'description' => __( 'Modal trigger type.', 'oxybridge-wp' ),
+                    'default'     => 'click',
+                    'enum'        => array( 'click', 'hover', 'load', 'exit' ),
+                ),
+                'closeOnOverlay'  => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Close modal when clicking overlay.', 'oxybridge-wp' ),
+                    'default'     => true,
+                ),
+            ),
+            'postcontent' => array(
+                'postId'          => array(
+                    'type'        => 'integer',
+                    'description' => __( 'Post ID to display content from (leave empty for current post).', 'oxybridge-wp' ),
+                ),
+            ),
+            'posttitle' => array(
+                'tag'             => array(
+                    'type'        => 'string',
+                    'description' => __( 'HTML tag for the title.', 'oxybridge-wp' ),
+                    'default'     => 'h1',
+                    'enum'        => array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'div' ),
+                ),
+                'link'            => array(
+                    'type'        => 'boolean',
+                    'description' => __( 'Link title to post.', 'oxybridge-wp' ),
+                    'default'     => false,
+                ),
+            ),
+            'postsloop' => array(
+                'postType'        => array(
+                    'type'        => 'string',
+                    'description' => __( 'Post type to query.', 'oxybridge-wp' ),
+                    'default'     => 'post',
+                ),
+                'postsPerPage'    => array(
+                    'type'        => 'integer',
+                    'description' => __( 'Number of posts to display.', 'oxybridge-wp' ),
+                    'default'     => 10,
+                ),
+                'orderBy'         => array(
+                    'type'        => 'string',
+                    'description' => __( 'Order posts by.', 'oxybridge-wp' ),
+                    'default'     => 'date',
+                    'enum'        => array( 'date', 'title', 'modified', 'menu_order', 'rand' ),
+                ),
+                'order'           => array(
+                    'type'        => 'string',
+                    'description' => __( 'Order direction.', 'oxybridge-wp' ),
+                    'default'     => 'DESC',
+                    'enum'        => array( 'ASC', 'DESC' ),
+                ),
+            ),
+            'menu'      => array(
+                'menuId'          => array(
+                    'type'        => 'integer',
+                    'description' => __( 'WordPress menu ID.', 'oxybridge-wp' ),
+                ),
+                'menuLocation'    => array(
+                    'type'        => 'string',
+                    'description' => __( 'WordPress menu location slug.', 'oxybridge-wp' ),
+                ),
+            ),
+            'shortcode' => array(
+                'shortcode'       => array(
+                    'type'        => 'string',
+                    'description' => __( 'Shortcode to execute (without brackets).', 'oxybridge-wp' ),
+                    'required'    => true,
+                ),
+            ),
+            'formbuilder' => array(
+                'formId'          => array(
+                    'type'        => 'string',
+                    'description' => __( 'Form identifier.', 'oxybridge-wp' ),
+                ),
+                'submitText'      => array(
+                    'type'        => 'string',
+                    'description' => __( 'Submit button text.', 'oxybridge-wp' ),
+                    'default'     => 'Submit',
+                ),
+            ),
+        );
+
+        return $schemas[ $base_name ] ?? array();
+    }
+
+    /**
+     * Get fallback list of element types when Oxygen_Data is not available.
+     *
+     * @since 1.0.0
+     * @return array Array of element types.
+     */
+    private function get_fallback_element_types(): array {
+        return array(
+            // Layout Elements.
+            array(
+                'type'        => 'EssentialElements\\Section',
+                'name'        => 'Section',
+                'category'    => 'layout',
+                'description' => __( 'Container section for grouping content.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Container',
+                'name'        => 'Container',
+                'category'    => 'layout',
+                'description' => __( 'Flexible container element.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Columns',
+                'name'        => 'Columns',
+                'category'    => 'layout',
+                'description' => __( 'Multi-column layout element.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Column',
+                'name'        => 'Column',
+                'category'    => 'layout',
+                'description' => __( 'Individual column within Columns element.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Div',
+                'name'        => 'Div',
+                'category'    => 'layout',
+                'description' => __( 'Generic div container.', 'oxybridge-wp' ),
+            ),
+            // Basic Elements.
+            array(
+                'type'        => 'EssentialElements\\Heading',
+                'name'        => 'Heading',
+                'category'    => 'basic',
+                'description' => __( 'Heading text element (H1-H6).', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Text',
+                'name'        => 'Text',
+                'category'    => 'basic',
+                'description' => __( 'Rich text content element.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\RichText',
+                'name'        => 'Rich Text',
+                'category'    => 'basic',
+                'description' => __( 'Rich text editor element.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Image',
+                'name'        => 'Image',
+                'category'    => 'basic',
+                'description' => __( 'Image element with responsive support.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Button',
+                'name'        => 'Button',
+                'category'    => 'basic',
+                'description' => __( 'Button element with link support.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Icon',
+                'name'        => 'Icon',
+                'category'    => 'basic',
+                'description' => __( 'Icon element.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Video',
+                'name'        => 'Video',
+                'category'    => 'basic',
+                'description' => __( 'Video embed element.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Spacer',
+                'name'        => 'Spacer',
+                'category'    => 'basic',
+                'description' => __( 'Vertical spacing element.', 'oxybridge-wp' ),
+            ),
+            // Form Elements.
+            array(
+                'type'        => 'EssentialElements\\FormBuilder',
+                'name'        => 'Form Builder',
+                'category'    => 'forms',
+                'description' => __( 'Form builder element.', 'oxybridge-wp' ),
+            ),
+            // Interactive Elements.
+            array(
+                'type'        => 'EssentialElements\\Accordion',
+                'name'        => 'Accordion',
+                'category'    => 'interactive',
+                'description' => __( 'Accordion/collapsible content element.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Tabs',
+                'name'        => 'Tabs',
+                'category'    => 'interactive',
+                'description' => __( 'Tabbed content element.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Slider',
+                'name'        => 'Slider',
+                'category'    => 'interactive',
+                'description' => __( 'Image/content slider element.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Modal',
+                'name'        => 'Modal',
+                'category'    => 'interactive',
+                'description' => __( 'Modal/popup element.', 'oxybridge-wp' ),
+            ),
+            // WordPress Elements.
+            array(
+                'type'        => 'EssentialElements\\PostContent',
+                'name'        => 'Post Content',
+                'category'    => 'wordpress',
+                'description' => __( 'Dynamic post content.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\PostTitle',
+                'name'        => 'Post Title',
+                'category'    => 'wordpress',
+                'description' => __( 'Dynamic post title.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\PostsLoop',
+                'name'        => 'Posts Loop',
+                'category'    => 'wordpress',
+                'description' => __( 'Loop through posts.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Menu',
+                'name'        => 'Menu',
+                'category'    => 'wordpress',
+                'description' => __( 'WordPress navigation menu.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'EssentialElements\\Shortcode',
+                'name'        => 'Shortcode',
+                'category'    => 'wordpress',
+                'description' => __( 'Execute WordPress shortcodes.', 'oxybridge-wp' ),
+            ),
         );
     }
 
