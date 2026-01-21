@@ -1230,4 +1230,102 @@ class Oxygen_Data {
 
         return $merged;
     }
+
+    /**
+     * Delete an element from the document tree.
+     *
+     * Finds the element by ID and removes it along with all its children.
+     * The root element cannot be deleted.
+     *
+     * @since 1.0.0
+     *
+     * @param int    $post_id    The post ID containing the tree.
+     * @param string $element_id The ID of the element to delete.
+     * @return bool True if deletion was successful, false otherwise.
+     */
+    public function delete_element( int $post_id, string $element_id ): bool {
+        // Get the current tree.
+        $tree = $this->get_template_tree( $post_id );
+
+        if ( $tree === false ) {
+            return false;
+        }
+
+        // Prevent deletion of root element.
+        if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
+            return false;
+        }
+
+        // Delete the element from the tree.
+        $deleted = $this->delete_element_in_tree( $tree, $element_id );
+
+        if ( ! $deleted ) {
+            return false;
+        }
+
+        // Save the modified tree.
+        $save_result = $this->save_tree( $post_id, $tree );
+
+        return $save_result['success'];
+    }
+
+    /**
+     * Delete an element from a tree structure.
+     *
+     * Recursively searches the tree and removes the element with the given ID.
+     * All children of the deleted element are also removed.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $tree       The tree to search (passed by reference).
+     * @param string $element_id The element ID to delete.
+     * @return bool True if element was found and deleted, false otherwise.
+     */
+    private function delete_element_in_tree( array &$tree, string $element_id ): bool {
+        // Check if this is the root level with 'root' key.
+        if ( isset( $tree['root'] ) ) {
+            // Search in root's children.
+            if ( isset( $tree['root']['children'] ) && is_array( $tree['root']['children'] ) ) {
+                return $this->delete_element_in_children( $tree['root']['children'], $element_id );
+            }
+            return false;
+        }
+
+        // Search in children.
+        if ( isset( $tree['children'] ) && is_array( $tree['children'] ) ) {
+            return $this->delete_element_in_children( $tree['children'], $element_id );
+        }
+
+        return false;
+    }
+
+    /**
+     * Delete an element from a children array.
+     *
+     * Helper method for recursive element deletion.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $children   Array of child elements (passed by reference).
+     * @param string $element_id The element ID to delete.
+     * @return bool True if element was found and deleted, false otherwise.
+     */
+    private function delete_element_in_children( array &$children, string $element_id ): bool {
+        foreach ( $children as $index => $child ) {
+            if ( isset( $child['id'] ) && $child['id'] === $element_id ) {
+                // Remove the element and its children.
+                array_splice( $children, $index, 1 );
+                return true;
+            }
+
+            // Recursively search in children.
+            if ( isset( $children[ $index ]['children'] ) && is_array( $children[ $index ]['children'] ) ) {
+                if ( $this->delete_element_in_children( $children[ $index ]['children'], $element_id ) ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }
