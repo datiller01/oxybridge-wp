@@ -1,0 +1,424 @@
+/**
+ * Oxybridge Admin Styles
+ *
+ * Styles for the MCP Server Management admin interface.
+ *
+ * @package Oxybridge
+ * @since 1.0.0
+ */
+
+/* ==========================================================================
+   Status Indicator Styles
+   ========================================================================== */
+
+/**
+ * Status wrapper - contains label and indicator
+ */
+.oxybridge-status-wrapper {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+}
+
+/**
+ * Status label text
+ */
+.oxybridge-status-wrapper .status-label {
+    font-weight: 600;
+    margin-right: 8px;
+    color: #1d2327;
+}
+
+/**
+ * Status indicator - displays current server state
+ */
+.oxybridge-server-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+/**
+ * Status: Running (green)
+ */
+.oxybridge-server-status.status-running {
+    background-color: #d7f5d7;
+    color: #1e4620;
+    border: 1px solid #46b450;
+}
+
+.oxybridge-server-status.status-running .dashicons {
+    color: #46b450;
+}
+
+/**
+ * Status: Stopped (red)
+ */
+.oxybridge-server-status.status-stopped {
+    background-color: #fde8e8;
+    color: #8b1c1c;
+    border: 1px solid #dc3232;
+}
+
+.oxybridge-server-status.status-stopped .dashicons {
+    color: #dc3232;
+}
+
+/**
+ * Status: Checking (neutral)
+ */
+.oxybridge-server-status.status-checking {
+    background-color: #f0f0f1;
+    color: #50575e;
+    border: 1px solid #c3c4c7;
+}
+
+.oxybridge-server-status.status-checking .dashicons {
+    color: #50575e;
+}
+
+/**
+ * Status: Error (orange)
+ */
+.oxybridge-server-status.status-error {
+    background-color: #fff3e0;
+    color: #8b5a00;
+    border: 1px solid #dba617;
+}
+
+.oxybridge-server-status.status-error .dashicons {
+    color: #dba617;
+}
+
+/**
+ * Status: Not Installed (amber)
+ */
+.oxybridge-server-status.status-not_installed {
+    background-color: #fff3e0;
+    color: #8b5a00;
+    border: 1px solid #dba617;
+}
+
+.oxybridge-server-status.status-not_installed .dashicons {
+    color: #dba617;
+}
+
+/**
+ * Status: Not Built (amber)
+ */
+.oxybridge-server-status.status-not_built {
+    background-color: #fff3e0;
+    color: #8b5a00;
+    border: 1px solid #dba617;
+}
+
+.oxybridge-server-status.status-not_built .dashicons {
+    color: #dba617;
+}
+
+/**
+ * Dashicons within status indicator
+ */
+.oxybridge-server-status .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+}
+
+/* ==========================================================================
+   Button Action Styles
+   ========================================================================== */
+
+/**
+ * Actions container - holds action buttons
+ */
+.oxybridge-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+/**
+ * Individual action buttons - extend WordPress button styles
+ */
+.oxybridge-actions .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/**
+ * Button icons
+ */
+.oxybridge-actions .button .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/**
+ * Disabled button states
+ */
+.oxybridge-actions .button:disabled,
+.oxybridge-actions .button.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/**
+ * Button loading state
+ */
+.oxybridge-actions .button.is-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.oxybridge-actions .button.is-loading .dashicons {
+    animation: oxybridge-spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   Output Area Styles
+   ========================================================================== */
+
+/**
+ * Output container - displays command output and messages
+ */
+.oxybridge-output {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: #1d2327;
+    border: 1px solid #1d2327;
+    border-radius: 4px;
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #f0f0f1;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    display: none;
+}
+
+/**
+ * Show output when it has content
+ */
+.oxybridge-output.has-content {
+    display: block;
+}
+
+/**
+ * Output success message
+ */
+.oxybridge-output.output-success {
+    background: #d7f5d7;
+    border-color: #46b450;
+    color: #1e4620;
+}
+
+/**
+ * Output error message
+ */
+.oxybridge-output.output-error {
+    background: #fde8e8;
+    border-color: #dc3232;
+    color: #8b1c1c;
+}
+
+/**
+ * Output info/neutral message
+ */
+.oxybridge-output.output-info {
+    background: #e5f5fa;
+    border-color: #00a0d2;
+    color: #0a4b78;
+}
+
+/**
+ * Output text styling
+ */
+.oxybridge-output pre {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* ==========================================================================
+   Message Types within Output Area
+   ========================================================================== */
+
+/**
+ * Base message styles
+ */
+.oxybridge-message {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+
+.oxybridge-message:last-child {
+    margin-bottom: 0;
+}
+
+/**
+ * Success message (green)
+ */
+.oxybridge-message-success {
+    background-color: #d7f5d7;
+    color: #1e4620;
+    border-left: 4px solid #46b450;
+}
+
+/**
+ * Error message (red)
+ */
+.oxybridge-message-error {
+    background-color: #fde8e8;
+    color: #8b1c1c;
+    border-left: 4px solid #dc3232;
+}
+
+/**
+ * Info message (blue)
+ */
+.oxybridge-message-info {
+    background-color: #e5f5fa;
+    color: #0a4b78;
+    border-left: 4px solid #00a0d2;
+}
+
+/**
+ * Code output (dark console style)
+ */
+.oxybridge-message-code {
+    background-color: #1d2327;
+    color: #f0f0f1;
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    padding: 12px;
+    border-left: none;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* ==========================================================================
+   Message Notice Styles
+   ========================================================================== */
+
+/**
+ * Inline message notices within the card
+ */
+.oxybridge-notice {
+    margin: 12px 0;
+    padding: 10px 14px;
+    border-left: 4px solid #72aee6;
+    background: #f0f6fc;
+}
+
+.oxybridge-notice.notice-success {
+    border-left-color: #46b450;
+    background: #d7f5d7;
+}
+
+.oxybridge-notice.notice-error {
+    border-left-color: #dc3232;
+    background: #fde8e8;
+}
+
+.oxybridge-notice.notice-warning {
+    border-left-color: #dba617;
+    background: #fff3e0;
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
+/**
+ * Spin animation for loading indicators
+ */
+@keyframes oxybridge-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/**
+ * Spin class for dashicons
+ */
+.spin {
+    animation: oxybridge-spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   Card Enhancement Styles
+   ========================================================================== */
+
+/**
+ * MCP Server Management card specific styles
+ */
+.oxybridge-server-card {
+    border-left: 4px solid #2271b1;
+}
+
+.oxybridge-server-card h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.oxybridge-server-card h2 .dashicons {
+    color: #2271b1;
+}
+
+/* ==========================================================================
+   Responsive Styles
+   ========================================================================== */
+
+@media screen and (max-width: 782px) {
+    .oxybridge-actions {
+        flex-direction: column;
+    }
+
+    .oxybridge-actions .button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .oxybridge-status-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .oxybridge-status-wrapper .status-label {
+        margin-right: 0;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .oxybridge-output {
+        font-size: 11px;
+        max-height: 200px;
+    }
+}

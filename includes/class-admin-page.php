@@ -41,10 +41,74 @@ class Admin_Page {
     /**
      * Constructor.
      *
-     * Registers the admin menu on the admin_menu hook.
+     * Registers the admin menu and script enqueuing hooks.
      */
     public function __construct() {
         add_action( 'admin_menu', array( $this, 'register_menu' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+    }
+
+    /**
+     * Enqueue admin scripts and styles.
+     *
+     * Loads CSS and JavaScript assets only on the Oxybridge admin page.
+     * Uses wp_localize_script to pass AJAX URL, nonce, and translated strings
+     * to the JavaScript.
+     *
+     * @since 1.0.0
+     *
+     * @param string $hook_suffix The current admin page hook suffix.
+     * @return void
+     */
+    public function enqueue_admin_assets( $hook_suffix ) {
+        // Only load on our admin page.
+        if ( 'toplevel_page_' . self::MENU_SLUG !== $hook_suffix ) {
+            return;
+        }
+
+        // Get plugin URL for assets.
+        $plugin_url = plugin_dir_url( dirname( __FILE__ ) );
+
+        // Enqueue admin CSS.
+        wp_enqueue_style(
+            'oxybridge-admin',
+            $plugin_url . 'assets/css/admin.css',
+            array(),
+            defined( 'OXYBRIDGE_VERSION' ) ? OXYBRIDGE_VERSION : '1.0.0'
+        );
+
+        // Enqueue admin JavaScript with jQuery dependency.
+        wp_enqueue_script(
+            'oxybridge-admin',
+            $plugin_url . 'assets/js/admin.js',
+            array( 'jquery' ),
+            defined( 'OXYBRIDGE_VERSION' ) ? OXYBRIDGE_VERSION : '1.0.0',
+            true
+        );
+
+        // Localize script with AJAX URL, nonce, and translated strings.
+        wp_localize_script(
+            'oxybridge-admin',
+            'oxybridgeAdmin',
+            array(
+                'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+                'nonce'   => wp_create_nonce( 'oxybridge_server_nonce' ),
+                'strings' => array(
+                    'installing'       => __( 'Installing dependencies...', 'oxybridge-wp' ),
+                    'launching'        => __( 'Launching server...', 'oxybridge-wp' ),
+                    'stopping'         => __( 'Stopping server...', 'oxybridge-wp' ),
+                    'checking'         => __( 'Checking status...', 'oxybridge-wp' ),
+                    'processing'       => __( 'Processing...', 'oxybridge-wp' ),
+                    'ajaxError'        => __( 'AJAX request failed', 'oxybridge-wp' ),
+                    'statusError'      => __( 'Error checking status', 'oxybridge-wp' ),
+                    'statusRunning'    => __( 'Running', 'oxybridge-wp' ),
+                    'statusStopped'    => __( 'Stopped', 'oxybridge-wp' ),
+                    'statusNotInstalled' => __( 'Dependencies not installed', 'oxybridge-wp' ),
+                    'statusNotBuilt'   => __( 'Server not built', 'oxybridge-wp' ),
+                    'statusUnknown'    => __( 'Unknown status', 'oxybridge-wp' ),
+                ),
+            )
+        );
     }
 
     /**
@@ -272,6 +336,42 @@ class Admin_Page {
                         </a>
                     </li>
                 </ul>
+            </div>
+
+            <div class="card oxybridge-server-card" id="oxybridge-server-management">
+                <h2><?php esc_html_e( 'MCP Server Management', 'oxybridge-wp' ); ?></h2>
+                <p>
+                    <?php esc_html_e( 'Manage the oxybridge-mcp Node.js server directly from WordPress. Install dependencies, start and stop the server, and monitor its status.', 'oxybridge-wp' ); ?>
+                </p>
+
+                <div class="oxybridge-status-wrapper">
+                    <span class="oxybridge-status-label"><?php esc_html_e( 'Server Status:', 'oxybridge-wp' ); ?></span>
+                    <span id="oxybridge-server-status" class="oxybridge-server-status status-checking">
+                        <span class="dashicons dashicons-update spin"></span>
+                        <?php esc_html_e( 'Checking...', 'oxybridge-wp' ); ?>
+                    </span>
+                </div>
+
+                <p class="oxybridge-actions">
+                    <button type="button" id="oxybridge-install-btn" class="button">
+                        <span class="dashicons dashicons-download"></span>
+                        <?php esc_html_e( 'Install Dependencies', 'oxybridge-wp' ); ?>
+                    </button>
+                    <button type="button" id="oxybridge-launch-btn" class="button button-primary">
+                        <span class="dashicons dashicons-controls-play"></span>
+                        <?php esc_html_e( 'Launch Server', 'oxybridge-wp' ); ?>
+                    </button>
+                    <button type="button" id="oxybridge-stop-btn" class="button">
+                        <span class="dashicons dashicons-controls-pause"></span>
+                        <?php esc_html_e( 'Stop Server', 'oxybridge-wp' ); ?>
+                    </button>
+                    <button type="button" id="oxybridge-status-btn" class="button">
+                        <span class="dashicons dashicons-update"></span>
+                        <?php esc_html_e( 'Refresh Status', 'oxybridge-wp' ); ?>
+                    </button>
+                </p>
+
+                <div id="oxybridge-output" class="oxybridge-output" style="display: none;"></div>
             </div>
 
             <div class="card">
