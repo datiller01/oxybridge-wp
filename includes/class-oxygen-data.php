@@ -1328,4 +1328,303 @@ class Oxygen_Data {
 
         return false;
     }
+
+    /**
+     * Find an element by ID within a post's document tree.
+     *
+     * This is a convenience method that retrieves the tree for a post
+     * and searches for an element by its ID. For direct tree manipulation,
+     * use find_element_in_tree() instead.
+     *
+     * @since 1.0.0
+     *
+     * @param int    $post_id    The post ID containing the tree.
+     * @param string $element_id The element ID to find.
+     * @return array|null The found element data, or null if not found.
+     */
+    public function find_element_by_id( int $post_id, string $element_id ): ?array {
+        $tree = $this->get_template_tree( $post_id );
+
+        if ( $tree === false ) {
+            return null;
+        }
+
+        return $this->find_element_in_tree( $tree, $element_id );
+    }
+
+    /**
+     * Get available element types that can be used in Oxygen/Breakdance.
+     *
+     * Returns a list of registered element types with their metadata.
+     * This includes both Essential Elements and any custom registered elements.
+     *
+     * @since 1.0.0
+     *
+     * @return array Array of available element types with their info.
+     */
+    public function get_available_element_types(): array {
+        $element_types = array();
+
+        // Try to get element types from Breakdance's element registry.
+        if ( class_exists( '\Breakdance\Elements\GlobalsRegistry' ) ) {
+            try {
+                $registry = \Breakdance\Elements\GlobalsRegistry::getInstance();
+                if ( method_exists( $registry, 'getElements' ) ) {
+                    $elements = $registry->getElements();
+                    if ( is_array( $elements ) ) {
+                        foreach ( $elements as $element ) {
+                            $element_types[] = $this->format_element_type( $element );
+                        }
+                        return $element_types;
+                    }
+                }
+            } catch ( \Exception $e ) {
+                // Fall through to other methods.
+            }
+        }
+
+        // Try Breakdance\Elements\Elements class.
+        if ( class_exists( '\Breakdance\Elements\Elements' ) ) {
+            try {
+                if ( method_exists( '\Breakdance\Elements\Elements', 'getAll' ) ) {
+                    $elements = \Breakdance\Elements\Elements::getAll();
+                    if ( is_array( $elements ) ) {
+                        foreach ( $elements as $element ) {
+                            $element_types[] = $this->format_element_type( $element );
+                        }
+                        return $element_types;
+                    }
+                }
+            } catch ( \Exception $e ) {
+                // Fall through to fallback.
+            }
+        }
+
+        // Fallback: Return common Essential Elements types.
+        // These are the standard elements available in Oxygen 6 / Breakdance.
+        return $this->get_fallback_element_types();
+    }
+
+    /**
+     * Format an element type from the registry into a standardized array.
+     *
+     * @since 1.0.0
+     *
+     * @param mixed $element The element from the registry.
+     * @return array Formatted element type info.
+     */
+    private function format_element_type( $element ): array {
+        // Handle array format.
+        if ( is_array( $element ) ) {
+            return array(
+                'type'        => $element['slug'] ?? $element['type'] ?? 'unknown',
+                'name'        => $element['name'] ?? $element['label'] ?? 'Unknown',
+                'category'    => $element['category'] ?? 'general',
+                'description' => $element['description'] ?? '',
+            );
+        }
+
+        // Handle object format.
+        if ( is_object( $element ) ) {
+            return array(
+                'type'        => $element->slug ?? $element->type ?? ( method_exists( $element, 'getSlug' ) ? $element->getSlug() : 'unknown' ),
+                'name'        => $element->name ?? $element->label ?? ( method_exists( $element, 'getName' ) ? $element->getName() : 'Unknown' ),
+                'category'    => $element->category ?? ( method_exists( $element, 'getCategory' ) ? $element->getCategory() : 'general' ),
+                'description' => $element->description ?? '',
+            );
+        }
+
+        // Handle string format (just the type slug).
+        if ( is_string( $element ) ) {
+            return array(
+                'type'        => $element,
+                'name'        => $this->format_element_name( $element ),
+                'category'    => 'general',
+                'description' => '',
+            );
+        }
+
+        return array(
+            'type'        => 'unknown',
+            'name'        => 'Unknown',
+            'category'    => 'general',
+            'description' => '',
+        );
+    }
+
+    /**
+     * Format an element type slug into a human-readable name.
+     *
+     * @since 1.0.0
+     *
+     * @param string $type The element type slug.
+     * @return string Human-readable name.
+     */
+    private function format_element_name( string $type ): string {
+        // Extract the element name from namespace format (e.g., "EssentialElements\\Section" -> "Section").
+        $parts = explode( '\\', $type );
+        $name  = end( $parts );
+
+        // Convert camelCase to Title Case with spaces.
+        $name = preg_replace( '/([a-z])([A-Z])/', '$1 $2', $name );
+
+        return ucwords( $name );
+    }
+
+    /**
+     * Get fallback list of common Essential Elements types.
+     *
+     * Used when the element registry is not accessible.
+     *
+     * @since 1.0.0
+     *
+     * @return array Array of common element types.
+     */
+    private function get_fallback_element_types(): array {
+        return array(
+            // Layout Elements.
+            array(
+                'type'        => 'EssentialElements\\Section',
+                'name'        => 'Section',
+                'category'    => 'layout',
+                'description' => 'Container section for grouping content.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Container',
+                'name'        => 'Container',
+                'category'    => 'layout',
+                'description' => 'Flexible container element.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Columns',
+                'name'        => 'Columns',
+                'category'    => 'layout',
+                'description' => 'Multi-column layout element.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Column',
+                'name'        => 'Column',
+                'category'    => 'layout',
+                'description' => 'Individual column within Columns element.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Div',
+                'name'        => 'Div',
+                'category'    => 'layout',
+                'description' => 'Generic div container.',
+            ),
+            // Basic Elements.
+            array(
+                'type'        => 'EssentialElements\\Heading',
+                'name'        => 'Heading',
+                'category'    => 'basic',
+                'description' => 'Heading text element (H1-H6).',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Text',
+                'name'        => 'Text',
+                'category'    => 'basic',
+                'description' => 'Rich text content element.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\RichText',
+                'name'        => 'Rich Text',
+                'category'    => 'basic',
+                'description' => 'Rich text editor element.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Image',
+                'name'        => 'Image',
+                'category'    => 'basic',
+                'description' => 'Image element with responsive support.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Button',
+                'name'        => 'Button',
+                'category'    => 'basic',
+                'description' => 'Button element with link support.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Icon',
+                'name'        => 'Icon',
+                'category'    => 'basic',
+                'description' => 'Icon element.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Video',
+                'name'        => 'Video',
+                'category'    => 'basic',
+                'description' => 'Video embed element.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Spacer',
+                'name'        => 'Spacer',
+                'category'    => 'basic',
+                'description' => 'Vertical spacing element.',
+            ),
+            // Form Elements.
+            array(
+                'type'        => 'EssentialElements\\FormBuilder',
+                'name'        => 'Form Builder',
+                'category'    => 'forms',
+                'description' => 'Form builder element.',
+            ),
+            // Interactive Elements.
+            array(
+                'type'        => 'EssentialElements\\Accordion',
+                'name'        => 'Accordion',
+                'category'    => 'interactive',
+                'description' => 'Accordion/collapsible content element.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Tabs',
+                'name'        => 'Tabs',
+                'category'    => 'interactive',
+                'description' => 'Tabbed content element.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Slider',
+                'name'        => 'Slider',
+                'category'    => 'interactive',
+                'description' => 'Image/content slider element.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Modal',
+                'name'        => 'Modal',
+                'category'    => 'interactive',
+                'description' => 'Modal/popup element.',
+            ),
+            // WordPress Elements.
+            array(
+                'type'        => 'EssentialElements\\PostContent',
+                'name'        => 'Post Content',
+                'category'    => 'wordpress',
+                'description' => 'Dynamic post content.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\PostTitle',
+                'name'        => 'Post Title',
+                'category'    => 'wordpress',
+                'description' => 'Dynamic post title.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\PostsLoop',
+                'name'        => 'Posts Loop',
+                'category'    => 'wordpress',
+                'description' => 'Loop through posts.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Menu',
+                'name'        => 'Menu',
+                'category'    => 'wordpress',
+                'description' => 'WordPress navigation menu.',
+            ),
+            array(
+                'type'        => 'EssentialElements\\Shortcode',
+                'name'        => 'Shortcode',
+                'category'    => 'wordpress',
+                'description' => 'Execute WordPress shortcodes.',
+            ),
+        );
+    }
 }
