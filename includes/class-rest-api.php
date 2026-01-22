@@ -61,6 +61,17 @@ class REST_API {
             )
         );
 
+        // Info endpoint - returns plugin version, Oxygen version, and capabilities.
+        register_rest_route(
+            self::NAMESPACE,
+            '/info',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_plugin_info' ),
+                'permission_callback' => '__return_true',
+            )
+        );
+
         // Authentication endpoint - returns nonce for subsequent requests.
         register_rest_route(
             self::NAMESPACE,
@@ -97,36 +108,6 @@ class REST_API {
                         'description' => __( 'Return flat list of elements instead of tree.', 'oxybridge-wp' ),
                         'type'        => 'boolean',
                         'default'     => false,
-                    ),
-                ),
-            )
-        );
-
-        // Document save endpoint - save complete Oxygen/Breakdance document tree.
-        register_rest_route(
-            self::NAMESPACE,
-            '/documents/(?P<id>\d+)',
-            array(
-                'methods'             => \WP_REST_Server::EDITABLE,
-                'callback'            => array( $this, 'save_document' ),
-                'permission_callback' => array( $this, 'check_write_permission' ),
-                'args'                => array(
-                    'id'              => array(
-                        'description'       => __( 'WordPress post/page ID.', 'oxybridge-wp' ),
-                        'type'              => 'integer',
-                        'required'          => true,
-                        'sanitize_callback' => 'absint',
-                        'validate_callback' => array( $this, 'validate_post_id' ),
-                    ),
-                    'tree'            => array(
-                        'description' => __( 'The complete document tree to save.', 'oxybridge-wp' ),
-                        'type'        => 'object',
-                        'required'    => true,
-                    ),
-                    'regenerate_css'  => array(
-                        'description' => __( 'Whether to regenerate CSS after saving.', 'oxybridge-wp' ),
-                        'type'        => 'boolean',
-                        'default'     => true,
                     ),
                 ),
             )
@@ -182,6 +163,68 @@ class REST_API {
             )
         );
 
+        // Page/Post creation endpoint - create new page with Oxygen design.
+        register_rest_route(
+            self::NAMESPACE,
+            '/pages',
+            array(
+                'methods'             => \WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'create_page' ),
+                'permission_callback' => array( $this, 'check_write_permission' ),
+                'args'                => array(
+                    'title'     => array(
+                        'description'       => __( 'Page title.', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'status'    => array(
+                        'description'       => __( 'Page status (draft, publish, pending, private).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'default'           => 'draft',
+                        'enum'              => array( 'draft', 'publish', 'pending', 'private' ),
+                        'sanitize_callback' => 'sanitize_key',
+                    ),
+                    'post_type' => array(
+                        'description'       => __( 'Post type (page, post, or custom).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'default'           => 'page',
+                        'sanitize_callback' => 'sanitize_key',
+                    ),
+                    'slug'      => array(
+                        'description'       => __( 'Page slug (post_name).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'sanitize_callback' => 'sanitize_title',
+                    ),
+                    'content'   => array(
+                        'description'       => __( 'Page content (fallback content for non-Oxygen display).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'sanitize_callback' => 'wp_kses_post',
+                    ),
+                    'parent'    => array(
+                        'description'       => __( 'Parent page ID for hierarchical post types.', 'oxybridge-wp' ),
+                        'type'              => 'integer',
+                        'default'           => 0,
+                        'sanitize_callback' => 'absint',
+                    ),
+                    'tree'      => array(
+                        'description' => __( 'Oxygen/Breakdance design tree JSON structure.', 'oxybridge-wp' ),
+                        'type'        => 'object',
+                    ),
+                    'enable_oxygen' => array(
+                        'description' => __( 'Enable Oxygen builder for this page (creates empty tree if tree not provided).', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => true,
+                    ),
+                    'template'  => array(
+                        'description'       => __( 'Page template file or blank for default.', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                ),
+            )
+        );
+
         // Templates endpoint - list Oxygen templates.
         register_rest_route(
             self::NAMESPACE,
@@ -195,6 +238,52 @@ class REST_API {
                         'description'       => __( 'Filter by template type.', 'oxybridge-wp' ),
                         'type'              => 'string',
                         'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                ),
+            )
+        );
+
+        // Template creation endpoint - create new Oxygen/Breakdance template.
+        register_rest_route(
+            self::NAMESPACE,
+            '/templates',
+            array(
+                'methods'             => \WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'create_template' ),
+                'permission_callback' => array( $this, 'check_write_permission' ),
+                'args'                => array(
+                    'title'         => array(
+                        'description'       => __( 'Template title.', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'template_type' => array(
+                        'description'       => __( 'Template type (header, footer, template, block, part, or popup for Breakdance).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_key',
+                    ),
+                    'status'        => array(
+                        'description'       => __( 'Template status (draft, publish, pending, private).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'default'           => 'publish',
+                        'enum'              => array( 'draft', 'publish', 'pending', 'private' ),
+                        'sanitize_callback' => 'sanitize_key',
+                    ),
+                    'slug'          => array(
+                        'description'       => __( 'Template slug (post_name).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'sanitize_callback' => 'sanitize_title',
+                    ),
+                    'tree'          => array(
+                        'description' => __( 'Oxygen/Breakdance design tree JSON structure.', 'oxybridge-wp' ),
+                        'type'        => 'object',
+                    ),
+                    'enable_oxygen' => array(
+                        'description' => __( 'Enable Oxygen builder for this template (creates empty tree if tree not provided).', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => true,
                     ),
                 ),
             )
@@ -266,29 +355,6 @@ class REST_API {
             )
         );
 
-        // Schema elements endpoint - list available element types with property schemas.
-        register_rest_route(
-            self::NAMESPACE,
-            '/schema/elements',
-            array(
-                'methods'             => \WP_REST_Server::READABLE,
-                'callback'            => array( $this, 'get_schema_elements' ),
-                'permission_callback' => array( $this, 'check_read_permission' ),
-                'args'                => array(
-                    'category'         => array(
-                        'description'       => __( 'Filter by element category (layout, basic, forms, interactive, wordpress).', 'oxybridge-wp' ),
-                        'type'              => 'string',
-                        'sanitize_callback' => 'sanitize_text_field',
-                    ),
-                    'include_schemas'  => array(
-                        'description' => __( 'Include property schemas for each element type.', 'oxybridge-wp' ),
-                        'type'        => 'boolean',
-                        'default'     => true,
-                    ),
-                ),
-            )
-        );
-
         // Global styles endpoint - read global Oxygen/Breakdance styles.
         register_rest_route(
             self::NAMESPACE,
@@ -339,103 +405,167 @@ class REST_API {
             )
         );
 
-        // Create element endpoint - add new element to a document.
+        // Bulk CSS regeneration endpoint - regenerate CSS cache for all posts.
         register_rest_route(
             self::NAMESPACE,
-            '/documents/(?P<id>\d+)/elements',
+            '/regenerate-css',
             array(
                 'methods'             => \WP_REST_Server::CREATABLE,
-                'callback'            => array( $this, 'create_element' ),
+                'callback'            => array( $this, 'regenerate_all_css' ),
                 'permission_callback' => array( $this, 'check_write_permission' ),
                 'args'                => array(
-                    'id'           => array(
-                        'description'       => __( 'WordPress post/page ID.', 'oxybridge-wp' ),
+                    'post_type' => array(
+                        'description'       => __( 'Filter regeneration to specific post type (optional).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'batch_size' => array(
+                        'description'       => __( 'Number of posts to process per batch (default 50, max 200).', 'oxybridge-wp' ),
                         'type'              => 'integer',
-                        'required'          => true,
+                        'default'           => 50,
+                        'minimum'           => 1,
+                        'maximum'           => 200,
                         'sanitize_callback' => 'absint',
-                        'validate_callback' => array( $this, 'validate_post_id' ),
-                    ),
-                    'parent_id'    => array(
-                        'description'       => __( 'Parent element ID to append to (use "root" for top-level).', 'oxybridge-wp' ),
-                        'type'              => 'string',
-                        'required'          => true,
-                        'sanitize_callback' => 'sanitize_text_field',
-                    ),
-                    'element_type' => array(
-                        'description'       => __( 'Element type (e.g., "EssentialElements\\Section").', 'oxybridge-wp' ),
-                        'type'              => 'string',
-                        'required'          => true,
-                        'sanitize_callback' => 'sanitize_text_field',
-                    ),
-                    'properties'   => array(
-                        'description' => __( 'Element properties object.', 'oxybridge-wp' ),
-                        'type'        => 'object',
-                        'default'     => array(),
-                    ),
-                    'position'     => array(
-                        'description'       => __( 'Position within parent: "first", "last", or numeric index.', 'oxybridge-wp' ),
-                        'type'              => array( 'string', 'integer' ),
-                        'default'           => 'last',
-                        'sanitize_callback' => array( $this, 'sanitize_position' ),
                     ),
                 ),
             )
         );
 
-        // Update element endpoint - update existing element in a document.
+        // Breakpoints endpoint - returns responsive breakpoint definitions.
         register_rest_route(
             self::NAMESPACE,
-            '/documents/(?P<id>\d+)/elements/(?P<element_id>[a-zA-Z0-9-]+)',
+            '/breakpoints',
             array(
-                'methods'             => \WP_REST_Server::EDITABLE,
-                'callback'            => array( $this, 'update_element' ),
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_responsive_breakpoints' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
+            )
+        );
+
+        // Colors endpoint - returns global color palette.
+        register_rest_route(
+            self::NAMESPACE,
+            '/colors',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_global_colors' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
+            )
+        );
+
+        // Variables endpoint - returns CSS design variables.
+        register_rest_route(
+            self::NAMESPACE,
+            '/variables',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_design_variables' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
+            )
+        );
+
+        // Fonts endpoint - returns available fonts list.
+        register_rest_route(
+            self::NAMESPACE,
+            '/fonts',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_available_fonts' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
+            )
+        );
+
+        // Classes endpoint - returns global CSS classes/selectors.
+        register_rest_route(
+            self::NAMESPACE,
+            '/classes',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_global_classes' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
+            )
+        );
+
+        // Clone endpoint - clone an existing page or template.
+        register_rest_route(
+            self::NAMESPACE,
+            '/clone/(?P<id>\d+)',
+            array(
+                'methods'             => \WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'clone_page' ),
                 'permission_callback' => array( $this, 'check_write_permission' ),
                 'args'                => array(
-                    'id'         => array(
-                        'description'       => __( 'WordPress post/page ID.', 'oxybridge-wp' ),
+                    'id'        => array(
+                        'description'       => __( 'ID of the post/page/template to clone.', 'oxybridge-wp' ),
                         'type'              => 'integer',
                         'required'          => true,
                         'sanitize_callback' => 'absint',
                         'validate_callback' => array( $this, 'validate_post_id' ),
                     ),
-                    'element_id' => array(
-                        'description'       => __( 'Element ID to update.', 'oxybridge-wp' ),
+                    'title'     => array(
+                        'description'       => __( 'Title for the cloned page (defaults to "Copy of [original title]").', 'oxybridge-wp' ),
                         'type'              => 'string',
-                        'required'          => true,
                         'sanitize_callback' => 'sanitize_text_field',
-                        'validate_callback' => array( $this, 'validate_element_id' ),
                     ),
-                    'properties' => array(
-                        'description' => __( 'Element properties to update (merged with existing).', 'oxybridge-wp' ),
-                        'type'        => 'object',
-                        'default'     => array(),
+                    'status'    => array(
+                        'description'       => __( 'Status for the cloned page (draft, publish, pending, private).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'default'           => 'draft',
+                        'enum'              => array( 'draft', 'publish', 'pending', 'private' ),
+                        'sanitize_callback' => 'sanitize_key',
+                    ),
+                    'slug'      => array(
+                        'description'       => __( 'Slug for the cloned page (auto-generated if not provided).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'sanitize_callback' => 'sanitize_title',
                     ),
                 ),
             )
         );
 
-        // Delete element endpoint - delete existing element from a document.
+        // Validate endpoint - validate JSON structure without saving.
         register_rest_route(
             self::NAMESPACE,
-            '/documents/(?P<id>\d+)/elements/(?P<element_id>[a-zA-Z0-9-]+)',
+            '/validate',
             array(
-                'methods'             => \WP_REST_Server::DELETABLE,
-                'callback'            => array( $this, 'delete_element' ),
-                'permission_callback' => array( $this, 'check_write_permission' ),
+                'methods'             => \WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'validate_tree' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
                 'args'                => array(
-                    'id'         => array(
-                        'description'       => __( 'WordPress post/page ID.', 'oxybridge-wp' ),
+                    'tree' => array(
+                        'description' => __( 'Oxygen/Breakdance design tree JSON structure to validate.', 'oxybridge-wp' ),
+                        'type'        => 'object',
+                        'required'    => true,
+                    ),
+                ),
+            )
+        );
+
+        // Render endpoint - render design to HTML.
+        register_rest_route(
+            self::NAMESPACE,
+            '/render/(?P<id>\d+)',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'render_design' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
+                'args'                => array(
+                    'id'          => array(
+                        'description'       => __( 'Post ID to render.', 'oxybridge-wp' ),
                         'type'              => 'integer',
                         'required'          => true,
                         'sanitize_callback' => 'absint',
                         'validate_callback' => array( $this, 'validate_post_id' ),
                     ),
-                    'element_id' => array(
-                        'description'       => __( 'Element ID to delete.', 'oxybridge-wp' ),
-                        'type'              => 'string',
-                        'required'          => true,
-                        'sanitize_callback' => 'sanitize_text_field',
-                        'validate_callback' => array( $this, 'validate_element_id' ),
+                    'include_css' => array(
+                        'description' => __( 'Include inline CSS in the rendered output.', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => false,
+                    ),
+                    'include_wrapper' => array(
+                        'description' => __( 'Wrap output in a container div with metadata attributes.', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => true,
                     ),
                 ),
             )
@@ -476,6 +606,70 @@ class REST_API {
     }
 
     /**
+     * Plugin info endpoint callback.
+     *
+     * Returns detailed information about the Oxybridge plugin including
+     * version numbers, Oxygen version, and available capabilities.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_plugin_info( \WP_REST_Request $request ) {
+        $response = array(
+            'plugin_version'  => OXYBRIDGE_VERSION,
+            'oxygen_version'  => $this->get_oxygen_version(),
+            'oxygen_active'   => oxybridge_is_oxygen_active(),
+            'builder'         => $this->get_builder_name(),
+            'capabilities'    => $this->get_capabilities(),
+            'environment'     => array(
+                'wordpress_version' => get_bloginfo( 'version' ),
+                'php_version'       => PHP_VERSION,
+                'site_url'          => get_site_url(),
+                'rest_url'          => rest_url( self::NAMESPACE ),
+            ),
+        );
+
+        /**
+         * Filters the plugin info response data.
+         *
+         * @since 1.0.0
+         * @param array            $response The response data.
+         * @param \WP_REST_Request $request  The request object.
+         */
+        $response = apply_filters( 'oxybridge_rest_plugin_info', $response, $request );
+
+        return rest_ensure_response( $response );
+    }
+
+    /**
+     * Get plugin capabilities.
+     *
+     * Returns an array of capabilities that the Oxybridge plugin provides,
+     * indicating what operations are available via the REST API.
+     *
+     * @since 1.0.0
+     * @return array List of capability names and their availability.
+     */
+    private function get_capabilities(): array {
+        $oxygen_active = oxybridge_is_oxygen_active();
+
+        return array(
+            'read_documents'       => $oxygen_active,
+            'read_templates'       => $oxygen_active,
+            'read_global_settings' => $oxygen_active,
+            'read_global_styles'   => $oxygen_active,
+            'read_element_schema'  => $oxygen_active,
+            'regenerate_css'       => $oxygen_active,
+            'create_pages'         => $oxygen_active,
+            'validate_tree'        => true,
+            'list_pages'           => true,
+            'health_check'         => true,
+            'authentication'       => true,
+        );
+    }
+
+    /**
      * Authentication endpoint callback.
      *
      * Validates credentials and returns a nonce for subsequent requests.
@@ -510,42 +704,22 @@ class REST_API {
     /**
      * Read document endpoint callback.
      *
-     * Placeholder for document reading functionality.
-     * Will be implemented in subsequent subtasks.
+     * Returns the full document tree for a WordPress post/page with
+     * Oxygen/Breakdance content. Supports optional metadata inclusion
+     * and element flattening.
      *
      * @since 1.0.0
      * @param \WP_REST_Request $request The request object.
      * @return \WP_REST_Response|\WP_Error The response object or error.
      */
     public function read_document( \WP_REST_Request $request ) {
-        $post_id = $request->get_param( 'id' );
+        $post_id          = $request->get_param( 'id' );
+        $include_metadata = $request->get_param( 'include_metadata' );
+        $flatten_elements = $request->get_param( 'flatten_elements' );
 
-        // Placeholder response - full implementation in subsequent subtasks.
-        return rest_ensure_response(
-            array(
-                'post_id' => $post_id,
-                'message' => __( 'Document reading will be implemented in subsequent subtasks.', 'oxybridge-wp' ),
-            )
-        );
-    }
-
-    /**
-     * Save document endpoint callback.
-     *
-     * Saves a complete document tree to a post, replacing the existing content.
-     * This is a batch operation that saves the entire tree structure at once.
-     *
-     * @since 1.0.0
-     * @param \WP_REST_Request $request The request object.
-     * @return \WP_REST_Response|\WP_Error The response object or error.
-     */
-    public function save_document( \WP_REST_Request $request ) {
-        $post_id        = $request->get_param( 'id' );
-        $tree           = $request->get_param( 'tree' );
-        $regenerate_css = $request->get_param( 'regenerate_css' );
-
-        // Verify the post exists.
+        // Get the post object.
         $post = get_post( $post_id );
+
         if ( ! $post ) {
             return new \WP_Error(
                 'rest_post_not_found',
@@ -554,153 +728,454 @@ class REST_API {
             );
         }
 
-        // Validate tree structure.
-        if ( empty( $tree ) || ! is_array( $tree ) ) {
+        // Check if the post has Oxygen/Breakdance content.
+        if ( ! $this->has_oxygen_content( $post_id ) ) {
             return new \WP_Error(
-                'rest_invalid_tree',
-                __( 'The tree parameter must be a valid object.', 'oxybridge-wp' ),
-                array( 'status' => 400 )
+                'rest_no_oxygen_content',
+                __( 'The specified post does not have Oxygen/Breakdance content.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
             );
         }
 
-        // Validate tree has required structure.
-        if ( ! isset( $tree['root'] ) || ! is_array( $tree['root'] ) ) {
+        // Get the document tree.
+        $tree = $this->get_document_tree( $post_id );
+
+        if ( $tree === false ) {
             return new \WP_Error(
-                'rest_invalid_tree_structure',
-                __( 'The tree must contain a "root" object.', 'oxybridge-wp' ),
-                array( 'status' => 400 )
+                'rest_tree_not_found',
+                __( 'Could not retrieve document tree for this post.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
             );
         }
 
-        // Validate root has required properties.
-        if ( ! isset( $tree['root']['id'] ) ) {
-            return new \WP_Error(
-                'rest_invalid_root',
-                __( 'The root element must have an "id" property.', 'oxybridge-wp' ),
-                array( 'status' => 400 )
-            );
+        // Build the response data.
+        $response_data = array(
+            'id'   => $post_id,
+            'tree' => $tree,
+        );
+
+        // Include flattened elements if requested.
+        if ( $flatten_elements ) {
+            $response_data['elements'] = $this->flatten_document_tree( $tree );
+            // When flattening, remove the full tree to reduce payload size.
+            unset( $response_data['tree'] );
         }
+
+        // Include metadata if requested.
+        if ( $include_metadata ) {
+            $response_data['metadata'] = $this->get_document_metadata( $post );
+        }
+
+        // Add element count and types.
+        $element_count = $this->count_document_elements( $tree );
+        $element_types = $this->get_document_element_types( $tree );
+
+        $response_data['element_count'] = $element_count;
+        $response_data['element_types'] = $element_types;
 
         /**
-         * Filters the document tree before saving.
-         *
-         * Allows modification of the tree structure before it is saved to the database.
+         * Filters the document data before returning via REST API.
          *
          * @since 1.0.0
-         * @param array            $tree    The document tree to save.
-         * @param int              $post_id The post ID.
-         * @param \WP_REST_Request $request The request object.
+         * @param array            $response_data The document data.
+         * @param \WP_Post         $post          The post object.
+         * @param \WP_REST_Request $request       The request object.
          */
-        $tree = apply_filters( 'oxybridge_save_document_tree', $tree, $post_id, $request );
+        $response_data = apply_filters( 'oxybridge_rest_document_data', $response_data, $post, $request );
 
-        // Validate tree structure using Breakdance validation if available.
-        if ( function_exists( '\Breakdance\Data\is_valid_tree' ) ) {
-            if ( ! \Breakdance\Data\is_valid_tree( $tree ) ) {
-                return new \WP_Error(
-                    'rest_invalid_tree',
-                    __( 'The tree structure failed validation.', 'oxybridge-wp' ),
-                    array( 'status' => 400 )
+        return rest_ensure_response( $response_data );
+    }
+
+    /**
+     * Get the document tree for a post.
+     *
+     * Uses the Oxygen_Data class if available, or falls back to direct
+     * post meta access for retrieving the JSON tree structure.
+     *
+     * @since 1.0.0
+     * @param int $post_id The post ID.
+     * @return array|false The document tree or false if not found.
+     */
+    private function get_document_tree( int $post_id ) {
+        // Try using Oxygen_Data class if available.
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data = new Oxygen_Data();
+            $tree        = $oxygen_data->get_template_tree( $post_id );
+
+            if ( $tree !== false ) {
+                return $tree;
+            }
+        }
+
+        // Fallback: get directly from post meta.
+        $meta_prefix = $this->get_meta_prefix();
+        $tree_data   = get_post_meta( $post_id, $meta_prefix . 'data', true );
+
+        if ( ! empty( $tree_data ) ) {
+            $decoded = is_string( $tree_data ) ? json_decode( $tree_data, true ) : $tree_data;
+
+            if ( is_array( $decoded ) && isset( $decoded['tree_json_string'] ) ) {
+                $tree = json_decode( $decoded['tree_json_string'], true );
+
+                if ( is_array( $tree ) ) {
+                    return $tree;
+                }
+            }
+
+            // If tree_json_string is not present, return the decoded data directly.
+            if ( is_array( $decoded ) ) {
+                return $decoded;
+            }
+        }
+
+        // Try classic Oxygen meta key as fallback.
+        $classic_data = get_post_meta( $post_id, 'ct_builder_json', true );
+
+        if ( ! empty( $classic_data ) ) {
+            $decoded = is_string( $classic_data ) ? json_decode( $classic_data, true ) : $classic_data;
+
+            if ( is_array( $decoded ) ) {
+                return $decoded;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Flatten a document tree into a list of elements.
+     *
+     * Recursively extracts all elements from the tree structure into
+     * a flat array with path information preserved.
+     *
+     * @since 1.0.0
+     * @param array $tree The document tree.
+     * @return array Flat array of elements.
+     */
+    private function flatten_document_tree( array $tree ): array {
+        $elements = array();
+
+        // Check for root/children structure (Breakdance/Oxygen 6 format).
+        if ( isset( $tree['root']['children'] ) ) {
+            $elements = $this->extract_elements_recursive( $tree['root']['children'] );
+        } elseif ( isset( $tree['children'] ) ) {
+            // Check for direct children array.
+            $elements = $this->extract_elements_recursive( $tree['children'] );
+        } elseif ( is_array( $tree ) && ! isset( $tree['root'] ) ) {
+            // If it's a flat array at root level, parse directly.
+            $elements = $this->extract_elements_recursive( $tree );
+        }
+
+        return $elements;
+    }
+
+    /**
+     * Recursively extract elements from tree children.
+     *
+     * @since 1.0.0
+     * @param array  $children The children array from tree.
+     * @param string $path     Current hierarchy path.
+     * @param int    $depth    Current depth level.
+     * @return array Flattened array of elements.
+     */
+    private function extract_elements_recursive( array $children, string $path = '', int $depth = 0 ): array {
+        $elements = array();
+
+        foreach ( $children as $index => $child ) {
+            if ( ! is_array( $child ) ) {
+                continue;
+            }
+
+            $element_id   = isset( $child['id'] ) ? $child['id'] : 'element-' . $index;
+            $element_type = isset( $child['data']['type'] )
+                ? $child['data']['type']
+                : ( isset( $child['type'] ) ? $child['type'] : 'unknown' );
+            $element_path = $path ? "{$path}/{$index}" : (string) $index;
+
+            $element = array(
+                'id'         => $element_id,
+                'type'       => $element_type,
+                'path'       => $element_path,
+                'depth'      => $depth,
+                'properties' => isset( $child['data']['properties'] )
+                    ? $child['data']['properties']
+                    : ( isset( $child['data'] ) ? $child['data'] : array() ),
+            );
+
+            $elements[] = $element;
+
+            // Recursively process children.
+            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
+                $child_elements = $this->extract_elements_recursive(
+                    $child['children'],
+                    $element_path,
+                    $depth + 1
                 );
+                $elements       = array_merge( $elements, $child_elements );
             }
         }
 
-        // Save the document tree.
-        $save_result = $this->save_document_tree( $post_id, $tree );
-        if ( is_wp_error( $save_result ) ) {
-            return $save_result;
-        }
+        return $elements;
+    }
 
-        // Trigger CSS regeneration if requested.
-        if ( $regenerate_css && function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
-            try {
-                \Breakdance\Render\generateCacheForPost( $post_id );
-            } catch ( \Exception $e ) {
-                // Log error but don't fail the request - document was saved successfully.
-                error_log( 'Oxybridge: CSS regeneration failed after document save: ' . $e->getMessage() );
-            }
-        }
-
-        /**
-         * Fires after a document has been saved.
-         *
-         * @since 1.0.0
-         * @param array $tree    The saved document tree.
-         * @param int   $post_id The post ID.
-         */
-        do_action( 'oxybridge_document_saved', $tree, $post_id );
-
-        // Count elements in the tree for response.
-        $element_count = $this->count_tree_elements( $tree );
-
-        return rest_ensure_response(
-            array(
-                'success'       => true,
-                'post_id'       => $post_id,
-                'element_count' => $element_count,
-                'message'       => __( 'Document saved successfully.', 'oxybridge-wp' ),
-            )
+    /**
+     * Get document metadata for a post.
+     *
+     * Returns post information including title, slug, dates, author,
+     * status, and URLs.
+     *
+     * @since 1.0.0
+     * @param \WP_Post $post The post object.
+     * @return array Document metadata.
+     */
+    private function get_document_metadata( \WP_Post $post ): array {
+        return array(
+            'title'        => $post->post_title,
+            'slug'         => $post->post_name,
+            'post_type'    => $post->post_type,
+            'status'       => $post->post_status,
+            'author_id'    => (int) $post->post_author,
+            'author_name'  => get_the_author_meta( 'display_name', $post->post_author ),
+            'created'      => $post->post_date_gmt . 'Z',
+            'modified'     => $post->post_modified_gmt . 'Z',
+            'permalink'    => get_permalink( $post->ID ),
+            'edit_url'     => $this->get_builder_edit_url( $post->ID ),
+            'builder'      => $this->get_builder_name(),
+            'builder_version' => $this->get_oxygen_version(),
         );
     }
 
     /**
-     * Count elements in a document tree.
+     * Count total elements in a document tree.
      *
      * @since 1.0.0
      * @param array $tree The document tree.
-     * @return int The number of elements in the tree.
+     * @return int Total element count.
      */
-    private function count_tree_elements( array $tree ): int {
-        $count = 0;
-
-        if ( isset( $tree['root'] ) ) {
-            $count = 1; // Count the root.
-            if ( isset( $tree['root']['children'] ) && is_array( $tree['root']['children'] ) ) {
-                $count += $this->count_children_recursive( $tree['root']['children'] );
-            }
+    private function count_document_elements( array $tree ): int {
+        // Check for root/children structure (Breakdance/Oxygen 6 format).
+        if ( isset( $tree['root']['children'] ) ) {
+            return $this->count_elements_recursive( $tree['root']['children'] );
         }
 
-        return $count;
+        // Check for direct children array.
+        if ( isset( $tree['children'] ) ) {
+            return $this->count_elements_recursive( $tree['children'] );
+        }
+
+        // If it's a flat array at root level, count directly.
+        if ( is_array( $tree ) && ! isset( $tree['root'] ) ) {
+            return $this->count_elements_recursive( $tree );
+        }
+
+        return 0;
     }
 
     /**
-     * Recursively count children in a tree.
+     * Get unique element types from a document tree.
      *
      * @since 1.0.0
-     * @param array $children The children array.
-     * @return int The number of child elements.
+     * @param array $tree The document tree.
+     * @return array Array of unique element type slugs.
      */
-    private function count_children_recursive( array $children ): int {
-        $count = count( $children );
+    private function get_document_element_types( array $tree ): array {
+        $elements = $this->flatten_document_tree( $tree );
+        $types    = array_column( $elements, 'type' );
 
-        foreach ( $children as $child ) {
-            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
-                $count += $this->count_children_recursive( $child['children'] );
-            }
+        return array_values( array_unique( $types ) );
+    }
+
+    /**
+     * Get the builder edit URL for a post.
+     *
+     * @since 1.0.0
+     * @param int $post_id The post ID.
+     * @return string The builder edit URL.
+     */
+    private function get_builder_edit_url( int $post_id ): string {
+        // Try to use Breakdance's URL generator if available.
+        if ( function_exists( 'Breakdance\Admin\get_builder_loader_url' ) ) {
+            return \Breakdance\Admin\get_builder_loader_url( $post_id );
         }
 
-        return $count;
+        // Fallback to standard WordPress edit URL with builder parameter.
+        $edit_url = get_edit_post_link( $post_id, 'raw' );
+
+        if ( $edit_url ) {
+            return add_query_arg( 'breakdance', 'builder', $edit_url );
+        }
+
+        return admin_url( 'post.php?post=' . $post_id . '&action=edit&breakdance=builder' );
     }
 
     /**
      * List pages endpoint callback.
      *
-     * Placeholder for page listing functionality.
-     * Will be implemented in subsequent subtasks.
+     * Returns a list of posts and pages with Oxygen/Breakdance content.
+     * Supports filtering by post type, search term, and status.
+     * Optionally filters to only show posts with Oxygen content.
      *
      * @since 1.0.0
      * @param \WP_REST_Request $request The request object.
      * @return \WP_REST_Response The response object.
      */
     public function list_pages( \WP_REST_Request $request ) {
-        // Placeholder response - full implementation in subsequent subtasks.
-        return rest_ensure_response(
-            array(
-                'pages'       => array(),
-                'total'       => 0,
-                'total_pages' => 0,
-                'page'        => $request->get_param( 'page' ),
-                'message'     => __( 'Page listing will be implemented in subsequent subtasks.', 'oxybridge-wp' ),
-            )
+        $post_type          = $request->get_param( 'post_type' );
+        $search             = $request->get_param( 'search' );
+        $status             = $request->get_param( 'status' );
+        $has_oxygen_content = $request->get_param( 'has_oxygen_content' );
+        $per_page           = $request->get_param( 'per_page' );
+        $page               = $request->get_param( 'page' );
+
+        // Determine post types to query.
+        $query_post_types = $this->get_page_post_types( $post_type );
+
+        // Build query arguments.
+        $query_args = array(
+            'post_type'      => $query_post_types,
+            'posts_per_page' => absint( $per_page ),
+            'paged'          => absint( $page ),
+            'post_status'    => sanitize_key( $status ),
+            'orderby'        => 'modified',
+            'order'          => 'DESC',
+        );
+
+        // Add search if provided.
+        if ( ! empty( $search ) ) {
+            $query_args['s'] = sanitize_text_field( $search );
+        }
+
+        // If filtering for Oxygen content, add meta query.
+        if ( $has_oxygen_content ) {
+            $meta_prefix = $this->get_meta_prefix();
+            $query_args['meta_query'] = array(
+                'relation' => 'OR',
+                // Modern Oxygen 6 / Breakdance format.
+                array(
+                    'key'     => $meta_prefix . 'data',
+                    'compare' => 'EXISTS',
+                ),
+                // Classic Oxygen format (ct_builder_json).
+                array(
+                    'key'     => 'ct_builder_json',
+                    'compare' => 'EXISTS',
+                ),
+                // Classic Oxygen shortcodes format.
+                array(
+                    'key'     => 'ct_builder_shortcodes',
+                    'compare' => 'EXISTS',
+                ),
+            );
+        }
+
+        // Execute the query.
+        $query = new \WP_Query( $query_args );
+
+        // Format results.
+        $pages = array();
+        foreach ( $query->posts as $post ) {
+            $pages[] = $this->format_page( $post );
+        }
+
+        $response_data = array(
+            'pages'       => $pages,
+            'total'       => (int) $query->found_posts,
+            'total_pages' => (int) $query->max_num_pages,
+            'page'        => absint( $page ),
+            'per_page'    => absint( $per_page ),
+        );
+
+        /**
+         * Filters the page listing data before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $response_data The page listing data.
+         * @param \WP_Query        $query         The WP_Query instance.
+         * @param \WP_REST_Request $request       The request object.
+         */
+        $response_data = apply_filters( 'oxybridge_rest_pages_data', $response_data, $query, $request );
+
+        return rest_ensure_response( $response_data );
+    }
+
+    /**
+     * Get post types to query for page listing.
+     *
+     * Returns an array of post types based on the filter parameter.
+     * Excludes template post types as they have their own endpoint.
+     *
+     * @since 1.0.0
+     * @param string $post_type The post type filter from request.
+     * @return array Array of post types to query.
+     */
+    private function get_page_post_types( string $post_type ): array {
+        // Get all template post types to exclude.
+        $template_post_types = $this->get_all_template_post_types();
+
+        if ( $post_type === 'any' || empty( $post_type ) ) {
+            // Get all public post types except templates.
+            $public_post_types = get_post_types(
+                array(
+                    'public' => true,
+                ),
+                'names'
+            );
+
+            // Exclude template post types and attachment.
+            $excluded = array_merge( $template_post_types, array( 'attachment' ) );
+
+            return array_values( array_diff( $public_post_types, $excluded ) );
+        }
+
+        // Handle specific post type request.
+        $normalized_type = sanitize_key( $post_type );
+
+        // Don't allow querying template post types via this endpoint.
+        if ( in_array( $normalized_type, $template_post_types, true ) ) {
+            return array();
+        }
+
+        // Verify the post type exists.
+        if ( post_type_exists( $normalized_type ) ) {
+            return array( $normalized_type );
+        }
+
+        return array();
+    }
+
+    /**
+     * Format a post for the page listing API response.
+     *
+     * @since 1.0.0
+     * @param \WP_Post $post The post object.
+     * @return array Formatted page data.
+     */
+    private function format_page( \WP_Post $post ): array {
+        $has_oxygen = $this->has_oxygen_content( $post->ID );
+        $element_count = 0;
+
+        // Only calculate element count if post has Oxygen content.
+        if ( $has_oxygen ) {
+            $tree = $this->get_document_tree( $post->ID );
+            if ( $tree !== false ) {
+                $element_count = $this->count_document_elements( $tree );
+            }
+        }
+
+        return array(
+            'id'                 => $post->ID,
+            'title'              => $post->post_title,
+            'slug'               => $post->post_name,
+            'post_type'          => $post->post_type,
+            'status'             => $post->post_status,
+            'has_oxygen_content' => $has_oxygen,
+            'element_count'      => $element_count,
+            'author_id'          => (int) $post->post_author,
+            'author_name'        => get_the_author_meta( 'display_name', $post->post_author ),
+            'created'            => $post->post_date_gmt . 'Z',
+            'modified'           => $post->post_modified_gmt . 'Z',
+            'permalink'          => get_permalink( $post->ID ),
+            'edit_url'           => $has_oxygen ? $this->get_builder_edit_url( $post->ID ) : get_edit_post_link( $post->ID, 'raw' ),
         );
     }
 
@@ -821,6 +1296,214 @@ class REST_API {
         $template_data = apply_filters( 'oxybridge_rest_template_data', $template_data, $post, $request );
 
         return rest_ensure_response( $template_data );
+    }
+
+    /**
+     * Create template endpoint callback.
+     *
+     * Creates a new Oxygen/Breakdance template with the specified type
+     * and optional design tree structure.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response object or error.
+     */
+    public function create_template( \WP_REST_Request $request ) {
+        $title         = $request->get_param( 'title' );
+        $template_type = $request->get_param( 'template_type' );
+        $status        = $request->get_param( 'status' );
+        $slug          = $request->get_param( 'slug' );
+        $tree          = $request->get_param( 'tree' );
+        $enable_oxygen = $request->get_param( 'enable_oxygen' );
+
+        // Get the post type for this template type.
+        $post_type = $this->get_post_type_for_template_type( $template_type );
+
+        if ( ! $post_type ) {
+            return new \WP_Error(
+                'rest_invalid_template_type',
+                sprintf(
+                    /* translators: %s: template type */
+                    __( 'Invalid template type "%s". Valid types are: header, footer, template, block, part%s.', 'oxybridge-wp' ),
+                    $template_type,
+                    $this->is_breakdance_mode() ? ', popup' : ''
+                ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Verify post type exists.
+        if ( ! post_type_exists( $post_type ) ) {
+            return new \WP_Error(
+                'rest_post_type_not_available',
+                sprintf(
+                    /* translators: %s: post type */
+                    __( 'Template post type "%s" is not registered. Ensure Oxygen/Breakdance is active.', 'oxybridge-wp' ),
+                    $post_type
+                ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Check if user can create posts of this type.
+        $post_type_obj = get_post_type_object( $post_type );
+        if ( ! current_user_can( $post_type_obj->cap->create_posts ) ) {
+            return new \WP_Error(
+                'rest_cannot_create',
+                __( 'You do not have permission to create templates of this type.', 'oxybridge-wp' ),
+                array( 'status' => 403 )
+            );
+        }
+
+        // Check publish permission if status is publish.
+        if ( $status === 'publish' && ! current_user_can( $post_type_obj->cap->publish_posts ) ) {
+            return new \WP_Error(
+                'rest_cannot_publish',
+                __( 'You do not have permission to publish templates of this type.', 'oxybridge-wp' ),
+                array( 'status' => 403 )
+            );
+        }
+
+        // Build post data array.
+        $post_data = array(
+            'post_title'  => $title,
+            'post_status' => $status,
+            'post_type'   => $post_type,
+            'post_author' => get_current_user_id(),
+        );
+
+        if ( ! empty( $slug ) ) {
+            $post_data['post_name'] = $slug;
+        }
+
+        /**
+         * Filters the post data before creating a new template via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $post_data The post data array.
+         * @param \WP_REST_Request $request   The request object.
+         */
+        $post_data = apply_filters( 'oxybridge_rest_create_template_data', $post_data, $request );
+
+        // Insert the post.
+        $post_id = wp_insert_post( $post_data, true );
+
+        if ( is_wp_error( $post_id ) ) {
+            return new \WP_Error(
+                'rest_template_creation_failed',
+                sprintf(
+                    /* translators: %s: error message */
+                    __( 'Failed to create template: %s', 'oxybridge-wp' ),
+                    $post_id->get_error_message()
+                ),
+                array( 'status' => 500 )
+            );
+        }
+
+        // Handle Oxygen/Breakdance design data.
+        $tree_saved = false;
+        if ( ! empty( $tree ) ) {
+            // Validate and save provided tree.
+            $tree_saved = $this->save_document_tree( $post_id, $tree );
+        } elseif ( $enable_oxygen ) {
+            // Create empty tree structure for Oxygen builder.
+            $empty_tree = $this->create_empty_tree();
+            $tree_saved = $this->save_document_tree( $post_id, $empty_tree );
+        }
+
+        // Regenerate CSS if tree was saved and Oxygen is active.
+        $css_regenerated = false;
+        if ( $tree_saved && function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
+            try {
+                \Breakdance\Render\generateCacheForPost( $post_id );
+                $css_regenerated = true;
+            } catch ( \Exception $e ) {
+                // CSS regeneration failed but template was created - continue.
+            }
+        }
+
+        // Get the newly created post.
+        $post = get_post( $post_id );
+
+        // Build response data using the same format as get_template.
+        $response_data = $this->format_template( $post );
+
+        // Add additional creation-specific data.
+        $response_data['tree_saved']      = $tree_saved;
+        $response_data['css_regenerated'] = $css_regenerated;
+        $response_data['edit_url']        = $this->get_template_edit_url( $post_id );
+
+        /**
+         * Fires after a template has been created via REST API.
+         *
+         * @since 1.0.0
+         * @param int              $post_id The newly created template ID.
+         * @param \WP_REST_Request $request The request object.
+         */
+        do_action( 'oxybridge_rest_template_created', $post_id, $request );
+
+        /**
+         * Filters the create template response data before returning.
+         *
+         * @since 1.0.0
+         * @param array            $response_data The response data.
+         * @param \WP_Post         $post          The created template post object.
+         * @param \WP_REST_Request $request       The request object.
+         */
+        $response_data = apply_filters( 'oxybridge_rest_create_template_response', $response_data, $post, $request );
+
+        // Return 201 Created response.
+        $response = rest_ensure_response( $response_data );
+        $response->set_status( 201 );
+
+        // Set Location header to the new resource.
+        $response->header( 'Location', rest_url( self::NAMESPACE . '/templates/' . $post_id ) );
+
+        return $response;
+    }
+
+    /**
+     * Get the WordPress post type for a template type slug.
+     *
+     * @since 1.0.0
+     * @param string $template_type The template type slug.
+     * @return string|false The post type or false if invalid.
+     */
+    private function get_post_type_for_template_type( string $template_type ) {
+        $is_oxygen_mode = $this->is_breakdance_mode() === false;
+
+        if ( $is_oxygen_mode ) {
+            $type_map = array(
+                'template' => 'oxygen_template',
+                'header'   => 'oxygen_header',
+                'footer'   => 'oxygen_footer',
+                'block'    => 'oxygen_block',
+                'part'     => 'oxygen_part',
+            );
+        } else {
+            $type_map = array(
+                'template' => 'breakdance_template',
+                'header'   => 'breakdance_header',
+                'footer'   => 'breakdance_footer',
+                'block'    => 'breakdance_block',
+                'popup'    => 'breakdance_popup',
+                'part'     => 'breakdance_part',
+            );
+        }
+
+        $normalized_type = strtolower( $template_type );
+
+        return isset( $type_map[ $normalized_type ] ) ? $type_map[ $normalized_type ] : false;
+    }
+
+    /**
+     * Check if we're in Breakdance mode (not Oxygen mode).
+     *
+     * @since 1.0.0
+     * @return bool True if Breakdance mode, false if Oxygen mode.
+     */
+    private function is_breakdance_mode(): bool {
+        return ! ( defined( 'BREAKDANCE_MODE' ) && BREAKDANCE_MODE === 'oxygen' );
     }
 
     /**
@@ -1338,626 +2021,992 @@ class REST_API {
     /**
      * Read global settings endpoint callback.
      *
-     * Placeholder for global settings reading functionality.
-     * Will be implemented in subsequent subtasks.
+     * Returns global Oxygen/Breakdance settings including design tokens,
+     * color palette, typography settings, and other builder configuration.
+     * Supports retrieving a specific setting key or all settings.
      *
      * @since 1.0.0
      * @param \WP_REST_Request $request The request object.
-     * @return \WP_REST_Response The response object.
+     * @return \WP_REST_Response|\WP_Error The response object or error.
      */
     public function read_global_settings( \WP_REST_Request $request ) {
-        // Placeholder response - full implementation in subsequent subtasks.
-        return rest_ensure_response(
-            array(
-                'settings' => array(),
-                'message'  => __( 'Global settings reading will be implemented in subsequent subtasks.', 'oxybridge-wp' ),
-            )
+        $key = $request->get_param( 'key' );
+
+        // Get global settings using Oxygen_Data class if available.
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data     = new Oxygen_Data();
+            $global_settings = $oxygen_data->get_global_settings();
+        } else {
+            // Fallback: get settings directly from options.
+            $global_settings = $this->get_global_settings_fallback();
+        }
+
+        // If a specific key is requested, return only that setting.
+        if ( ! empty( $key ) ) {
+            $key = sanitize_key( $key );
+
+            if ( isset( $global_settings[ $key ] ) ) {
+                $response_data = array(
+                    'key'   => $key,
+                    'value' => $global_settings[ $key ],
+                );
+            } else {
+                return new \WP_Error(
+                    'rest_setting_not_found',
+                    sprintf(
+                        /* translators: %s: setting key */
+                        __( 'Setting "%s" not found.', 'oxybridge-wp' ),
+                        $key
+                    ),
+                    array( 'status' => 404 )
+                );
+            }
+        } else {
+            // Return all settings.
+            $response_data = array(
+                'settings' => $global_settings,
+            );
+        }
+
+        // Add design variables to the response.
+        $variables = $this->get_design_variables();
+        if ( ! empty( $variables ) ) {
+            $response_data['variables'] = $variables;
+        }
+
+        // Add CSS selectors/classes to the response.
+        $selectors = $this->get_css_selectors();
+        if ( ! empty( $selectors ) ) {
+            $response_data['selectors'] = $selectors;
+        }
+
+        // Add breakpoints to the response.
+        $response_data['breakpoints'] = $this->get_breakpoints();
+
+        // Add metadata about the settings source.
+        $response_data['_meta'] = array(
+            'builder'   => $this->get_builder_name(),
+            'version'   => $this->get_oxygen_version(),
+            'timestamp' => current_time( 'c' ),
         );
+
+        /**
+         * Filters the global settings data before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $response_data The global settings data.
+         * @param string|null      $key           The specific key requested, or null for all.
+         * @param \WP_REST_Request $request       The request object.
+         */
+        $response_data = apply_filters( 'oxybridge_rest_global_settings', $response_data, $key, $request );
+
+        return rest_ensure_response( $response_data );
+    }
+
+    /**
+     * Fallback method for getting global settings when Oxygen_Data is unavailable.
+     *
+     * @since 1.0.0
+     * @return array The global settings data.
+     */
+    private function get_global_settings_fallback(): array {
+        $meta_prefix     = $this->get_meta_prefix();
+        $global_settings = get_option( $meta_prefix . 'global_settings_json_string', '' );
+
+        if ( is_string( $global_settings ) && ! empty( $global_settings ) ) {
+            $decoded = json_decode( $global_settings, true );
+            return is_array( $decoded ) ? $decoded : array();
+        }
+
+        return is_array( $global_settings ) ? $global_settings : array();
     }
 
     /**
      * Get element schema endpoint callback.
      *
-     * Placeholder for element schema generation functionality.
-     * Will be implemented in subsequent subtasks.
+     * Returns element type definitions, control types, and categories for
+     * Oxygen/Breakdance builder elements. Supports filtering by specific
+     * element type and optionally excluding control definitions.
      *
      * @since 1.0.0
      * @param \WP_REST_Request $request The request object.
      * @return \WP_REST_Response The response object.
      */
     public function get_element_schema( \WP_REST_Request $request ) {
-        // Placeholder response - full implementation in subsequent subtasks.
-        return rest_ensure_response(
-            array(
-                'elements'      => array(),
-                'control_types' => array(),
-                'categories'    => array(),
-                'message'       => __( 'Element schema generation will be implemented in subsequent subtasks.', 'oxybridge-wp' ),
-            )
-        );
-    }
+        $element_type     = $request->get_param( 'element_type' );
+        $include_controls = $request->get_param( 'include_controls' );
 
-    /**
-     * Get schema elements endpoint callback.
-     *
-     * Returns available element types with their property schemas for use by
-     * MCP clients to understand what elements can be created and their properties.
-     *
-     * @since 1.0.0
-     * @param \WP_REST_Request $request The request object.
-     * @return \WP_REST_Response The response object.
-     */
-    public function get_schema_elements( \WP_REST_Request $request ) {
-        $category        = $request->get_param( 'category' );
-        $include_schemas = $request->get_param( 'include_schemas' );
+        // Get element definitions.
+        $elements = $this->get_element_definitions();
 
-        // Get element types from Oxygen_Data if available.
-        $element_types = array();
-        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
-            $oxygen_data   = new Oxygen_Data();
-            $element_types = $oxygen_data->get_available_element_types();
-        } else {
-            // Fallback: use built-in list.
-            $element_types = $this->get_fallback_element_types();
-        }
+        // Filter by specific element type if requested.
+        if ( ! empty( $element_type ) ) {
+            $element_type = sanitize_text_field( $element_type );
+            $filtered     = array();
 
-        // Filter by category if specified.
-        if ( ! empty( $category ) ) {
-            $element_types = array_filter(
-                $element_types,
-                function ( $element ) use ( $category ) {
-                    return isset( $element['category'] ) &&
-                           strtolower( $element['category'] ) === strtolower( $category );
+            foreach ( $elements as $element ) {
+                if (
+                    ( isset( $element['slug'] ) && $element['slug'] === $element_type ) ||
+                    ( isset( $element['type'] ) && $element['type'] === $element_type )
+                ) {
+                    $filtered[] = $element;
                 }
-            );
-            $element_types = array_values( $element_types ); // Re-index array.
+            }
+
+            // If no exact match, try partial match.
+            if ( empty( $filtered ) ) {
+                foreach ( $elements as $element ) {
+                    $slug = isset( $element['slug'] ) ? $element['slug'] : '';
+                    $type = isset( $element['type'] ) ? $element['type'] : '';
+
+                    if (
+                        stripos( $slug, $element_type ) !== false ||
+                        stripos( $type, $element_type ) !== false
+                    ) {
+                        $filtered[] = $element;
+                    }
+                }
+            }
+
+            $elements = $filtered;
         }
 
-        // Add property schemas if requested.
-        if ( $include_schemas ) {
-            $element_types = array_map(
-                function ( $element ) {
-                    $element['properties_schema'] = $this->get_element_property_schema( $element['type'] );
-                    return $element;
-                },
-                $element_types
-            );
+        // Remove control details if not requested.
+        if ( ! $include_controls ) {
+            foreach ( $elements as &$element ) {
+                unset( $element['controls'] );
+            }
+            unset( $element );
         }
 
-        // Build category list from unique categories.
-        $categories = array_unique( array_column( $element_types, 'category' ) );
-        sort( $categories );
+        // Get control types.
+        $control_types = $include_controls ? $this->get_control_types() : array();
+
+        // Get element categories.
+        $categories = $this->get_element_categories();
+
+        // Build response.
+        $response_data = array(
+            'elements'      => $elements,
+            'total'         => count( $elements ),
+            'control_types' => $control_types,
+            'categories'    => $categories,
+            '_meta'         => array(
+                'builder'   => $this->get_builder_name(),
+                'version'   => $this->get_oxygen_version(),
+                'timestamp' => current_time( 'c' ),
+            ),
+        );
 
         /**
-         * Filters the schema elements data before returning via REST API.
+         * Filters the element schema data before returning via REST API.
          *
          * @since 1.0.0
-         * @param array            $element_types The element types data.
-         * @param string|null      $category      The requested category filter.
+         * @param array            $response_data The element schema data.
+         * @param string|null      $element_type  The specific element type filter, or null for all.
          * @param \WP_REST_Request $request       The request object.
          */
-        $element_types = apply_filters( 'oxybridge_rest_schema_elements', $element_types, $category, $request );
+        $response_data = apply_filters( 'oxybridge_rest_element_schema', $response_data, $element_type, $request );
 
-        return rest_ensure_response(
-            array(
-                'elements'   => $element_types,
-                'categories' => $categories,
-                'total'      => count( $element_types ),
-                '_meta'      => array(
-                    'builder'   => $this->get_builder_name(),
-                    'version'   => $this->get_oxygen_version(),
-                    'timestamp' => current_time( 'c' ),
-                ),
-            )
-        );
+        return rest_ensure_response( $response_data );
     }
 
     /**
-     * Get property schema for a specific element type.
+     * Get element definitions from Breakdance registry or fallback.
      *
-     * Returns the property schema definition for an element type, describing
-     * what properties can be set and their types.
+     * Attempts to retrieve element definitions from the Breakdance element
+     * registry if available, otherwise returns a comprehensive list of
+     * known Oxygen/Breakdance element types.
      *
      * @since 1.0.0
-     * @param string $element_type The element type (e.g., "EssentialElements\\Section").
-     * @return array The property schema for the element.
+     * @return array Array of element definitions.
      */
-    private function get_element_property_schema( string $element_type ): array {
-        // Common properties shared by all elements.
-        $common_properties = array(
-            'id'      => array(
-                'type'        => 'string',
-                'description' => __( 'Unique element ID (auto-generated if not provided).', 'oxybridge-wp' ),
-                'required'    => false,
-            ),
-            'cssClass' => array(
-                'type'        => 'string',
-                'description' => __( 'Custom CSS class names.', 'oxybridge-wp' ),
-                'required'    => false,
-            ),
-            'cssId'   => array(
-                'type'        => 'string',
-                'description' => __( 'Custom CSS ID.', 'oxybridge-wp' ),
-                'required'    => false,
-            ),
-        );
+    private function get_element_definitions(): array {
+        // Try to get elements from Breakdance registry.
+        $elements = $this->get_elements_from_registry();
 
-        // Get element-specific properties based on type.
-        $specific_properties = $this->get_type_specific_properties( $element_type );
+        if ( ! empty( $elements ) ) {
+            return $elements;
+        }
 
-        return array_merge( $common_properties, $specific_properties );
+        // Fallback: return known element types.
+        return $this->get_known_element_types();
     }
 
     /**
-     * Get type-specific properties for an element type.
+     * Get elements from Breakdance element registry.
      *
      * @since 1.0.0
-     * @param string $element_type The element type.
-     * @return array Type-specific property schemas.
+     * @return array Array of element definitions or empty if unavailable.
      */
-    private function get_type_specific_properties( string $element_type ): array {
-        // Extract the base element name from the namespace.
-        $parts     = explode( '\\', $element_type );
-        $base_name = strtolower( end( $parts ) );
+    private function get_elements_from_registry(): array {
+        $elements = array();
 
-        // Define property schemas for common element types.
-        $schemas = array(
-            'section'   => array(
-                'tag'             => array(
-                    'type'        => 'string',
-                    'description' => __( 'HTML tag to use (section, div, article, etc.).', 'oxybridge-wp' ),
-                    'default'     => 'section',
-                    'enum'        => array( 'section', 'div', 'article', 'aside', 'header', 'footer', 'main', 'nav' ),
-                ),
-                'fullWidth'       => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Make section full width.', 'oxybridge-wp' ),
-                    'default'     => false,
-                ),
-            ),
-            'container' => array(
-                'tag'             => array(
-                    'type'        => 'string',
-                    'description' => __( 'HTML tag to use.', 'oxybridge-wp' ),
-                    'default'     => 'div',
-                    'enum'        => array( 'div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav', 'span' ),
-                ),
-                'direction'       => array(
-                    'type'        => 'string',
-                    'description' => __( 'Flex direction.', 'oxybridge-wp' ),
-                    'default'     => 'vertical',
-                    'enum'        => array( 'vertical', 'horizontal' ),
-                ),
-            ),
-            'heading'   => array(
-                'text'            => array(
-                    'type'        => 'string',
-                    'description' => __( 'Heading text content.', 'oxybridge-wp' ),
-                    'required'    => true,
-                ),
-                'tag'             => array(
-                    'type'        => 'string',
-                    'description' => __( 'Heading level (h1-h6).', 'oxybridge-wp' ),
-                    'default'     => 'h2',
-                    'enum'        => array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ),
-                ),
-            ),
-            'text'      => array(
-                'text'            => array(
-                    'type'        => 'string',
-                    'description' => __( 'Text content (supports HTML).', 'oxybridge-wp' ),
-                    'required'    => true,
-                ),
-                'tag'             => array(
-                    'type'        => 'string',
-                    'description' => __( 'HTML tag to use.', 'oxybridge-wp' ),
-                    'default'     => 'p',
-                    'enum'        => array( 'p', 'span', 'div' ),
-                ),
-            ),
-            'richtext'  => array(
-                'text'            => array(
-                    'type'        => 'string',
-                    'description' => __( 'Rich text content (supports full HTML).', 'oxybridge-wp' ),
-                    'required'    => true,
-                ),
-            ),
-            'image'     => array(
-                'src'             => array(
-                    'type'        => 'string',
-                    'description' => __( 'Image URL or attachment ID.', 'oxybridge-wp' ),
-                    'required'    => true,
-                ),
-                'alt'             => array(
-                    'type'        => 'string',
-                    'description' => __( 'Image alt text.', 'oxybridge-wp' ),
-                ),
-                'width'           => array(
-                    'type'        => 'string',
-                    'description' => __( 'Image width (px, %, auto).', 'oxybridge-wp' ),
-                ),
-                'height'          => array(
-                    'type'        => 'string',
-                    'description' => __( 'Image height (px, %, auto).', 'oxybridge-wp' ),
-                ),
-            ),
-            'button'    => array(
-                'text'            => array(
-                    'type'        => 'string',
-                    'description' => __( 'Button text.', 'oxybridge-wp' ),
-                    'required'    => true,
-                ),
-                'link'            => array(
-                    'type'        => 'string',
-                    'description' => __( 'Button link URL.', 'oxybridge-wp' ),
-                ),
-                'target'          => array(
-                    'type'        => 'string',
-                    'description' => __( 'Link target.', 'oxybridge-wp' ),
-                    'default'     => '_self',
-                    'enum'        => array( '_self', '_blank' ),
-                ),
-                'type'            => array(
-                    'type'        => 'string',
-                    'description' => __( 'Button type.', 'oxybridge-wp' ),
-                    'default'     => 'primary',
-                    'enum'        => array( 'primary', 'secondary', 'outline', 'text' ),
-                ),
-            ),
-            'icon'      => array(
-                'icon'            => array(
-                    'type'        => 'string',
-                    'description' => __( 'Icon name or SVG code.', 'oxybridge-wp' ),
-                    'required'    => true,
-                ),
-                'size'            => array(
-                    'type'        => 'string',
-                    'description' => __( 'Icon size.', 'oxybridge-wp' ),
-                ),
-            ),
-            'video'     => array(
-                'src'             => array(
-                    'type'        => 'string',
-                    'description' => __( 'Video URL (supports YouTube, Vimeo, or direct video URL).', 'oxybridge-wp' ),
-                    'required'    => true,
-                ),
-                'autoplay'        => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Autoplay video.', 'oxybridge-wp' ),
-                    'default'     => false,
-                ),
-                'loop'            => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Loop video.', 'oxybridge-wp' ),
-                    'default'     => false,
-                ),
-                'muted'           => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Mute video.', 'oxybridge-wp' ),
-                    'default'     => false,
-                ),
-            ),
-            'spacer'    => array(
-                'height'          => array(
-                    'type'        => 'string',
-                    'description' => __( 'Spacer height.', 'oxybridge-wp' ),
-                    'default'     => '20px',
-                ),
-            ),
-            'columns'   => array(
-                'columns'         => array(
-                    'type'        => 'integer',
-                    'description' => __( 'Number of columns.', 'oxybridge-wp' ),
-                    'default'     => 2,
-                    'minimum'     => 1,
-                    'maximum'     => 12,
-                ),
-                'gap'             => array(
-                    'type'        => 'string',
-                    'description' => __( 'Gap between columns.', 'oxybridge-wp' ),
-                    'default'     => '20px',
-                ),
-            ),
-            'column'    => array(
-                'width'           => array(
-                    'type'        => 'string',
-                    'description' => __( 'Column width (fraction or percentage).', 'oxybridge-wp' ),
-                ),
-            ),
-            'div'       => array(
-                'tag'             => array(
-                    'type'        => 'string',
-                    'description' => __( 'HTML tag to use.', 'oxybridge-wp' ),
-                    'default'     => 'div',
-                    'enum'        => array( 'div', 'span', 'article', 'aside', 'header', 'footer', 'main', 'nav' ),
-                ),
-            ),
-            'accordion' => array(
-                'openFirst'       => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Open first item by default.', 'oxybridge-wp' ),
-                    'default'     => true,
-                ),
-                'allowMultiple'   => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Allow multiple items open at once.', 'oxybridge-wp' ),
-                    'default'     => false,
-                ),
-            ),
-            'tabs'      => array(
-                'defaultTab'      => array(
-                    'type'        => 'integer',
-                    'description' => __( 'Index of default active tab.', 'oxybridge-wp' ),
-                    'default'     => 0,
-                ),
-                'orientation'     => array(
-                    'type'        => 'string',
-                    'description' => __( 'Tab orientation.', 'oxybridge-wp' ),
-                    'default'     => 'horizontal',
-                    'enum'        => array( 'horizontal', 'vertical' ),
-                ),
-            ),
-            'slider'    => array(
-                'autoplay'        => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Enable autoplay.', 'oxybridge-wp' ),
-                    'default'     => false,
-                ),
-                'interval'        => array(
-                    'type'        => 'integer',
-                    'description' => __( 'Autoplay interval in milliseconds.', 'oxybridge-wp' ),
-                    'default'     => 5000,
-                ),
-                'showArrows'      => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Show navigation arrows.', 'oxybridge-wp' ),
-                    'default'     => true,
-                ),
-                'showDots'        => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Show navigation dots.', 'oxybridge-wp' ),
-                    'default'     => true,
-                ),
-            ),
-            'modal'     => array(
-                'trigger'         => array(
-                    'type'        => 'string',
-                    'description' => __( 'Modal trigger type.', 'oxybridge-wp' ),
-                    'default'     => 'click',
-                    'enum'        => array( 'click', 'hover', 'load', 'exit' ),
-                ),
-                'closeOnOverlay'  => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Close modal when clicking overlay.', 'oxybridge-wp' ),
-                    'default'     => true,
-                ),
-            ),
-            'postcontent' => array(
-                'postId'          => array(
-                    'type'        => 'integer',
-                    'description' => __( 'Post ID to display content from (leave empty for current post).', 'oxybridge-wp' ),
-                ),
-            ),
-            'posttitle' => array(
-                'tag'             => array(
-                    'type'        => 'string',
-                    'description' => __( 'HTML tag for the title.', 'oxybridge-wp' ),
-                    'default'     => 'h1',
-                    'enum'        => array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'div' ),
-                ),
-                'link'            => array(
-                    'type'        => 'boolean',
-                    'description' => __( 'Link title to post.', 'oxybridge-wp' ),
-                    'default'     => false,
-                ),
-            ),
-            'postsloop' => array(
-                'postType'        => array(
-                    'type'        => 'string',
-                    'description' => __( 'Post type to query.', 'oxybridge-wp' ),
-                    'default'     => 'post',
-                ),
-                'postsPerPage'    => array(
-                    'type'        => 'integer',
-                    'description' => __( 'Number of posts to display.', 'oxybridge-wp' ),
-                    'default'     => 10,
-                ),
-                'orderBy'         => array(
-                    'type'        => 'string',
-                    'description' => __( 'Order posts by.', 'oxybridge-wp' ),
-                    'default'     => 'date',
-                    'enum'        => array( 'date', 'title', 'modified', 'menu_order', 'rand' ),
-                ),
-                'order'           => array(
-                    'type'        => 'string',
-                    'description' => __( 'Order direction.', 'oxybridge-wp' ),
-                    'default'     => 'DESC',
-                    'enum'        => array( 'ASC', 'DESC' ),
-                ),
-            ),
-            'menu'      => array(
-                'menuId'          => array(
-                    'type'        => 'integer',
-                    'description' => __( 'WordPress menu ID.', 'oxybridge-wp' ),
-                ),
-                'menuLocation'    => array(
-                    'type'        => 'string',
-                    'description' => __( 'WordPress menu location slug.', 'oxybridge-wp' ),
-                ),
-            ),
-            'shortcode' => array(
-                'shortcode'       => array(
-                    'type'        => 'string',
-                    'description' => __( 'Shortcode to execute (without brackets).', 'oxybridge-wp' ),
-                    'required'    => true,
-                ),
-            ),
-            'formbuilder' => array(
-                'formId'          => array(
-                    'type'        => 'string',
-                    'description' => __( 'Form identifier.', 'oxybridge-wp' ),
-                ),
-                'submitText'      => array(
-                    'type'        => 'string',
-                    'description' => __( 'Submit button text.', 'oxybridge-wp' ),
-                    'default'     => 'Submit',
-                ),
-            ),
-        );
+        // Try Breakdance's element registry.
+        if ( class_exists( '\Breakdance\Elements\Elements' ) && method_exists( '\Breakdance\Elements\Elements', 'getInstance' ) ) {
+            try {
+                $registry           = \Breakdance\Elements\Elements::getInstance();
+                $registered_elements = method_exists( $registry, 'getElements' )
+                    ? $registry->getElements()
+                    : array();
 
-        return $schemas[ $base_name ] ?? array();
+                foreach ( $registered_elements as $element_class ) {
+                    $element_data = $this->format_registry_element( $element_class );
+                    if ( $element_data ) {
+                        $elements[] = $element_data;
+                    }
+                }
+            } catch ( \Exception $e ) {
+                // Registry access failed, fall through to fallback.
+            }
+        }
+
+        // Try alternative registry access via global.
+        if ( empty( $elements ) && isset( $GLOBALS['breakdance_elements'] ) && is_array( $GLOBALS['breakdance_elements'] ) ) {
+            foreach ( $GLOBALS['breakdance_elements'] as $element_class ) {
+                $element_data = $this->format_registry_element( $element_class );
+                if ( $element_data ) {
+                    $elements[] = $element_data;
+                }
+            }
+        }
+
+        return $elements;
     }
 
     /**
-     * Get fallback list of element types when Oxygen_Data is not available.
+     * Format a registered element class into schema data.
      *
      * @since 1.0.0
-     * @return array Array of element types.
+     * @param string|object $element_class The element class name or instance.
+     * @return array|null Formatted element data or null if invalid.
      */
-    private function get_fallback_element_types(): array {
-        return array(
+    private function format_registry_element( $element_class ): ?array {
+        try {
+            // Handle string class name.
+            if ( is_string( $element_class ) && class_exists( $element_class ) ) {
+                // Check for static methods first.
+                if ( method_exists( $element_class, 'slug' ) ) {
+                    $slug = $element_class::slug();
+                } elseif ( method_exists( $element_class, 'getSlug' ) ) {
+                    $slug = $element_class::getSlug();
+                } else {
+                    // Derive slug from class name.
+                    $slug = strtolower( basename( str_replace( '\\', '/', $element_class ) ) );
+                }
+
+                $label = $slug;
+                if ( method_exists( $element_class, 'name' ) ) {
+                    $label = $element_class::name();
+                } elseif ( method_exists( $element_class, 'getName' ) ) {
+                    $label = $element_class::getName();
+                }
+
+                $category = 'basic';
+                if ( method_exists( $element_class, 'category' ) ) {
+                    $category = $element_class::category();
+                } elseif ( method_exists( $element_class, 'getCategory' ) ) {
+                    $category = $element_class::getCategory();
+                }
+
+                $controls = array();
+                if ( method_exists( $element_class, 'controls' ) ) {
+                    $controls = $element_class::controls();
+                } elseif ( method_exists( $element_class, 'getControls' ) ) {
+                    $controls = $element_class::getControls();
+                }
+
+                return array(
+                    'slug'        => $slug,
+                    'type'        => $slug,
+                    'label'       => $label,
+                    'category'    => $category,
+                    'class'       => $element_class,
+                    'controls'    => is_array( $controls ) ? $controls : array(),
+                    'source'      => 'registry',
+                );
+            }
+        } catch ( \Exception $e ) {
+            // Element parsing failed.
+        }
+
+        return null;
+    }
+
+    /**
+     * Get known element types as fallback.
+     *
+     * Returns a comprehensive list of known Oxygen/Breakdance element types
+     * when the element registry is not accessible.
+     *
+     * @since 1.0.0
+     * @return array Array of known element type definitions.
+     */
+    private function get_known_element_types(): array {
+        $is_oxygen_mode = defined( 'BREAKDANCE_MODE' ) && BREAKDANCE_MODE === 'oxygen';
+        $prefix         = $is_oxygen_mode ? 'oxy_' : 'EssentialElements\\\\';
+
+        // Common elements available in both Oxygen and Breakdance.
+        $elements = array(
             // Layout Elements.
             array(
-                'type'        => 'EssentialElements\\Section',
-                'name'        => 'Section',
+                'slug'        => 'section',
+                'type'        => $prefix . 'Section',
+                'label'       => __( 'Section', 'oxybridge-wp' ),
                 'category'    => 'layout',
-                'description' => __( 'Container section for grouping content.', 'oxybridge-wp' ),
+                'description' => __( 'A container section for grouping elements.', 'oxybridge-wp' ),
+                'controls'    => $this->get_layout_controls(),
             ),
             array(
-                'type'        => 'EssentialElements\\Container',
-                'name'        => 'Container',
+                'slug'        => 'container',
+                'type'        => $prefix . 'Container',
+                'label'       => __( 'Container', 'oxybridge-wp' ),
                 'category'    => 'layout',
-                'description' => __( 'Flexible container element.', 'oxybridge-wp' ),
+                'description' => __( 'A div container for flexible layouts.', 'oxybridge-wp' ),
+                'controls'    => $this->get_layout_controls(),
             ),
             array(
-                'type'        => 'EssentialElements\\Columns',
-                'name'        => 'Columns',
+                'slug'        => 'div',
+                'type'        => $prefix . 'Div',
+                'label'       => __( 'Div', 'oxybridge-wp' ),
                 'category'    => 'layout',
-                'description' => __( 'Multi-column layout element.', 'oxybridge-wp' ),
+                'description' => __( 'A generic div block element.', 'oxybridge-wp' ),
+                'controls'    => $this->get_layout_controls(),
             ),
             array(
-                'type'        => 'EssentialElements\\Column',
-                'name'        => 'Column',
+                'slug'        => 'columns',
+                'type'        => $prefix . 'Columns',
+                'label'       => __( 'Columns', 'oxybridge-wp' ),
                 'category'    => 'layout',
-                'description' => __( 'Individual column within Columns element.', 'oxybridge-wp' ),
+                'description' => __( 'A multi-column layout container.', 'oxybridge-wp' ),
+                'controls'    => array_merge(
+                    $this->get_layout_controls(),
+                    array(
+                        'columns' => array(
+                            'type'        => 'number',
+                            'label'       => __( 'Number of Columns', 'oxybridge-wp' ),
+                            'default'     => 2,
+                            'min'         => 1,
+                            'max'         => 12,
+                        ),
+                        'gap' => array(
+                            'type'        => 'unit',
+                            'label'       => __( 'Gap', 'oxybridge-wp' ),
+                            'default'     => '20px',
+                        ),
+                    )
+                ),
+            ),
+
+            // Text Elements.
+            array(
+                'slug'        => 'heading',
+                'type'        => $prefix . 'Heading',
+                'label'       => __( 'Heading', 'oxybridge-wp' ),
+                'category'    => 'text',
+                'description' => __( 'A heading element (h1-h6).', 'oxybridge-wp' ),
+                'controls'    => array_merge(
+                    $this->get_typography_controls(),
+                    array(
+                        'text' => array(
+                            'type'    => 'text',
+                            'label'   => __( 'Heading Text', 'oxybridge-wp' ),
+                            'default' => 'Heading',
+                        ),
+                        'tag' => array(
+                            'type'    => 'select',
+                            'label'   => __( 'Tag', 'oxybridge-wp' ),
+                            'options' => array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ),
+                            'default' => 'h2',
+                        ),
+                    )
+                ),
             ),
             array(
-                'type'        => 'EssentialElements\\Div',
-                'name'        => 'Div',
-                'category'    => 'layout',
-                'description' => __( 'Generic div container.', 'oxybridge-wp' ),
-            ),
-            // Basic Elements.
-            array(
-                'type'        => 'EssentialElements\\Heading',
-                'name'        => 'Heading',
-                'category'    => 'basic',
-                'description' => __( 'Heading text element (H1-H6).', 'oxybridge-wp' ),
-            ),
-            array(
-                'type'        => 'EssentialElements\\Text',
-                'name'        => 'Text',
-                'category'    => 'basic',
-                'description' => __( 'Rich text content element.', 'oxybridge-wp' ),
+                'slug'        => 'text',
+                'type'        => $prefix . 'Text',
+                'label'       => __( 'Text', 'oxybridge-wp' ),
+                'category'    => 'text',
+                'description' => __( 'A paragraph or text block.', 'oxybridge-wp' ),
+                'controls'    => array_merge(
+                    $this->get_typography_controls(),
+                    array(
+                        'text' => array(
+                            'type'    => 'textarea',
+                            'label'   => __( 'Content', 'oxybridge-wp' ),
+                            'default' => 'Text content here.',
+                        ),
+                    )
+                ),
             ),
             array(
-                'type'        => 'EssentialElements\\RichText',
-                'name'        => 'Rich Text',
-                'category'    => 'basic',
-                'description' => __( 'Rich text editor element.', 'oxybridge-wp' ),
+                'slug'        => 'rich-text',
+                'type'        => $prefix . 'RichText',
+                'label'       => __( 'Rich Text', 'oxybridge-wp' ),
+                'category'    => 'text',
+                'description' => __( 'A rich text editor block.', 'oxybridge-wp' ),
+                'controls'    => array_merge(
+                    $this->get_typography_controls(),
+                    array(
+                        'content' => array(
+                            'type'    => 'richtext',
+                            'label'   => __( 'Content', 'oxybridge-wp' ),
+                        ),
+                    )
+                ),
+            ),
+
+            // Media Elements.
+            array(
+                'slug'        => 'image',
+                'type'        => $prefix . 'Image',
+                'label'       => __( 'Image', 'oxybridge-wp' ),
+                'category'    => 'media',
+                'description' => __( 'An image element.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'image' => array(
+                        'type'  => 'media',
+                        'label' => __( 'Image', 'oxybridge-wp' ),
+                    ),
+                    'alt' => array(
+                        'type'  => 'text',
+                        'label' => __( 'Alt Text', 'oxybridge-wp' ),
+                    ),
+                    'width' => array(
+                        'type'  => 'unit',
+                        'label' => __( 'Width', 'oxybridge-wp' ),
+                    ),
+                    'height' => array(
+                        'type'  => 'unit',
+                        'label' => __( 'Height', 'oxybridge-wp' ),
+                    ),
+                ),
             ),
             array(
-                'type'        => 'EssentialElements\\Image',
-                'name'        => 'Image',
-                'category'    => 'basic',
-                'description' => __( 'Image element with responsive support.', 'oxybridge-wp' ),
+                'slug'        => 'video',
+                'type'        => $prefix . 'Video',
+                'label'       => __( 'Video', 'oxybridge-wp' ),
+                'category'    => 'media',
+                'description' => __( 'A video element.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'source' => array(
+                        'type'    => 'select',
+                        'label'   => __( 'Source', 'oxybridge-wp' ),
+                        'options' => array( 'youtube', 'vimeo', 'self-hosted' ),
+                    ),
+                    'url' => array(
+                        'type'  => 'url',
+                        'label' => __( 'Video URL', 'oxybridge-wp' ),
+                    ),
+                    'autoplay' => array(
+                        'type'    => 'toggle',
+                        'label'   => __( 'Autoplay', 'oxybridge-wp' ),
+                        'default' => false,
+                    ),
+                    'loop' => array(
+                        'type'    => 'toggle',
+                        'label'   => __( 'Loop', 'oxybridge-wp' ),
+                        'default' => false,
+                    ),
+                ),
             ),
             array(
-                'type'        => 'EssentialElements\\Button',
-                'name'        => 'Button',
-                'category'    => 'basic',
-                'description' => __( 'Button element with link support.', 'oxybridge-wp' ),
+                'slug'        => 'icon',
+                'type'        => $prefix . 'Icon',
+                'label'       => __( 'Icon', 'oxybridge-wp' ),
+                'category'    => 'media',
+                'description' => __( 'An icon element.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'icon' => array(
+                        'type'  => 'icon',
+                        'label' => __( 'Icon', 'oxybridge-wp' ),
+                    ),
+                    'size' => array(
+                        'type'    => 'unit',
+                        'label'   => __( 'Size', 'oxybridge-wp' ),
+                        'default' => '24px',
+                    ),
+                    'color' => array(
+                        'type'  => 'color',
+                        'label' => __( 'Color', 'oxybridge-wp' ),
+                    ),
+                ),
             ),
-            array(
-                'type'        => 'EssentialElements\\Icon',
-                'name'        => 'Icon',
-                'category'    => 'basic',
-                'description' => __( 'Icon element.', 'oxybridge-wp' ),
-            ),
-            array(
-                'type'        => 'EssentialElements\\Video',
-                'name'        => 'Video',
-                'category'    => 'basic',
-                'description' => __( 'Video embed element.', 'oxybridge-wp' ),
-            ),
-            array(
-                'type'        => 'EssentialElements\\Spacer',
-                'name'        => 'Spacer',
-                'category'    => 'basic',
-                'description' => __( 'Vertical spacing element.', 'oxybridge-wp' ),
-            ),
-            // Form Elements.
-            array(
-                'type'        => 'EssentialElements\\FormBuilder',
-                'name'        => 'Form Builder',
-                'category'    => 'forms',
-                'description' => __( 'Form builder element.', 'oxybridge-wp' ),
-            ),
+
             // Interactive Elements.
             array(
-                'type'        => 'EssentialElements\\Accordion',
-                'name'        => 'Accordion',
+                'slug'        => 'button',
+                'type'        => $prefix . 'Button',
+                'label'       => __( 'Button', 'oxybridge-wp' ),
                 'category'    => 'interactive',
-                'description' => __( 'Accordion/collapsible content element.', 'oxybridge-wp' ),
+                'description' => __( 'A button element.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'text' => array(
+                        'type'    => 'text',
+                        'label'   => __( 'Button Text', 'oxybridge-wp' ),
+                        'default' => 'Click Me',
+                    ),
+                    'link' => array(
+                        'type'  => 'link',
+                        'label' => __( 'Link', 'oxybridge-wp' ),
+                    ),
+                    'style' => array(
+                        'type'    => 'select',
+                        'label'   => __( 'Style', 'oxybridge-wp' ),
+                        'options' => array( 'primary', 'secondary', 'outline', 'text' ),
+                    ),
+                    'size' => array(
+                        'type'    => 'select',
+                        'label'   => __( 'Size', 'oxybridge-wp' ),
+                        'options' => array( 'small', 'medium', 'large' ),
+                        'default' => 'medium',
+                    ),
+                ),
             ),
             array(
-                'type'        => 'EssentialElements\\Tabs',
-                'name'        => 'Tabs',
+                'slug'        => 'link',
+                'type'        => $prefix . 'Link',
+                'label'       => __( 'Link', 'oxybridge-wp' ),
                 'category'    => 'interactive',
-                'description' => __( 'Tabbed content element.', 'oxybridge-wp' ),
+                'description' => __( 'A text link element.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'text' => array(
+                        'type'  => 'text',
+                        'label' => __( 'Link Text', 'oxybridge-wp' ),
+                    ),
+                    'url' => array(
+                        'type'  => 'url',
+                        'label' => __( 'URL', 'oxybridge-wp' ),
+                    ),
+                    'target' => array(
+                        'type'    => 'select',
+                        'label'   => __( 'Target', 'oxybridge-wp' ),
+                        'options' => array( '_self', '_blank' ),
+                    ),
+                ),
+            ),
+
+            // Dynamic Elements.
+            array(
+                'slug'        => 'post-title',
+                'type'        => $prefix . 'PostTitle',
+                'label'       => __( 'Post Title', 'oxybridge-wp' ),
+                'category'    => 'dynamic',
+                'description' => __( 'Displays the post title dynamically.', 'oxybridge-wp' ),
+                'controls'    => $this->get_typography_controls(),
             ),
             array(
-                'type'        => 'EssentialElements\\Slider',
-                'name'        => 'Slider',
-                'category'    => 'interactive',
-                'description' => __( 'Image/content slider element.', 'oxybridge-wp' ),
+                'slug'        => 'post-content',
+                'type'        => $prefix . 'PostContent',
+                'label'       => __( 'Post Content', 'oxybridge-wp' ),
+                'category'    => 'dynamic',
+                'description' => __( 'Displays the post content dynamically.', 'oxybridge-wp' ),
+                'controls'    => $this->get_typography_controls(),
             ),
             array(
-                'type'        => 'EssentialElements\\Modal',
-                'name'        => 'Modal',
-                'category'    => 'interactive',
-                'description' => __( 'Modal/popup element.', 'oxybridge-wp' ),
+                'slug'        => 'featured-image',
+                'type'        => $prefix . 'FeaturedImage',
+                'label'       => __( 'Featured Image', 'oxybridge-wp' ),
+                'category'    => 'dynamic',
+                'description' => __( 'Displays the featured image dynamically.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'size' => array(
+                        'type'    => 'select',
+                        'label'   => __( 'Image Size', 'oxybridge-wp' ),
+                        'options' => array( 'thumbnail', 'medium', 'large', 'full' ),
+                    ),
+                ),
             ),
+            array(
+                'slug'        => 'post-meta',
+                'type'        => $prefix . 'PostMeta',
+                'label'       => __( 'Post Meta', 'oxybridge-wp' ),
+                'category'    => 'dynamic',
+                'description' => __( 'Displays post metadata (date, author, categories).', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'meta_type' => array(
+                        'type'    => 'select',
+                        'label'   => __( 'Meta Type', 'oxybridge-wp' ),
+                        'options' => array( 'date', 'author', 'categories', 'tags', 'custom' ),
+                    ),
+                ),
+            ),
+
+            // Form Elements.
+            array(
+                'slug'        => 'form',
+                'type'        => $prefix . 'Form',
+                'label'       => __( 'Form', 'oxybridge-wp' ),
+                'category'    => 'form',
+                'description' => __( 'A form container element.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'action' => array(
+                        'type'  => 'url',
+                        'label' => __( 'Form Action', 'oxybridge-wp' ),
+                    ),
+                    'method' => array(
+                        'type'    => 'select',
+                        'label'   => __( 'Method', 'oxybridge-wp' ),
+                        'options' => array( 'post', 'get' ),
+                    ),
+                ),
+            ),
+            array(
+                'slug'        => 'text-input',
+                'type'        => $prefix . 'TextInput',
+                'label'       => __( 'Text Input', 'oxybridge-wp' ),
+                'category'    => 'form',
+                'description' => __( 'A text input field.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'label' => array(
+                        'type'  => 'text',
+                        'label' => __( 'Label', 'oxybridge-wp' ),
+                    ),
+                    'placeholder' => array(
+                        'type'  => 'text',
+                        'label' => __( 'Placeholder', 'oxybridge-wp' ),
+                    ),
+                    'required' => array(
+                        'type'    => 'toggle',
+                        'label'   => __( 'Required', 'oxybridge-wp' ),
+                        'default' => false,
+                    ),
+                ),
+            ),
+
             // WordPress Elements.
             array(
-                'type'        => 'EssentialElements\\PostContent',
-                'name'        => 'Post Content',
+                'slug'        => 'menu',
+                'type'        => $prefix . 'Menu',
+                'label'       => __( 'Menu', 'oxybridge-wp' ),
                 'category'    => 'wordpress',
-                'description' => __( 'Dynamic post content.', 'oxybridge-wp' ),
+                'description' => __( 'A WordPress navigation menu.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'menu' => array(
+                        'type'  => 'menu_select',
+                        'label' => __( 'Menu', 'oxybridge-wp' ),
+                    ),
+                    'orientation' => array(
+                        'type'    => 'select',
+                        'label'   => __( 'Orientation', 'oxybridge-wp' ),
+                        'options' => array( 'horizontal', 'vertical' ),
+                    ),
+                ),
             ),
             array(
-                'type'        => 'EssentialElements\\PostTitle',
-                'name'        => 'Post Title',
+                'slug'        => 'shortcode',
+                'type'        => $prefix . 'Shortcode',
+                'label'       => __( 'Shortcode', 'oxybridge-wp' ),
                 'category'    => 'wordpress',
-                'description' => __( 'Dynamic post title.', 'oxybridge-wp' ),
+                'description' => __( 'Renders a WordPress shortcode.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'shortcode' => array(
+                        'type'  => 'text',
+                        'label' => __( 'Shortcode', 'oxybridge-wp' ),
+                    ),
+                ),
             ),
             array(
-                'type'        => 'EssentialElements\\PostsLoop',
-                'name'        => 'Posts Loop',
+                'slug'        => 'code-block',
+                'type'        => $prefix . 'CodeBlock',
+                'label'       => __( 'Code Block', 'oxybridge-wp' ),
                 'category'    => 'wordpress',
-                'description' => __( 'Loop through posts.', 'oxybridge-wp' ),
+                'description' => __( 'Custom HTML/CSS/JS code block.', 'oxybridge-wp' ),
+                'controls'    => array(
+                    'html' => array(
+                        'type'  => 'code',
+                        'label' => __( 'HTML', 'oxybridge-wp' ),
+                        'lang'  => 'html',
+                    ),
+                    'css' => array(
+                        'type'  => 'code',
+                        'label' => __( 'CSS', 'oxybridge-wp' ),
+                        'lang'  => 'css',
+                    ),
+                    'js' => array(
+                        'type'  => 'code',
+                        'label' => __( 'JavaScript', 'oxybridge-wp' ),
+                        'lang'  => 'javascript',
+                    ),
+                ),
+            ),
+        );
+
+        // Add source indicator to all elements.
+        foreach ( $elements as &$element ) {
+            $element['source'] = 'known_types';
+        }
+        unset( $element );
+
+        return $elements;
+    }
+
+    /**
+     * Get common layout control definitions.
+     *
+     * @since 1.0.0
+     * @return array Layout control definitions.
+     */
+    private function get_layout_controls(): array {
+        return array(
+            'width' => array(
+                'type'  => 'unit',
+                'label' => __( 'Width', 'oxybridge-wp' ),
+            ),
+            'max_width' => array(
+                'type'  => 'unit',
+                'label' => __( 'Max Width', 'oxybridge-wp' ),
+            ),
+            'min_height' => array(
+                'type'  => 'unit',
+                'label' => __( 'Min Height', 'oxybridge-wp' ),
+            ),
+            'padding' => array(
+                'type'  => 'spacing',
+                'label' => __( 'Padding', 'oxybridge-wp' ),
+            ),
+            'margin' => array(
+                'type'  => 'spacing',
+                'label' => __( 'Margin', 'oxybridge-wp' ),
+            ),
+            'background' => array(
+                'type'  => 'background',
+                'label' => __( 'Background', 'oxybridge-wp' ),
+            ),
+            'display' => array(
+                'type'    => 'select',
+                'label'   => __( 'Display', 'oxybridge-wp' ),
+                'options' => array( 'block', 'flex', 'grid', 'inline-block', 'none' ),
+            ),
+            'flex_direction' => array(
+                'type'    => 'select',
+                'label'   => __( 'Flex Direction', 'oxybridge-wp' ),
+                'options' => array( 'row', 'column', 'row-reverse', 'column-reverse' ),
+            ),
+            'justify_content' => array(
+                'type'    => 'select',
+                'label'   => __( 'Justify Content', 'oxybridge-wp' ),
+                'options' => array( 'flex-start', 'flex-end', 'center', 'space-between', 'space-around', 'space-evenly' ),
+            ),
+            'align_items' => array(
+                'type'    => 'select',
+                'label'   => __( 'Align Items', 'oxybridge-wp' ),
+                'options' => array( 'flex-start', 'flex-end', 'center', 'stretch', 'baseline' ),
+            ),
+            'gap' => array(
+                'type'  => 'unit',
+                'label' => __( 'Gap', 'oxybridge-wp' ),
+            ),
+        );
+    }
+
+    /**
+     * Get common typography control definitions.
+     *
+     * @since 1.0.0
+     * @return array Typography control definitions.
+     */
+    private function get_typography_controls(): array {
+        return array(
+            'font_family' => array(
+                'type'  => 'font',
+                'label' => __( 'Font Family', 'oxybridge-wp' ),
+            ),
+            'font_size' => array(
+                'type'  => 'unit',
+                'label' => __( 'Font Size', 'oxybridge-wp' ),
+            ),
+            'font_weight' => array(
+                'type'    => 'select',
+                'label'   => __( 'Font Weight', 'oxybridge-wp' ),
+                'options' => array( '100', '200', '300', '400', '500', '600', '700', '800', '900' ),
+            ),
+            'line_height' => array(
+                'type'  => 'unit',
+                'label' => __( 'Line Height', 'oxybridge-wp' ),
+            ),
+            'letter_spacing' => array(
+                'type'  => 'unit',
+                'label' => __( 'Letter Spacing', 'oxybridge-wp' ),
+            ),
+            'text_align' => array(
+                'type'    => 'select',
+                'label'   => __( 'Text Align', 'oxybridge-wp' ),
+                'options' => array( 'left', 'center', 'right', 'justify' ),
+            ),
+            'text_transform' => array(
+                'type'    => 'select',
+                'label'   => __( 'Text Transform', 'oxybridge-wp' ),
+                'options' => array( 'none', 'uppercase', 'lowercase', 'capitalize' ),
+            ),
+            'color' => array(
+                'type'  => 'color',
+                'label' => __( 'Text Color', 'oxybridge-wp' ),
+            ),
+        );
+    }
+
+    /**
+     * Get available control types.
+     *
+     * Returns the list of control types available in the builder's
+     * element configuration system.
+     *
+     * @since 1.0.0
+     * @return array Array of control type definitions.
+     */
+    private function get_control_types(): array {
+        return array(
+            array(
+                'type'        => 'text',
+                'label'       => __( 'Text Input', 'oxybridge-wp' ),
+                'description' => __( 'Single line text input.', 'oxybridge-wp' ),
             ),
             array(
-                'type'        => 'EssentialElements\\Menu',
-                'name'        => 'Menu',
-                'category'    => 'wordpress',
-                'description' => __( 'WordPress navigation menu.', 'oxybridge-wp' ),
+                'type'        => 'textarea',
+                'label'       => __( 'Textarea', 'oxybridge-wp' ),
+                'description' => __( 'Multi-line text input.', 'oxybridge-wp' ),
             ),
             array(
-                'type'        => 'EssentialElements\\Shortcode',
-                'name'        => 'Shortcode',
-                'category'    => 'wordpress',
-                'description' => __( 'Execute WordPress shortcodes.', 'oxybridge-wp' ),
+                'type'        => 'richtext',
+                'label'       => __( 'Rich Text Editor', 'oxybridge-wp' ),
+                'description' => __( 'WYSIWYG text editor.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'number',
+                'label'       => __( 'Number', 'oxybridge-wp' ),
+                'description' => __( 'Numeric input with optional min/max.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'unit',
+                'label'       => __( 'Unit Value', 'oxybridge-wp' ),
+                'description' => __( 'Number with CSS unit (px, em, rem, %, vw, vh).', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'select',
+                'label'       => __( 'Select', 'oxybridge-wp' ),
+                'description' => __( 'Dropdown selection from options.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'toggle',
+                'label'       => __( 'Toggle', 'oxybridge-wp' ),
+                'description' => __( 'Boolean on/off switch.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'color',
+                'label'       => __( 'Color Picker', 'oxybridge-wp' ),
+                'description' => __( 'Color selection with picker and presets.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'media',
+                'label'       => __( 'Media', 'oxybridge-wp' ),
+                'description' => __( 'WordPress media library selector.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'icon',
+                'label'       => __( 'Icon', 'oxybridge-wp' ),
+                'description' => __( 'Icon picker from available icon sets.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'link',
+                'label'       => __( 'Link', 'oxybridge-wp' ),
+                'description' => __( 'URL input with target options.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'url',
+                'label'       => __( 'URL', 'oxybridge-wp' ),
+                'description' => __( 'Simple URL input.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'font',
+                'label'       => __( 'Font Family', 'oxybridge-wp' ),
+                'description' => __( 'Font family selector with Google Fonts.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'spacing',
+                'label'       => __( 'Spacing', 'oxybridge-wp' ),
+                'description' => __( 'Four-sided spacing control (top, right, bottom, left).', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'background',
+                'label'       => __( 'Background', 'oxybridge-wp' ),
+                'description' => __( 'Background color, image, gradient controls.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'border',
+                'label'       => __( 'Border', 'oxybridge-wp' ),
+                'description' => __( 'Border width, style, color, radius controls.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'shadow',
+                'label'       => __( 'Shadow', 'oxybridge-wp' ),
+                'description' => __( 'Box shadow configuration.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'code',
+                'label'       => __( 'Code Editor', 'oxybridge-wp' ),
+                'description' => __( 'Code editor with syntax highlighting.', 'oxybridge-wp' ),
+            ),
+            array(
+                'type'        => 'menu_select',
+                'label'       => __( 'Menu Selector', 'oxybridge-wp' ),
+                'description' => __( 'WordPress menu selection.', 'oxybridge-wp' ),
+            ),
+        );
+    }
+
+    /**
+     * Get element categories.
+     *
+     * Returns the list of element categories used to organize
+     * elements in the builder interface.
+     *
+     * @since 1.0.0
+     * @return array Array of category definitions.
+     */
+    private function get_element_categories(): array {
+        return array(
+            array(
+                'slug'        => 'layout',
+                'label'       => __( 'Layout', 'oxybridge-wp' ),
+                'description' => __( 'Structural layout elements like sections, containers, and columns.', 'oxybridge-wp' ),
+                'icon'        => 'layout',
+            ),
+            array(
+                'slug'        => 'text',
+                'label'       => __( 'Text', 'oxybridge-wp' ),
+                'description' => __( 'Text and typography elements.', 'oxybridge-wp' ),
+                'icon'        => 'text',
+            ),
+            array(
+                'slug'        => 'media',
+                'label'       => __( 'Media', 'oxybridge-wp' ),
+                'description' => __( 'Images, videos, icons, and other media elements.', 'oxybridge-wp' ),
+                'icon'        => 'media',
+            ),
+            array(
+                'slug'        => 'interactive',
+                'label'       => __( 'Interactive', 'oxybridge-wp' ),
+                'description' => __( 'Buttons, links, and interactive elements.', 'oxybridge-wp' ),
+                'icon'        => 'interactive',
+            ),
+            array(
+                'slug'        => 'dynamic',
+                'label'       => __( 'Dynamic', 'oxybridge-wp' ),
+                'description' => __( 'Elements that display dynamic WordPress content.', 'oxybridge-wp' ),
+                'icon'        => 'dynamic',
+            ),
+            array(
+                'slug'        => 'form',
+                'label'       => __( 'Form', 'oxybridge-wp' ),
+                'description' => __( 'Form containers and input elements.', 'oxybridge-wp' ),
+                'icon'        => 'form',
+            ),
+            array(
+                'slug'        => 'wordpress',
+                'label'       => __( 'WordPress', 'oxybridge-wp' ),
+                'description' => __( 'WordPress-specific elements like menus and shortcodes.', 'oxybridge-wp' ),
+                'icon'        => 'wordpress',
             ),
         );
     }
@@ -2024,6 +3073,185 @@ class REST_API {
         $styles = apply_filters( 'oxybridge_rest_global_styles', $styles, $category, $request );
 
         return rest_ensure_response( $styles );
+    }
+
+    /**
+     * Get responsive breakpoints endpoint callback.
+     *
+     * Returns the responsive breakpoint definitions used by Oxygen/Breakdance
+     * for responsive styling. Breakpoints define the viewport widths at which
+     * styles change for different device sizes.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_responsive_breakpoints( \WP_REST_Request $request ) {
+        $breakpoints = $this->get_breakpoints();
+
+        $response = array(
+            'breakpoints' => $breakpoints,
+            '_meta'       => array(
+                'builder'   => $this->get_builder_name(),
+                'version'   => $this->get_oxygen_version(),
+                'count'     => count( $breakpoints ),
+                'timestamp' => current_time( 'c' ),
+            ),
+        );
+
+        /**
+         * Filters the responsive breakpoints data before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $response The response data containing breakpoints and metadata.
+         * @param \WP_REST_Request $request  The request object.
+         */
+        $response = apply_filters( 'oxybridge_rest_breakpoints', $response, $request );
+
+        return rest_ensure_response( $response );
+    }
+
+    /**
+     * Get global colors endpoint callback.
+     *
+     * Returns the global color palette defined in Oxygen/Breakdance settings.
+     * Colors are retrieved from the global settings and include both named
+     * colors and any color variables.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_global_colors( \WP_REST_Request $request ) {
+        $colors = $this->get_colors();
+
+        $response = array(
+            'colors' => $colors,
+            '_meta'  => array(
+                'builder'   => $this->get_builder_name(),
+                'version'   => $this->get_oxygen_version(),
+                'count'     => count( $colors ),
+                'timestamp' => current_time( 'c' ),
+            ),
+        );
+
+        /**
+         * Filters the global colors data before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $response The response data containing colors and metadata.
+         * @param \WP_REST_Request $request  The request object.
+         */
+        $response = apply_filters( 'oxybridge_rest_colors', $response, $request );
+
+        return rest_ensure_response( $response );
+    }
+
+    /**
+     * Get design variables endpoint callback.
+     *
+     * Returns the CSS design variables defined in Oxygen/Breakdance settings.
+     * Variables include custom properties for colors, spacing, typography,
+     * and other design tokens.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_design_variables( \WP_REST_Request $request ) {
+        $variables = $this->get_variables();
+
+        $response = array(
+            'variables' => $variables,
+            '_meta'     => array(
+                'builder'   => $this->get_builder_name(),
+                'version'   => $this->get_oxygen_version(),
+                'count'     => count( $variables ),
+                'timestamp' => current_time( 'c' ),
+            ),
+        );
+
+        /**
+         * Filters the design variables data before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $response The response data containing variables and metadata.
+         * @param \WP_REST_Request $request  The request object.
+         */
+        $response = apply_filters( 'oxybridge_rest_variables', $response, $request );
+
+        return rest_ensure_response( $response );
+    }
+
+    /**
+     * Get available fonts endpoint callback.
+     *
+     * Returns the available fonts list defined in Oxygen/Breakdance settings.
+     * Fonts are retrieved from the global typography settings and include
+     * both system fonts and custom uploaded fonts.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_available_fonts( \WP_REST_Request $request ) {
+        $fonts = $this->get_fonts();
+
+        $response = array(
+            'fonts' => $fonts,
+            '_meta' => array(
+                'builder'   => $this->get_builder_name(),
+                'version'   => $this->get_oxygen_version(),
+                'count'     => count( $fonts ),
+                'timestamp' => current_time( 'c' ),
+            ),
+        );
+
+        /**
+         * Filters the available fonts data before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $response The response data containing fonts and metadata.
+         * @param \WP_REST_Request $request  The request object.
+         */
+        $response = apply_filters( 'oxybridge_rest_fonts', $response, $request );
+
+        return rest_ensure_response( $response );
+    }
+
+    /**
+     * Get global CSS classes endpoint callback.
+     *
+     * Returns the global CSS classes/selectors defined in Oxygen/Breakdance settings.
+     * Classes include reusable style definitions that can be applied to elements.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_global_classes( \WP_REST_Request $request ) {
+        $classes = $this->get_css_selectors();
+
+        $response = array(
+            'classes' => $classes,
+            '_meta'   => array(
+                'builder'   => $this->get_builder_name(),
+                'version'   => $this->get_oxygen_version(),
+                'count'     => count( $classes ),
+                'timestamp' => current_time( 'c' ),
+            ),
+        );
+
+        /**
+         * Filters the global classes data before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $response The response data containing classes and metadata.
+         * @param \WP_REST_Request $request  The request object.
+         */
+        $response = apply_filters( 'oxybridge_rest_classes', $response, $request );
+
+        return rest_ensure_response( $response );
     }
 
     /**
@@ -2108,469 +3336,652 @@ class REST_API {
     }
 
     /**
-     * Create element endpoint callback.
+     * Regenerate CSS for all posts with Oxygen/Breakdance content (bulk).
      *
-     * Creates a new element in the document tree at the specified parent location.
+     * Iterates through all posts with Oxygen/Breakdance content and regenerates
+     * the CSS cache for each. Supports optional filtering by post type and
+     * configurable batch size.
      *
      * @since 1.0.0
      * @param \WP_REST_Request $request The request object.
      * @return \WP_REST_Response|\WP_Error The response object or error.
      */
-    public function create_element( \WP_REST_Request $request ) {
-        $post_id      = $request->get_param( 'id' );
-        $parent_id    = $request->get_param( 'parent_id' );
-        $element_type = $request->get_param( 'element_type' );
-        $properties   = $request->get_param( 'properties' );
-        $position     = $request->get_param( 'position' );
+    public function regenerate_all_css( \WP_REST_Request $request ) {
+        $post_type  = $request->get_param( 'post_type' );
+        $batch_size = $request->get_param( 'batch_size' );
 
-        // Verify the post exists.
-        $post = get_post( $post_id );
-        if ( ! $post ) {
+        // Check if the Breakdance render function exists.
+        if ( ! function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
             return new \WP_Error(
-                'rest_post_not_found',
-                __( 'Post not found.', 'oxybridge-wp' ),
-                array( 'status' => 404 )
+                'rest_regeneration_unavailable',
+                __( 'CSS regeneration function is not available. Oxygen/Breakdance may not be active.', 'oxybridge-wp' ),
+                array( 'status' => 500 )
             );
         }
 
-        // Get the existing document tree.
-        $tree = $this->get_document_tree( $post_id );
-        if ( $tree === null ) {
-            // Initialize empty tree if document doesn't have Oxygen content yet.
-            $tree = $this->create_empty_tree();
-        }
+        // Record start time for duration tracking.
+        $start_time = microtime( true );
 
-        // Generate unique element ID.
-        $element_id = $this->generate_element_id();
-
-        // Create the new element structure.
-        $new_element = array(
-            'id'       => $element_id,
-            'data'     => array(
-                'type'       => $element_type,
-                'properties' => is_array( $properties ) ? $properties : array(),
+        // Build query args to find all posts with Oxygen content.
+        $meta_prefix = $this->get_meta_prefix();
+        $query_args  = array(
+            'posts_per_page' => absint( $batch_size ),
+            'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+            'orderby'        => 'ID',
+            'order'          => 'ASC',
+            'meta_query'     => array(
+                'relation' => 'OR',
+                // Modern Oxygen 6 / Breakdance format.
+                array(
+                    'key'     => $meta_prefix . 'data',
+                    'compare' => 'EXISTS',
+                ),
+                // Classic Oxygen format (ct_builder_json).
+                array(
+                    'key'     => 'ct_builder_json',
+                    'compare' => 'EXISTS',
+                ),
+                // Classic Oxygen shortcodes format.
+                array(
+                    'key'     => 'ct_builder_shortcodes',
+                    'compare' => 'EXISTS',
+                ),
             ),
-            'children' => array(),
         );
 
-        /**
-         * Filters the new element data before insertion.
-         *
-         * @since 1.0.0
-         * @param array            $new_element  The new element data.
-         * @param string           $parent_id    The parent element ID.
-         * @param \WP_REST_Request $request      The request object.
-         */
-        $new_element = apply_filters( 'oxybridge_create_element_data', $new_element, $parent_id, $request );
-
-        // Find parent and insert element.
-        $result = $this->insert_element_into_tree( $tree, $parent_id, $new_element, $position );
-
-        if ( is_wp_error( $result ) ) {
-            return $result;
+        // Determine post types to query.
+        if ( ! empty( $post_type ) && post_type_exists( $post_type ) ) {
+            $query_args['post_type'] = sanitize_key( $post_type );
+        } else {
+            // Query all public post types plus template types.
+            $public_types   = get_post_types( array( 'public' => true ), 'names' );
+            $template_types = $this->get_all_template_post_types();
+            $all_types      = array_unique( array_merge( $public_types, $template_types ) );
+            $query_args['post_type'] = array_values( $all_types );
         }
 
-        $tree = $result;
+        // Get total count first (for progress tracking).
+        $count_args                   = $query_args;
+        $count_args['posts_per_page'] = -1;
+        $count_args['fields']         = 'ids';
+        $count_query                  = new \WP_Query( $count_args );
+        $total_posts                  = $count_query->found_posts;
 
-        // Validate tree structure before saving.
-        if ( function_exists( '\Breakdance\Data\is_valid_tree' ) ) {
-            if ( ! \Breakdance\Data\is_valid_tree( $tree ) ) {
+        if ( $total_posts === 0 ) {
+            return rest_ensure_response(
+                array(
+                    'success'       => true,
+                    'message'       => __( 'No posts with Oxygen/Breakdance content found to regenerate.', 'oxybridge-wp' ),
+                    'total'         => 0,
+                    'processed'     => 0,
+                    'succeeded'     => 0,
+                    'failed'        => 0,
+                    'duration_ms'   => 0,
+                    'results'       => array(),
+                )
+            );
+        }
+
+        // Process posts in batches.
+        $processed = 0;
+        $succeeded = 0;
+        $failed    = 0;
+        $results   = array();
+        $page      = 1;
+
+        // Process all posts by paging through.
+        while ( $processed < $total_posts ) {
+            $query_args['paged'] = $page;
+            $query               = new \WP_Query( $query_args );
+
+            if ( empty( $query->posts ) ) {
+                break;
+            }
+
+            foreach ( $query->posts as $post ) {
+                $processed++;
+                $post_start_time = microtime( true );
+                $result          = array(
+                    'post_id'    => $post->ID,
+                    'post_title' => $post->post_title,
+                    'post_type'  => $post->post_type,
+                    'success'    => false,
+                    'error'      => null,
+                    'duration_ms' => 0,
+                );
+
+                try {
+                    // Call Oxygen/Breakdance's built-in cache regeneration function.
+                    \Breakdance\Render\generateCacheForPost( $post->ID );
+                    $result['success']     = true;
+                    $result['duration_ms'] = round( ( microtime( true ) - $post_start_time ) * 1000 );
+                    $succeeded++;
+
+                    /**
+                     * Fires after CSS cache has been regenerated for a post during bulk regeneration.
+                     *
+                     * @since 1.0.0
+                     * @param int   $post_id  The post ID.
+                     * @param float $duration The regeneration duration in milliseconds.
+                     */
+                    do_action( 'oxybridge_css_regenerated', $post->ID, $result['duration_ms'] );
+                } catch ( \Exception $e ) {
+                    $result['error']       = $e->getMessage();
+                    $result['duration_ms'] = round( ( microtime( true ) - $post_start_time ) * 1000 );
+                    $failed++;
+                } catch ( \Error $e ) {
+                    $result['error']       = $e->getMessage();
+                    $result['duration_ms'] = round( ( microtime( true ) - $post_start_time ) * 1000 );
+                    $failed++;
+                }
+
+                $results[] = $result;
+            }
+
+            $page++;
+        }
+
+        $total_duration = round( ( microtime( true ) - $start_time ) * 1000 );
+
+        /**
+         * Fires after bulk CSS regeneration completes.
+         *
+         * @since 1.0.0
+         * @param int   $total      Total posts found.
+         * @param int   $succeeded  Number of posts successfully regenerated.
+         * @param int   $failed     Number of posts that failed regeneration.
+         * @param float $duration   Total duration in milliseconds.
+         */
+        do_action( 'oxybridge_bulk_css_regenerated', $total_posts, $succeeded, $failed, $total_duration );
+
+        return rest_ensure_response(
+            array(
+                'success'     => $failed === 0,
+                'message'     => $failed === 0
+                    ? sprintf(
+                        /* translators: %d: number of posts */
+                        __( 'CSS cache regenerated successfully for %d posts.', 'oxybridge-wp' ),
+                        $succeeded
+                    )
+                    : sprintf(
+                        /* translators: 1: number succeeded, 2: number failed */
+                        __( 'CSS regeneration completed with %1$d successes and %2$d failures.', 'oxybridge-wp' ),
+                        $succeeded,
+                        $failed
+                    ),
+                'total'       => $total_posts,
+                'processed'   => $processed,
+                'succeeded'   => $succeeded,
+                'failed'      => $failed,
+                'duration_ms' => $total_duration,
+                'results'     => $results,
+            )
+        );
+    }
+
+    /**
+     * Create page endpoint callback.
+     *
+     * Creates a new WordPress page/post with optional Oxygen/Breakdance design data.
+     * Supports setting title, status, post type, slug, content, parent, and initial
+     * design tree structure.
+     *
+     * @since 1.0.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response object or error.
+     */
+    public function create_page( \WP_REST_Request $request ) {
+        $title         = $request->get_param( 'title' );
+        $status        = $request->get_param( 'status' );
+        $post_type     = $request->get_param( 'post_type' );
+        $slug          = $request->get_param( 'slug' );
+        $content       = $request->get_param( 'content' );
+        $parent        = $request->get_param( 'parent' );
+        $tree          = $request->get_param( 'tree' );
+        $enable_oxygen = $request->get_param( 'enable_oxygen' );
+        $template      = $request->get_param( 'template' );
+
+        // Validate post type exists and is not a reserved template type.
+        if ( ! post_type_exists( $post_type ) ) {
+            return new \WP_Error(
+                'rest_invalid_post_type',
+                sprintf(
+                    /* translators: %s: post type */
+                    __( 'Post type "%s" does not exist.', 'oxybridge-wp' ),
+                    $post_type
+                ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Don't allow creating posts with template post types via this endpoint.
+        $template_post_types = $this->get_all_template_post_types();
+        if ( in_array( $post_type, $template_post_types, true ) ) {
+            return new \WP_Error(
+                'rest_invalid_post_type',
+                __( 'Template post types cannot be created via this endpoint. Use /templates instead.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Check if user can publish posts of this type.
+        $post_type_obj = get_post_type_object( $post_type );
+        if ( ! current_user_can( $post_type_obj->cap->publish_posts ) && $status === 'publish' ) {
+            return new \WP_Error(
+                'rest_cannot_publish',
+                __( 'You do not have permission to publish posts of this type.', 'oxybridge-wp' ),
+                array( 'status' => 403 )
+            );
+        }
+
+        // Validate parent if provided for hierarchical post types.
+        if ( $parent > 0 ) {
+            if ( ! is_post_type_hierarchical( $post_type ) ) {
                 return new \WP_Error(
-                    'rest_invalid_tree',
-                    __( 'The resulting tree structure is invalid.', 'oxybridge-wp' ),
+                    'rest_invalid_parent',
+                    __( 'Parent ID is only valid for hierarchical post types.', 'oxybridge-wp' ),
+                    array( 'status' => 400 )
+                );
+            }
+
+            $parent_post = get_post( $parent );
+            if ( ! $parent_post || $parent_post->post_type !== $post_type ) {
+                return new \WP_Error(
+                    'rest_invalid_parent',
+                    __( 'Parent post not found or is of different post type.', 'oxybridge-wp' ),
                     array( 'status' => 400 )
                 );
             }
         }
 
-        // Save the updated tree.
-        $save_result = $this->save_document_tree( $post_id, $tree );
-        if ( is_wp_error( $save_result ) ) {
-            return $save_result;
+        // Build post data array.
+        $post_data = array(
+            'post_title'  => $title,
+            'post_status' => $status,
+            'post_type'   => $post_type,
+            'post_author' => get_current_user_id(),
+        );
+
+        if ( ! empty( $slug ) ) {
+            $post_data['post_name'] = $slug;
         }
 
-        // Trigger CSS regeneration.
-        if ( function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
-            try {
-                \Breakdance\Render\generateCacheForPost( $post_id );
-            } catch ( \Exception $e ) {
-                // Log error but don't fail the request - element was created successfully.
-                error_log( 'Oxybridge: CSS regeneration failed after element creation: ' . $e->getMessage() );
-            }
+        if ( ! empty( $content ) ) {
+            $post_data['post_content'] = $content;
+        }
+
+        if ( $parent > 0 ) {
+            $post_data['post_parent'] = $parent;
         }
 
         /**
-         * Fires after an element has been created.
+         * Filters the post data before creating a new page via REST API.
          *
          * @since 1.0.0
-         * @param array  $new_element The created element data.
-         * @param int    $post_id     The post ID.
-         * @param string $parent_id   The parent element ID.
+         * @param array            $post_data The post data array.
+         * @param \WP_REST_Request $request   The request object.
          */
-        do_action( 'oxybridge_element_created', $new_element, $post_id, $parent_id );
+        $post_data = apply_filters( 'oxybridge_rest_create_page_data', $post_data, $request );
 
-        $response = rest_ensure_response(
-            array(
-                'success'    => true,
-                'element'    => array(
-                    'id'           => $element_id,
-                    'type'         => $element_type,
-                    'parent_id'    => $parent_id,
-                    'properties'   => $new_element['data']['properties'],
+        // Insert the post.
+        $post_id = wp_insert_post( $post_data, true );
+
+        if ( is_wp_error( $post_id ) ) {
+            return new \WP_Error(
+                'rest_post_creation_failed',
+                sprintf(
+                    /* translators: %s: error message */
+                    __( 'Failed to create page: %s', 'oxybridge-wp' ),
+                    $post_id->get_error_message()
                 ),
-                'post_id'    => $post_id,
-                'message'    => __( 'Element created successfully.', 'oxybridge-wp' ),
-            )
-        );
+                array( 'status' => 500 )
+            );
+        }
 
+        // Set page template if provided.
+        if ( ! empty( $template ) && $post_type === 'page' ) {
+            update_post_meta( $post_id, '_wp_page_template', $template );
+        }
+
+        // Handle Oxygen/Breakdance design data.
+        $tree_saved = false;
+        if ( ! empty( $tree ) ) {
+            // Validate and save provided tree.
+            $tree_saved = $this->save_document_tree( $post_id, $tree );
+        } elseif ( $enable_oxygen ) {
+            // Create empty tree structure for Oxygen builder.
+            $empty_tree = $this->create_empty_tree();
+            $tree_saved = $this->save_document_tree( $post_id, $empty_tree );
+        }
+
+        // Regenerate CSS if tree was saved and Oxygen is active.
+        $css_regenerated = false;
+        if ( $tree_saved && function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
+            try {
+                \Breakdance\Render\generateCacheForPost( $post_id );
+                $css_regenerated = true;
+            } catch ( \Exception $e ) {
+                // CSS regeneration failed but post was created - continue.
+            }
+        }
+
+        // Get the newly created post.
+        $post = get_post( $post_id );
+
+        // Build response data using the same format as list_pages.
+        $response_data = $this->format_page( $post );
+
+        // Add additional creation-specific data.
+        $response_data['tree_saved']      = $tree_saved;
+        $response_data['css_regenerated'] = $css_regenerated;
+
+        /**
+         * Fires after a page has been created via REST API.
+         *
+         * @since 1.0.0
+         * @param int              $post_id The newly created post ID.
+         * @param \WP_REST_Request $request The request object.
+         */
+        do_action( 'oxybridge_rest_page_created', $post_id, $request );
+
+        /**
+         * Filters the create page response data before returning.
+         *
+         * @since 1.0.0
+         * @param array            $response_data The response data.
+         * @param \WP_Post         $post          The created post object.
+         * @param \WP_REST_Request $request       The request object.
+         */
+        $response_data = apply_filters( 'oxybridge_rest_create_page_response', $response_data, $post, $request );
+
+        // Return 201 Created response.
+        $response = rest_ensure_response( $response_data );
         $response->set_status( 201 );
+
+        // Set Location header to the new resource.
+        $response->header( 'Location', rest_url( self::NAMESPACE . '/documents/' . $post_id ) );
 
         return $response;
     }
 
     /**
-     * Update element endpoint callback.
+     * Clone page endpoint callback.
      *
-     * Updates an existing element's properties in the document tree.
+     * Creates a duplicate of an existing page or template, including
+     * all Oxygen/Breakdance design data. The cloned post will have a
+     * new title and can optionally have a custom slug and status.
      *
      * @since 1.0.0
      * @param \WP_REST_Request $request The request object.
      * @return \WP_REST_Response|\WP_Error The response object or error.
      */
-    public function update_element( \WP_REST_Request $request ) {
-        $post_id    = $request->get_param( 'id' );
-        $element_id = $request->get_param( 'element_id' );
-        $properties = $request->get_param( 'properties' );
+    public function clone_page( \WP_REST_Request $request ) {
+        $source_id = $request->get_param( 'id' );
+        $title     = $request->get_param( 'title' );
+        $status    = $request->get_param( 'status' );
+        $slug      = $request->get_param( 'slug' );
 
-        // Verify the post exists.
-        $post = get_post( $post_id );
-        if ( ! $post ) {
+        // Get the source post.
+        $source_post = get_post( $source_id );
+
+        if ( ! $source_post ) {
             return new \WP_Error(
                 'rest_post_not_found',
-                __( 'Post not found.', 'oxybridge-wp' ),
+                __( 'Source post not found.', 'oxybridge-wp' ),
                 array( 'status' => 404 )
             );
         }
 
-        // Get the existing document tree.
-        $tree = $this->get_document_tree( $post_id );
-        if ( $tree === null ) {
+        // Check if user can create posts of this type.
+        $post_type_obj = get_post_type_object( $source_post->post_type );
+
+        if ( ! $post_type_obj ) {
             return new \WP_Error(
-                'rest_no_content',
-                __( 'This document does not have Oxygen/Breakdance content.', 'oxybridge-wp' ),
-                array( 'status' => 404 )
+                'rest_invalid_post_type',
+                __( 'Invalid post type.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
             );
         }
 
-        // Find the element in the tree.
-        $element = $this->find_element_in_tree( $tree, $element_id );
-        if ( $element === null ) {
+        if ( ! current_user_can( $post_type_obj->cap->create_posts ) ) {
             return new \WP_Error(
-                'rest_element_not_found',
+                'rest_cannot_create',
+                __( 'You do not have permission to create posts of this type.', 'oxybridge-wp' ),
+                array( 'status' => 403 )
+            );
+        }
+
+        // Check publish permission if status is publish.
+        if ( $status === 'publish' && ! current_user_can( $post_type_obj->cap->publish_posts ) ) {
+            return new \WP_Error(
+                'rest_cannot_publish',
+                __( 'You do not have permission to publish posts of this type.', 'oxybridge-wp' ),
+                array( 'status' => 403 )
+            );
+        }
+
+        // Generate title if not provided.
+        if ( empty( $title ) ) {
+            /* translators: %s: original post title */
+            $title = sprintf( __( 'Copy of %s', 'oxybridge-wp' ), $source_post->post_title );
+        }
+
+        // Build new post data.
+        $new_post_data = array(
+            'post_title'   => $title,
+            'post_content' => $source_post->post_content,
+            'post_excerpt' => $source_post->post_excerpt,
+            'post_status'  => $status,
+            'post_type'    => $source_post->post_type,
+            'post_author'  => get_current_user_id(),
+            'post_parent'  => $source_post->post_parent,
+            'menu_order'   => $source_post->menu_order,
+        );
+
+        // Set custom slug if provided.
+        if ( ! empty( $slug ) ) {
+            $new_post_data['post_name'] = $slug;
+        }
+
+        /**
+         * Filters the post data before cloning a page via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $new_post_data The new post data array.
+         * @param \WP_Post         $source_post   The source post object.
+         * @param \WP_REST_Request $request       The request object.
+         */
+        $new_post_data = apply_filters( 'oxybridge_rest_clone_page_data', $new_post_data, $source_post, $request );
+
+        // Insert the new post.
+        $new_post_id = wp_insert_post( $new_post_data, true );
+
+        if ( is_wp_error( $new_post_id ) ) {
+            return new \WP_Error(
+                'rest_clone_failed',
                 sprintf(
-                    /* translators: %s: element ID */
-                    __( 'Element with ID "%s" not found in document tree.', 'oxybridge-wp' ),
-                    $element_id
+                    /* translators: %s: error message */
+                    __( 'Failed to clone page: %s', 'oxybridge-wp' ),
+                    $new_post_id->get_error_message()
                 ),
-                array( 'status' => 404 )
+                array( 'status' => 500 )
             );
         }
 
-        /**
-         * Filters the properties before updating an element.
-         *
-         * @since 1.0.0
-         * @param array            $properties The new properties to merge.
-         * @param array            $element    The existing element data.
-         * @param int              $post_id    The post ID.
-         * @param \WP_REST_Request $request    The request object.
-         */
-        $properties = apply_filters( 'oxybridge_update_element_properties', $properties, $element, $post_id, $request );
+        // Clone all post meta and taxonomies using Oxygen_Data class.
+        $oxygen_data = new Oxygen_Data();
+        $meta_cloned = $oxygen_data->clone_post_meta( $source_id, $new_post_id );
+        $terms_cloned = $oxygen_data->clone_post_terms( $source_id, $new_post_id );
 
-        // Update the element in the tree.
-        $result = $this->update_element_in_tree( $tree, $element_id, $properties );
+        // Check if tree was cloned by checking for Oxygen content.
+        $tree_cloned = $meta_cloned && $this->has_oxygen_content( $new_post_id );
 
-        if ( is_wp_error( $result ) ) {
-            return $result;
-        }
-
-        $tree = $result['tree'];
-        $updated_element = $result['element'];
-
-        // Validate tree structure before saving.
-        if ( function_exists( '\Breakdance\Data\is_valid_tree' ) ) {
-            if ( ! \Breakdance\Data\is_valid_tree( $tree ) ) {
-                return new \WP_Error(
-                    'rest_invalid_tree',
-                    __( 'The resulting tree structure is invalid.', 'oxybridge-wp' ),
-                    array( 'status' => 400 )
-                );
-            }
-        }
-
-        // Save the updated tree.
-        $save_result = $this->save_document_tree( $post_id, $tree );
-        if ( is_wp_error( $save_result ) ) {
-            return $save_result;
-        }
-
-        // Trigger CSS regeneration.
-        if ( function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
+        // Regenerate CSS if tree was cloned and Oxygen is active.
+        $css_regenerated = false;
+        if ( $tree_cloned && function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
             try {
-                \Breakdance\Render\generateCacheForPost( $post_id );
+                \Breakdance\Render\generateCacheForPost( $new_post_id );
+                $css_regenerated = true;
             } catch ( \Exception $e ) {
-                // Log error but don't fail the request - element was updated successfully.
-                error_log( 'Oxybridge: CSS regeneration failed after element update: ' . $e->getMessage() );
+                // CSS regeneration failed but clone was successful - continue.
             }
         }
+
+        // Get the newly created post.
+        $new_post = get_post( $new_post_id );
+
+        // Build response data.
+        $template_post_types = $this->get_all_template_post_types();
+        $is_template = in_array( $new_post->post_type, $template_post_types, true );
+
+        if ( $is_template ) {
+            $response_data = $this->format_template( $new_post );
+        } else {
+            $response_data = $this->format_page( $new_post );
+        }
+
+        // Add clone-specific data.
+        $response_data['cloned_from']      = $source_id;
+        $response_data['tree_cloned']      = $tree_cloned;
+        $response_data['css_regenerated']  = $css_regenerated;
 
         /**
-         * Fires after an element has been updated.
+         * Fires after a page has been cloned via REST API.
          *
          * @since 1.0.0
-         * @param array  $updated_element The updated element data.
-         * @param array  $properties      The properties that were applied.
-         * @param int    $post_id         The post ID.
+         * @param int              $new_post_id The newly created post ID.
+         * @param int              $source_id   The source post ID.
+         * @param \WP_REST_Request $request     The request object.
          */
-        do_action( 'oxybridge_element_updated', $updated_element, $properties, $post_id );
+        do_action( 'oxybridge_rest_page_cloned', $new_post_id, $source_id, $request );
 
-        return rest_ensure_response(
-            array(
-                'success'  => true,
-                'element'  => array(
-                    'id'         => $element_id,
-                    'type'       => isset( $updated_element['data']['type'] ) ? $updated_element['data']['type'] : null,
-                    'properties' => isset( $updated_element['data']['properties'] ) ? $updated_element['data']['properties'] : array(),
-                ),
-                'post_id'  => $post_id,
-                'message'  => __( 'Element updated successfully.', 'oxybridge-wp' ),
-            )
-        );
-    }
+        /**
+         * Filters the clone page response data before returning.
+         *
+         * @since 1.0.0
+         * @param array            $response_data The response data.
+         * @param \WP_Post         $new_post      The cloned post object.
+         * @param \WP_Post         $source_post   The source post object.
+         * @param \WP_REST_Request $request       The request object.
+         */
+        $response_data = apply_filters( 'oxybridge_rest_clone_page_response', $response_data, $new_post, $source_post, $request );
 
-    /**
-     * Find an element in the document tree by ID.
-     *
-     * @since 1.0.0
-     * @param array  $tree       The document tree.
-     * @param string $element_id The element ID to find.
-     * @return array|null The element data or null if not found.
-     */
-    private function find_element_in_tree( array $tree, string $element_id ) {
-        // Check if tree has 'root' wrapper.
-        if ( isset( $tree['root'] ) ) {
-            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
-                return $tree['root'];
-            }
-            return $this->find_element_recursive( $tree['root'], $element_id );
-        }
+        // Return 201 Created response.
+        $response = rest_ensure_response( $response_data );
+        $response->set_status( 201 );
 
-        // Check if current node is the element.
-        if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
-            return $tree;
-        }
-
-        // Search in children if present.
-        if ( isset( $tree['children'] ) && is_array( $tree['children'] ) ) {
-            foreach ( $tree['children'] as $child ) {
-                $found = $this->find_element_recursive( $child, $element_id );
-                if ( $found !== null ) {
-                    return $found;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Recursively find an element by ID.
-     *
-     * @since 1.0.0
-     * @param array  $node       Current node in tree.
-     * @param string $element_id The element ID to find.
-     * @return array|null The element data or null if not found.
-     */
-    private function find_element_recursive( array $node, string $element_id ) {
-        // Check if this node is the element.
-        if ( isset( $node['id'] ) && $node['id'] === $element_id ) {
-            return $node;
-        }
-
-        // Search children.
-        if ( isset( $node['children'] ) && is_array( $node['children'] ) ) {
-            foreach ( $node['children'] as $child ) {
-                $found = $this->find_element_recursive( $child, $element_id );
-                if ( $found !== null ) {
-                    return $found;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Update an element's properties in the tree.
-     *
-     * @since 1.0.0
-     * @param array  $tree       The document tree.
-     * @param string $element_id The element ID to update.
-     * @param array  $properties The properties to merge.
-     * @return array|\WP_Error Array with 'tree' and 'element' keys, or WP_Error on failure.
-     */
-    private function update_element_in_tree( array $tree, string $element_id, array $properties ) {
-        // Handle 'root' wrapper.
-        if ( isset( $tree['root'] ) ) {
-            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
-                $tree['root'] = $this->merge_element_properties( $tree['root'], $properties );
-                return array(
-                    'tree'    => $tree,
-                    'element' => $tree['root'],
-                );
-            }
-
-            $result = $this->update_element_recursive( $tree['root'], $element_id, $properties );
-            if ( $result !== false ) {
-                $tree['root'] = $result['node'];
-                return array(
-                    'tree'    => $tree,
-                    'element' => $result['element'],
-                );
-            }
+        // Set Location header to the new resource.
+        if ( $is_template ) {
+            $response->header( 'Location', rest_url( self::NAMESPACE . '/templates/' . $new_post_id ) );
         } else {
-            // Direct tree without root wrapper.
-            if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
-                $tree = $this->merge_element_properties( $tree, $properties );
-                return array(
-                    'tree'    => $tree,
-                    'element' => $tree,
-                );
-            }
-
-            $result = $this->update_element_recursive( $tree, $element_id, $properties );
-            if ( $result !== false ) {
-                return array(
-                    'tree'    => $result['node'],
-                    'element' => $result['element'],
-                );
-            }
+            $response->header( 'Location', rest_url( self::NAMESPACE . '/documents/' . $new_post_id ) );
         }
 
-        return new \WP_Error(
-            'rest_element_not_found',
-            sprintf(
-                /* translators: %s: element ID */
-                __( 'Element with ID "%s" not found in document tree.', 'oxybridge-wp' ),
-                $element_id
-            ),
-            array( 'status' => 404 )
-        );
+        return $response;
     }
 
     /**
-     * Recursively update element properties in the tree.
+     * Validate tree structure endpoint callback.
+     *
+     * Validates the provided JSON tree structure without saving it.
+     * Returns detailed validation results including errors, warnings, and statistics.
      *
      * @since 1.0.0
-     * @param array  $node       Current node in tree.
-     * @param string $element_id The element ID to update.
-     * @param array  $properties The properties to merge.
-     * @return array|false Array with 'node' and 'element' keys, or false if not found.
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
      */
-    private function update_element_recursive( array $node, string $element_id, array $properties ) {
-        // Check if this node is the element to update.
-        if ( isset( $node['id'] ) && $node['id'] === $element_id ) {
-            $updated_node = $this->merge_element_properties( $node, $properties );
-            return array(
-                'node'    => $updated_node,
-                'element' => $updated_node,
-            );
-        }
+    public function validate_tree( \WP_REST_Request $request ) {
+        $tree = $request->get_param( 'tree' );
 
-        // Search and update in children.
-        if ( isset( $node['children'] ) && is_array( $node['children'] ) ) {
-            foreach ( $node['children'] as $index => $child ) {
-                $result = $this->update_element_recursive( $child, $element_id, $properties );
-                if ( $result !== false ) {
-                    $node['children'][ $index ] = $result['node'];
-                    return array(
-                        'node'    => $node,
-                        'element' => $result['element'],
-                    );
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Merge new properties into an element's existing properties.
-     *
-     * Performs a deep merge of properties, preserving existing values
-     * that are not explicitly overwritten.
-     *
-     * @since 1.0.0
-     * @param array $element    The element to update.
-     * @param array $properties The new properties to merge.
-     * @return array The updated element.
-     */
-    private function merge_element_properties( array $element, array $properties ): array {
-        // Ensure data structure exists.
-        if ( ! isset( $element['data'] ) ) {
-            $element['data'] = array();
-        }
-
-        if ( ! isset( $element['data']['properties'] ) ) {
-            $element['data']['properties'] = array();
-        }
-
-        // Deep merge the properties.
-        $element['data']['properties'] = $this->deep_merge_arrays(
-            $element['data']['properties'],
-            $properties
-        );
-
-        return $element;
-    }
-
-    /**
-     * Deep merge two arrays recursively.
-     *
-     * @since 1.0.0
-     * @param array $array1 The base array.
-     * @param array $array2 The array to merge into base.
-     * @return array The merged array.
-     */
-    private function deep_merge_arrays( array $array1, array $array2 ): array {
-        foreach ( $array2 as $key => $value ) {
-            if ( is_array( $value ) && isset( $array1[ $key ] ) && is_array( $array1[ $key ] ) ) {
-                // Recursively merge arrays.
-                $array1[ $key ] = $this->deep_merge_arrays( $array1[ $key ], $value );
+        // Handle JSON string if passed as string instead of decoded object.
+        if ( is_string( $tree ) ) {
+            $decoded = json_decode( $tree, true );
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                $tree = $decoded;
             } else {
-                // Overwrite with new value.
-                $array1[ $key ] = $value;
+                return rest_ensure_response(
+                    array(
+                        'valid'        => false,
+                        'errors'       => array(
+                            array(
+                                'code'    => 'invalid_json',
+                                'message' => sprintf(
+                                    /* translators: %s: JSON error message */
+                                    __( 'Invalid JSON: %s', 'oxybridge-wp' ),
+                                    json_last_error_msg()
+                                ),
+                            ),
+                        ),
+                        'warnings'     => array(),
+                        'stats'        => array(
+                            'element_count' => 0,
+                            'max_depth'     => 0,
+                            'element_types' => array(),
+                        ),
+                        'tree_version' => 'unknown',
+                    )
+                );
             }
         }
 
-        return $array1;
+        // Check if tree is null or empty.
+        if ( $tree === null ) {
+            return rest_ensure_response(
+                array(
+                    'valid'        => false,
+                    'errors'       => array(
+                        array(
+                            'code'    => 'missing_tree',
+                            'message' => __( 'Tree parameter is required.', 'oxybridge-wp' ),
+                        ),
+                    ),
+                    'warnings'     => array(),
+                    'stats'        => array(
+                        'element_count' => 0,
+                        'max_depth'     => 0,
+                        'element_types' => array(),
+                    ),
+                    'tree_version' => 'unknown',
+                )
+            );
+        }
+
+        // Use the Validator class for comprehensive validation.
+        $validator = new Validator();
+        $result    = $validator->validate( $tree );
+
+        /**
+         * Filters the tree validation result before returning via REST API.
+         *
+         * @since 1.0.0
+         * @param array            $result  The validation result.
+         * @param mixed            $tree    The tree that was validated.
+         * @param \WP_REST_Request $request The request object.
+         */
+        $result = apply_filters( 'oxybridge_rest_validate_tree_result', $result, $tree, $request );
+
+        return rest_ensure_response( $result );
     }
 
     /**
-     * Delete element endpoint callback.
+     * Render design endpoint callback.
      *
-     * Deletes an element from a document's tree structure.
+     * Renders the Oxygen/Breakdance design tree for a post to HTML output.
+     * Uses the Breakdance rendering system if available, otherwise falls back
+     * to a basic tree-to-HTML conversion.
      *
      * @since 1.0.0
      * @param \WP_REST_Request $request The request object.
      * @return \WP_REST_Response|\WP_Error The response object or error.
      */
-    public function delete_element( \WP_REST_Request $request ) {
-        $post_id    = $request->get_param( 'id' );
-        $element_id = $request->get_param( 'element_id' );
+    public function render_design( \WP_REST_Request $request ) {
+        $post_id         = $request->get_param( 'id' );
+        $include_css     = $request->get_param( 'include_css' );
+        $include_wrapper = $request->get_param( 'include_wrapper' );
 
-        // Verify the post exists.
+        // Get the post object.
         $post = get_post( $post_id );
+
         if ( ! $post ) {
             return new \WP_Error(
                 'rest_post_not_found',
@@ -2579,235 +3990,524 @@ class REST_API {
             );
         }
 
-        // Get the existing document tree.
-        $tree = $this->get_document_tree( $post_id );
-        if ( $tree === null ) {
+        // Check if the post has Oxygen/Breakdance content.
+        if ( ! $this->has_oxygen_content( $post_id ) ) {
             return new \WP_Error(
-                'rest_no_content',
-                __( 'This document does not have Oxygen/Breakdance content.', 'oxybridge-wp' ),
+                'rest_no_oxygen_content',
+                __( 'The specified post does not have Oxygen/Breakdance content.', 'oxybridge-wp' ),
                 array( 'status' => 404 )
             );
         }
 
-        // Find the element in the tree before deleting (for response).
-        $element = $this->find_element_in_tree( $tree, $element_id );
-        if ( $element === null ) {
-            return new \WP_Error(
-                'rest_element_not_found',
-                sprintf(
-                    /* translators: %s: element ID */
-                    __( 'Element with ID "%s" not found in document tree.', 'oxybridge-wp' ),
-                    $element_id
-                ),
-                array( 'status' => 404 )
+        // Record start time for duration tracking.
+        $start_time = microtime( true );
+
+        // Try to render using Breakdance's rendering system.
+        $html = $this->render_with_breakdance( $post_id );
+
+        // If Breakdance render failed, try fallback rendering.
+        if ( $html === null ) {
+            $html = $this->render_tree_fallback( $post_id );
+        }
+
+        // Get CSS if requested.
+        $css = '';
+        if ( $include_css ) {
+            $css = $this->get_rendered_css( $post_id );
+        }
+
+        // Calculate render duration.
+        $duration = round( ( microtime( true ) - $start_time ) * 1000 );
+
+        // Wrap output if requested.
+        if ( $include_wrapper && ! empty( $html ) ) {
+            $html = sprintf(
+                '<div class="oxybridge-render" data-post-id="%d" data-builder="%s">%s</div>',
+                esc_attr( $post_id ),
+                esc_attr( $this->get_builder_name() ),
+                $html
             );
         }
+
+        // Build response data.
+        $response_data = array(
+            'post_id'        => $post_id,
+            'html'           => $html,
+            'render_time_ms' => $duration,
+            'builder'        => $this->get_builder_name(),
+            'has_content'    => ! empty( $html ),
+        );
+
+        // Include CSS if requested.
+        if ( $include_css ) {
+            $response_data['css'] = $css;
+        }
+
+        // Add metadata.
+        $response_data['metadata'] = array(
+            'title'     => $post->post_title,
+            'slug'      => $post->post_name,
+            'post_type' => $post->post_type,
+            'status'    => $post->post_status,
+            'modified'  => $post->post_modified_gmt . 'Z',
+        );
 
         /**
-         * Fires before an element is deleted.
+         * Filters the rendered design data before returning via REST API.
          *
          * @since 1.0.0
-         * @param array            $element    The element data being deleted.
-         * @param int              $post_id    The post ID.
-         * @param \WP_REST_Request $request    The request object.
+         * @param array            $response_data The render response data.
+         * @param \WP_Post         $post          The post object.
+         * @param \WP_REST_Request $request       The request object.
          */
-        do_action( 'oxybridge_before_element_delete', $element, $post_id, $request );
+        $response_data = apply_filters( 'oxybridge_rest_render_design', $response_data, $post, $request );
 
-        // Delete the element from the tree.
-        $result = $this->delete_element_from_tree( $tree, $element_id );
+        return rest_ensure_response( $response_data );
+    }
 
-        if ( is_wp_error( $result ) ) {
-            return $result;
-        }
-
-        $tree = $result;
-
-        // Validate tree structure before saving.
-        if ( function_exists( '\Breakdance\Data\is_valid_tree' ) ) {
-            if ( ! \Breakdance\Data\is_valid_tree( $tree ) ) {
-                return new \WP_Error(
-                    'rest_invalid_tree',
-                    __( 'The resulting tree structure is invalid.', 'oxybridge-wp' ),
-                    array( 'status' => 400 )
-                );
-            }
-        }
-
-        // Save the updated tree.
-        $save_result = $this->save_document_tree( $post_id, $tree );
-        if ( is_wp_error( $save_result ) ) {
-            return $save_result;
-        }
-
-        // Trigger CSS regeneration.
-        if ( function_exists( '\Breakdance\Render\generateCacheForPost' ) ) {
+    /**
+     * Render a post using Breakdance's rendering system.
+     *
+     * Attempts to use Breakdance's built-in rendering functions to generate
+     * HTML output for the design tree.
+     *
+     * @since 1.0.0
+     * @param int $post_id The post ID to render.
+     * @return string|null Rendered HTML or null if rendering unavailable.
+     */
+    private function render_with_breakdance( int $post_id ): ?string {
+        // Try using Breakdance's render function if available.
+        if ( function_exists( '\Breakdance\Render\render' ) ) {
             try {
-                \Breakdance\Render\generateCacheForPost( $post_id );
+                // Set up the post context for rendering.
+                global $post;
+                $original_post = $post;
+                $post          = get_post( $post_id );
+                setup_postdata( $post );
+
+                // Render using Breakdance.
+                $html = \Breakdance\Render\render( $post_id );
+
+                // Restore original post context.
+                $post = $original_post;
+                if ( $original_post ) {
+                    setup_postdata( $original_post );
+                } else {
+                    wp_reset_postdata();
+                }
+
+                return $html;
             } catch ( \Exception $e ) {
-                // Log error but don't fail the request - element was deleted successfully.
-                error_log( 'Oxybridge: CSS regeneration failed after element delete: ' . $e->getMessage() );
+                // Rendering failed, fall through to null return.
             }
         }
 
-        /**
-         * Fires after an element has been deleted.
-         *
-         * @since 1.0.0
-         * @param array  $element The deleted element data.
-         * @param int    $post_id The post ID.
-         */
-        do_action( 'oxybridge_element_deleted', $element, $post_id );
+        // Try alternative render function.
+        if ( function_exists( '\Breakdance\Render\renderDocument' ) ) {
+            try {
+                return \Breakdance\Render\renderDocument( $post_id );
+            } catch ( \Exception $e ) {
+                // Rendering failed, fall through to null return.
+            }
+        }
 
-        return rest_ensure_response(
-            array(
-                'success'    => true,
-                'element_id' => $element_id,
-                'post_id'    => $post_id,
-                'message'    => __( 'Element deleted successfully.', 'oxybridge-wp' ),
-            )
-        );
+        // Try to get rendered content from post meta if cached.
+        $meta_prefix    = $this->get_meta_prefix();
+        $cached_content = get_post_meta( $post_id, $meta_prefix . 'rendered_html', true );
+
+        if ( ! empty( $cached_content ) ) {
+            return $cached_content;
+        }
+
+        return null;
     }
 
     /**
-     * Delete an element from the document tree.
+     * Fallback rendering for when Breakdance functions are unavailable.
+     *
+     * Converts the design tree structure to basic HTML output. This is a
+     * simplified render that won't include dynamic functionality but provides
+     * a static HTML representation of the design structure.
      *
      * @since 1.0.0
-     * @param array  $tree       The document tree.
-     * @param string $element_id The element ID to delete.
-     * @return array|\WP_Error The updated tree or WP_Error on failure.
+     * @param int $post_id The post ID to render.
+     * @return string Rendered HTML.
      */
-    private function delete_element_from_tree( array $tree, string $element_id ) {
-        // Handle 'root' wrapper.
-        if ( isset( $tree['root'] ) ) {
-            // Cannot delete the root element.
-            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
-                return new \WP_Error(
-                    'rest_cannot_delete_root',
-                    __( 'Cannot delete the root element of a document.', 'oxybridge-wp' ),
-                    array( 'status' => 400 )
-                );
-            }
+    private function render_tree_fallback( int $post_id ): string {
+        $tree = $this->get_document_tree( $post_id );
 
-            $result = $this->delete_element_recursive( $tree['root'], $element_id );
-            if ( $result !== false ) {
-                $tree['root'] = $result;
-                return $tree;
-            }
-        } else {
-            // Direct tree without root wrapper - cannot delete the root.
-            if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
-                return new \WP_Error(
-                    'rest_cannot_delete_root',
-                    __( 'Cannot delete the root element of a document.', 'oxybridge-wp' ),
-                    array( 'status' => 400 )
-                );
-            }
-
-            $result = $this->delete_element_recursive( $tree, $element_id );
-            if ( $result !== false ) {
-                return $result;
-            }
+        if ( $tree === false ) {
+            return '';
         }
 
-        return new \WP_Error(
-            'rest_element_not_found',
-            sprintf(
-                /* translators: %s: element ID */
-                __( 'Element with ID "%s" not found in document tree.', 'oxybridge-wp' ),
-                $element_id
-            ),
-            array( 'status' => 404 )
-        );
+        // Get children to render.
+        $children = array();
+        if ( isset( $tree['root']['children'] ) ) {
+            $children = $tree['root']['children'];
+        } elseif ( isset( $tree['children'] ) ) {
+            $children = $tree['children'];
+        }
+
+        if ( empty( $children ) ) {
+            return '';
+        }
+
+        return $this->render_elements_to_html( $children );
     }
 
     /**
-     * Recursively delete an element from the tree.
+     * Recursively render elements to HTML.
+     *
+     * Converts element tree nodes to basic HTML representation.
      *
      * @since 1.0.0
-     * @param array  $node       Current node in tree.
-     * @param string $element_id The element ID to delete.
-     * @return array|false The updated node or false if element not found in this branch.
+     * @param array $elements Array of element nodes.
+     * @param int   $depth    Current nesting depth.
+     * @return string Rendered HTML.
      */
-    private function delete_element_recursive( array $node, string $element_id ) {
-        // Search in children.
-        if ( isset( $node['children'] ) && is_array( $node['children'] ) ) {
-            foreach ( $node['children'] as $index => $child ) {
-                // Check if this child is the element to delete.
-                if ( isset( $child['id'] ) && $child['id'] === $element_id ) {
-                    // Remove the element from children array.
-                    array_splice( $node['children'], $index, 1 );
-                    // Re-index the children array.
-                    $node['children'] = array_values( $node['children'] );
-                    return $node;
-                }
+    private function render_elements_to_html( array $elements, int $depth = 0 ): string {
+        $html = '';
 
-                // Recursively search in child's children.
-                $result = $this->delete_element_recursive( $child, $element_id );
-                if ( $result !== false ) {
-                    $node['children'][ $index ] = $result;
-                    return $node;
-                }
+        foreach ( $elements as $element ) {
+            if ( ! is_array( $element ) ) {
+                continue;
+            }
+
+            // Determine element type.
+            $type = '';
+            if ( isset( $element['data']['type'] ) ) {
+                $type = $element['data']['type'];
+            } elseif ( isset( $element['type'] ) ) {
+                $type = $element['type'];
+            }
+
+            // Get element ID for class naming.
+            $element_id = isset( $element['id'] ) ? $element['id'] : 'el-' . wp_rand();
+
+            // Get element properties.
+            $properties = isset( $element['data']['properties'] ) ? $element['data']['properties'] : array();
+            if ( empty( $properties ) && isset( $element['data'] ) ) {
+                $properties = $element['data'];
+            }
+
+            // Determine HTML tag based on element type.
+            $tag     = $this->get_html_tag_for_element_type( $type );
+            $classes = $this->get_classes_for_element( $type, $element_id, $properties );
+            $content = $this->get_content_for_element( $type, $properties );
+
+            // Render children if present.
+            $children_html = '';
+            if ( isset( $element['children'] ) && is_array( $element['children'] ) && ! empty( $element['children'] ) ) {
+                $children_html = $this->render_elements_to_html( $element['children'], $depth + 1 );
+            }
+
+            // Build element HTML.
+            if ( $this->is_void_element( $tag ) ) {
+                // Self-closing tags (img, br, hr, etc.).
+                $html .= sprintf(
+                    '<%s class="%s" />',
+                    esc_attr( $tag ),
+                    esc_attr( $classes )
+                );
+            } else {
+                // Container tags.
+                $html .= sprintf(
+                    '<%s class="%s">%s%s</%s>',
+                    esc_attr( $tag ),
+                    esc_attr( $classes ),
+                    $content,
+                    $children_html,
+                    esc_attr( $tag )
+                );
             }
         }
 
-        return false;
+        return $html;
     }
 
     /**
-     * Get the document tree for a post.
+     * Get the HTML tag for an element type.
+     *
+     * Maps Oxygen/Breakdance element types to appropriate HTML tags.
+     *
+     * @since 1.0.0
+     * @param string $type The element type.
+     * @return string The HTML tag to use.
+     */
+    private function get_html_tag_for_element_type( string $type ): string {
+        $type_lower = strtolower( $type );
+
+        // Map element types to HTML tags.
+        $tag_map = array(
+            'section'        => 'section',
+            'container'      => 'div',
+            'div'            => 'div',
+            'columns'        => 'div',
+            'column'         => 'div',
+            'heading'        => 'h2',
+            'text'           => 'p',
+            'rich-text'      => 'div',
+            'richtext'       => 'div',
+            'paragraph'      => 'p',
+            'image'          => 'img',
+            'video'          => 'div',
+            'icon'           => 'span',
+            'button'         => 'button',
+            'link'           => 'a',
+            'form'           => 'form',
+            'input'          => 'input',
+            'textarea'       => 'textarea',
+            'select'         => 'select',
+            'nav'            => 'nav',
+            'header'         => 'header',
+            'footer'         => 'footer',
+            'article'        => 'article',
+            'aside'          => 'aside',
+            'main'           => 'main',
+            'ul'             => 'ul',
+            'ol'             => 'ol',
+            'li'             => 'li',
+            'span'           => 'span',
+            'code'           => 'code',
+            'pre'            => 'pre',
+            'blockquote'     => 'blockquote',
+            'hr'             => 'hr',
+            'br'             => 'br',
+            'root'           => 'div',
+        );
+
+        // Check for exact match.
+        if ( isset( $tag_map[ $type_lower ] ) ) {
+            return $tag_map[ $type_lower ];
+        }
+
+        // Check for partial matches (e.g., "EssentialElements\\Section" -> "section").
+        foreach ( $tag_map as $key => $tag ) {
+            if ( stripos( $type_lower, $key ) !== false ) {
+                return $tag;
+            }
+        }
+
+        // Default to div for unknown types.
+        return 'div';
+    }
+
+    /**
+     * Get CSS classes for an element.
+     *
+     * Generates appropriate CSS classes based on element type and properties.
+     *
+     * @since 1.0.0
+     * @param string $type       The element type.
+     * @param string $element_id The element ID.
+     * @param array  $properties The element properties.
+     * @return string Space-separated CSS classes.
+     */
+    private function get_classes_for_element( string $type, string $element_id, array $properties ): string {
+        $classes = array();
+
+        // Add base class based on type.
+        $type_class = sanitize_html_class( strtolower( str_replace( '\\', '-', $type ) ) );
+        if ( ! empty( $type_class ) ) {
+            $classes[] = 'ob-' . $type_class;
+        }
+
+        // Add element ID class.
+        $classes[] = sanitize_html_class( $element_id );
+
+        // Add custom classes from properties if present.
+        if ( isset( $properties['classes'] ) ) {
+            if ( is_array( $properties['classes'] ) ) {
+                foreach ( $properties['classes'] as $class ) {
+                    $classes[] = sanitize_html_class( $class );
+                }
+            } elseif ( is_string( $properties['classes'] ) ) {
+                $classes[] = sanitize_html_class( $properties['classes'] );
+            }
+        }
+
+        // Add className if present (common React-style property).
+        if ( isset( $properties['className'] ) && is_string( $properties['className'] ) ) {
+            $classes[] = sanitize_html_class( $properties['className'] );
+        }
+
+        return implode( ' ', array_filter( $classes ) );
+    }
+
+    /**
+     * Get content for an element based on type and properties.
+     *
+     * Extracts text/content from element properties for rendering.
+     *
+     * @since 1.0.0
+     * @param string $type       The element type.
+     * @param array  $properties The element properties.
+     * @return string The element content.
+     */
+    private function get_content_for_element( string $type, array $properties ): string {
+        // Check common content properties.
+        $content_keys = array( 'text', 'content', 'html', 'value', 'label' );
+
+        foreach ( $content_keys as $key ) {
+            if ( isset( $properties[ $key ] ) && is_string( $properties[ $key ] ) ) {
+                return wp_kses_post( $properties[ $key ] );
+            }
+        }
+
+        // Check nested content in 'content' object.
+        if ( isset( $properties['content']['text'] ) ) {
+            return wp_kses_post( $properties['content']['text'] );
+        }
+
+        return '';
+    }
+
+    /**
+     * Check if an HTML tag is a void (self-closing) element.
+     *
+     * @since 1.0.0
+     * @param string $tag The HTML tag.
+     * @return bool True if void element, false otherwise.
+     */
+    private function is_void_element( string $tag ): bool {
+        $void_elements = array(
+            'area',
+            'base',
+            'br',
+            'col',
+            'embed',
+            'hr',
+            'img',
+            'input',
+            'link',
+            'meta',
+            'param',
+            'source',
+            'track',
+            'wbr',
+        );
+
+        return in_array( strtolower( $tag ), $void_elements, true );
+    }
+
+    /**
+     * Get rendered CSS for a post.
+     *
+     * Retrieves the CSS that was generated for the post's design.
      *
      * @since 1.0.0
      * @param int $post_id The post ID.
-     * @return array|null The document tree or null if not found.
+     * @return string The CSS content.
      */
-    private function get_document_tree( int $post_id ) {
-        // Try using Oxygen_Data class if available.
-        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
-            $oxygen_data = new Oxygen_Data();
-            $tree        = $oxygen_data->get_template_tree( $post_id );
+    private function get_rendered_css( int $post_id ): string {
+        $meta_prefix = $this->get_meta_prefix();
 
-            if ( $tree !== false ) {
-                return $tree;
-            }
+        // Try to get CSS from post meta cache.
+        $css = get_post_meta( $post_id, $meta_prefix . 'css_cache', true );
+
+        if ( ! empty( $css ) ) {
+            return $css;
         }
 
-        // Fallback: get directly from post meta.
-        $meta_prefix = $this->get_meta_prefix();
-        $tree_data   = get_post_meta( $post_id, $meta_prefix . 'data', true );
+        // Try alternative CSS meta key.
+        $css = get_post_meta( $post_id, $meta_prefix . 'css', true );
 
-        if ( ! empty( $tree_data ) ) {
-            $decoded = is_string( $tree_data ) ? json_decode( $tree_data, true ) : $tree_data;
+        if ( ! empty( $css ) ) {
+            return $css;
+        }
 
-            if ( is_array( $decoded ) && isset( $decoded['tree_json_string'] ) ) {
-                $tree = json_decode( $decoded['tree_json_string'], true );
+        // Check for cached CSS file.
+        $upload_dir = wp_upload_dir();
+        $css_dir    = $upload_dir['basedir'] . '/breakdance/css/';
 
-                if ( is_array( $tree ) ) {
-                    return $tree;
+        // Check various possible CSS file locations.
+        $possible_files = array(
+            $css_dir . 'post-' . $post_id . '.css',
+            $css_dir . $post_id . '.css',
+            $upload_dir['basedir'] . '/oxygen/css/' . $post_id . '.css',
+        );
+
+        foreach ( $possible_files as $file ) {
+            if ( file_exists( $file ) ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+                $css = file_get_contents( $file );
+                if ( ! empty( $css ) ) {
+                    return $css;
                 }
             }
-
-            // If tree_json_string is not present, return the decoded data directly.
-            if ( is_array( $decoded ) ) {
-                return $decoded;
-            }
         }
 
-        return null;
+        return '';
     }
 
     /**
-     * Create an empty document tree structure.
+     * Save document tree to post meta.
+     *
+     * Saves the Oxygen/Breakdance design tree structure to post meta,
+     * using the correct format for the active builder.
      *
      * @since 1.0.0
-     * @return array Empty tree structure.
+     * @param int   $post_id The post ID.
+     * @param array $tree    The tree structure to save.
+     * @return bool True if saved successfully, false otherwise.
+     */
+    private function save_document_tree( int $post_id, array $tree ): bool {
+        // Validate tree structure.
+        if ( ! $this->is_valid_tree_structure( $tree ) ) {
+            return false;
+        }
+
+        $meta_prefix = $this->get_meta_prefix();
+
+        // Prepare tree data in Breakdance/Oxygen 6 format.
+        $tree_json = wp_json_encode( $tree );
+
+        if ( $tree_json === false ) {
+            return false;
+        }
+
+        $data = array(
+            'tree_json_string' => $tree_json,
+        );
+
+        // Encode the wrapper data.
+        $encoded_data = wp_json_encode( $data );
+
+        if ( $encoded_data === false ) {
+            return false;
+        }
+
+        // Save to post meta.
+        $result = update_post_meta( $post_id, $meta_prefix . 'data', $encoded_data );
+
+        /**
+         * Fires after document tree has been saved.
+         *
+         * @since 1.0.0
+         * @param int   $post_id The post ID.
+         * @param array $tree    The tree structure that was saved.
+         * @param bool  $result  Whether the save was successful.
+         */
+        do_action( 'oxybridge_document_tree_saved', $post_id, $tree, (bool) $result );
+
+        return (bool) $result;
+    }
+
+    /**
+     * Create an empty tree structure for new Oxygen pages.
+     *
+     * Creates a valid empty tree structure that Oxygen/Breakdance
+     * will recognize and can be edited in the builder.
+     *
+     * @since 1.0.0
+     * @return array The empty tree structure.
      */
     private function create_empty_tree(): array {
         return array(
             'root' => array(
-                'id'       => 'root',
+                'id'       => $this->generate_element_id(),
                 'data'     => array(
-                    'type'       => 'root',
-                    'properties' => array(),
+                    'type' => 'root',
                 ),
                 'children' => array(),
             ),
@@ -2817,233 +4517,46 @@ class REST_API {
     /**
      * Generate a unique element ID.
      *
-     * Uses WordPress's UUID generation function for guaranteed uniqueness.
+     * Creates a unique identifier for Oxygen/Breakdance elements
+     * using WordPress's cryptographically secure random function.
      *
      * @since 1.0.0
-     * @return string Unique element ID.
+     * @return string The generated element ID.
      */
     private function generate_element_id(): string {
-        if ( function_exists( 'wp_generate_uuid4' ) ) {
-            return wp_generate_uuid4();
-        }
-
-        // Fallback for older WordPress versions.
-        return sprintf(
-            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand( 0, 0xffff ),
-            mt_rand( 0, 0xffff ),
-            mt_rand( 0, 0xffff ),
-            mt_rand( 0, 0x0fff ) | 0x4000,
-            mt_rand( 0, 0x3fff ) | 0x8000,
-            mt_rand( 0, 0xffff ),
-            mt_rand( 0, 0xffff ),
-            mt_rand( 0, 0xffff )
-        );
+        return 'el-' . bin2hex( random_bytes( 8 ) );
     }
 
     /**
-     * Insert an element into the tree at the specified parent location.
+     * Validate tree structure.
+     *
+     * Checks if a tree array has the minimum required structure
+     * for Oxygen/Breakdance to recognize it.
      *
      * @since 1.0.0
-     * @param array        $tree        The document tree.
-     * @param string       $parent_id   The parent element ID.
-     * @param array        $new_element The new element to insert.
-     * @param string|int   $position    Position within parent ("first", "last", or index).
-     * @return array|\WP_Error The modified tree or error.
+     * @param array $tree The tree structure to validate.
+     * @return bool True if valid, false otherwise.
      */
-    private function insert_element_into_tree( array $tree, string $parent_id, array $new_element, $position ) {
-        // Handle "root" as special case.
-        if ( 'root' === $parent_id ) {
-            if ( isset( $tree['root'] ) ) {
-                $tree['root']['children'] = $this->insert_at_position(
-                    $tree['root']['children'] ?? array(),
-                    $new_element,
-                    $position
-                );
-                return $tree;
-            }
-
-            // Tree might not have root wrapper.
-            if ( isset( $tree['children'] ) ) {
-                $tree['children'] = $this->insert_at_position(
-                    $tree['children'],
-                    $new_element,
-                    $position
-                );
-                return $tree;
-            }
-
-            return new \WP_Error(
-                'rest_invalid_tree_structure',
-                __( 'Unable to locate root element in tree structure.', 'oxybridge-wp' ),
-                array( 'status' => 400 )
-            );
-        }
-
-        // Find parent element in tree recursively.
-        $modified_tree = $this->find_and_insert_element( $tree, $parent_id, $new_element, $position );
-
-        if ( $modified_tree === false ) {
-            return new \WP_Error(
-                'rest_parent_not_found',
-                sprintf(
-                    /* translators: %s: parent element ID */
-                    __( 'Parent element with ID "%s" not found in document tree.', 'oxybridge-wp' ),
-                    $parent_id
-                ),
-                array( 'status' => 404 )
-            );
-        }
-
-        return $modified_tree;
-    }
-
-    /**
-     * Recursively find parent element and insert new element.
-     *
-     * @since 1.0.0
-     * @param array      $node        Current node in tree.
-     * @param string     $parent_id   The parent element ID to find.
-     * @param array      $new_element The new element to insert.
-     * @param string|int $position    Position within parent.
-     * @return array|false Modified node or false if parent not found.
-     */
-    private function find_and_insert_element( array $node, string $parent_id, array $new_element, $position ) {
-        // Check if current node has 'root' wrapper.
-        if ( isset( $node['root'] ) ) {
-            $result = $this->find_and_insert_element( $node['root'], $parent_id, $new_element, $position );
-            if ( $result !== false ) {
-                $node['root'] = $result;
-                return $node;
-            }
+    private function is_valid_tree_structure( array $tree ): bool {
+        // Must have a root element.
+        if ( ! isset( $tree['root'] ) || ! is_array( $tree['root'] ) ) {
             return false;
         }
 
-        // Check if this node is the parent.
-        if ( isset( $node['id'] ) && $node['id'] === $parent_id ) {
-            $node['children'] = $this->insert_at_position(
-                $node['children'] ?? array(),
-                $new_element,
-                $position
-            );
-            return $node;
-        }
-
-        // Search children.
-        if ( isset( $node['children'] ) && is_array( $node['children'] ) ) {
-            foreach ( $node['children'] as $index => $child ) {
-                $result = $this->find_and_insert_element( $child, $parent_id, $new_element, $position );
-                if ( $result !== false ) {
-                    $node['children'][ $index ] = $result;
-                    return $node;
-                }
+        // Root must have id, data, and children.
+        $required_keys = array( 'id', 'data', 'children' );
+        foreach ( $required_keys as $key ) {
+            if ( ! array_key_exists( $key, $tree['root'] ) ) {
+                return false;
             }
         }
 
-        return false;
-    }
-
-    /**
-     * Insert element at specified position in children array.
-     *
-     * @since 1.0.0
-     * @param array      $children    The children array.
-     * @param array      $element     The element to insert.
-     * @param string|int $position    Position ("first", "last", or index).
-     * @return array Modified children array.
-     */
-    private function insert_at_position( array $children, array $element, $position ): array {
-        if ( 'first' === $position ) {
-            array_unshift( $children, $element );
-        } elseif ( 'last' === $position || ! is_numeric( $position ) ) {
-            $children[] = $element;
-        } else {
-            $index = (int) $position;
-            // Ensure index is within bounds.
-            $index = max( 0, min( $index, count( $children ) ) );
-            array_splice( $children, $index, 0, array( $element ) );
+        // Children must be an array.
+        if ( ! is_array( $tree['root']['children'] ) ) {
+            return false;
         }
-
-        return $children;
-    }
-
-    /**
-     * Save the document tree to post meta.
-     *
-     * @since 1.0.0
-     * @param int   $post_id The post ID.
-     * @param array $tree    The document tree.
-     * @return true|\WP_Error True on success or WP_Error on failure.
-     */
-    private function save_document_tree( int $post_id, array $tree ) {
-        $meta_prefix = $this->get_meta_prefix();
-
-        // Encode tree to JSON string.
-        $tree_json = wp_json_encode( $tree );
-
-        if ( false === $tree_json ) {
-            return new \WP_Error(
-                'rest_json_encode_failed',
-                __( 'Failed to encode document tree to JSON.', 'oxybridge-wp' ),
-                array( 'status' => 500 )
-            );
-        }
-
-        // Prepare meta data in Breakdance format.
-        $meta_data = array(
-            'tree_json_string' => $tree_json,
-        );
-
-        // Update post meta.
-        $result = update_post_meta( $post_id, $meta_prefix . 'data', $meta_data );
-
-        if ( false === $result ) {
-            // Check if it's because the value is unchanged.
-            $existing = get_post_meta( $post_id, $meta_prefix . 'data', true );
-            if ( $existing === $meta_data ) {
-                // Value unchanged, treat as success.
-                return true;
-            }
-
-            return new \WP_Error(
-                'rest_meta_update_failed',
-                __( 'Failed to save document tree to post meta.', 'oxybridge-wp' ),
-                array( 'status' => 500 )
-            );
-        }
-
-        // Trigger WordPress revision for undo capability.
-        wp_update_post(
-            array(
-                'ID'            => $post_id,
-                'post_modified' => current_time( 'mysql' ),
-            )
-        );
 
         return true;
-    }
-
-    /**
-     * Sanitize position parameter.
-     *
-     * @since 1.0.0
-     * @param mixed $value The parameter value.
-     * @return string|int Sanitized position value.
-     */
-    public function sanitize_position( $value ) {
-        if ( is_numeric( $value ) ) {
-            return absint( $value );
-        }
-
-        $value = sanitize_text_field( $value );
-
-        // Only allow specific string values.
-        if ( in_array( $value, array( 'first', 'last' ), true ) ) {
-            return $value;
-        }
-
-        // Default to 'last' for invalid values.
-        return 'last';
     }
 
     /**
@@ -3205,6 +4718,117 @@ class REST_API {
     }
 
     /**
+     * Get global color palette.
+     *
+     * Returns the colors defined in Oxygen/Breakdance global settings.
+     * Attempts to use the Oxygen_Data class first, then falls back to
+     * direct option access.
+     *
+     * @since 1.0.0
+     * @return array Color palette configuration.
+     */
+    private function get_colors(): array {
+        // Try using Oxygen_Data class if available.
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data = new Oxygen_Data();
+            $styles      = $oxygen_data->get_global_styles( 'colors' );
+
+            if ( ! empty( $styles['colors'] ) && is_array( $styles['colors'] ) ) {
+                return $styles['colors'];
+            }
+        }
+
+        // Fallback: get directly from global settings option.
+        $meta_prefix     = $this->get_meta_prefix();
+        $global_settings = get_option( $meta_prefix . 'global_settings_json_string', '' );
+
+        if ( is_string( $global_settings ) && ! empty( $global_settings ) ) {
+            $settings = json_decode( $global_settings, true );
+
+            if ( is_array( $settings ) && isset( $settings['colors'] ) && is_array( $settings['colors'] ) ) {
+                return $settings['colors'];
+            }
+        }
+
+        // Return empty array if no colors found.
+        return array();
+    }
+
+    /**
+     * Get design variables.
+     *
+     * Returns the CSS design variables defined in Oxygen/Breakdance settings.
+     * Attempts to use the Oxygen_Data class first, then falls back to
+     * direct option access.
+     *
+     * @since 1.0.0
+     * @return array Design variables configuration.
+     */
+    private function get_variables(): array {
+        // Try using Oxygen_Data class if available.
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data = new Oxygen_Data();
+            $variables   = $oxygen_data->get_variables();
+
+            if ( ! empty( $variables ) && is_array( $variables ) ) {
+                return $variables;
+            }
+        }
+
+        // Fallback: get directly from variables option.
+        $meta_prefix = $this->get_meta_prefix();
+        $variables   = get_option( $meta_prefix . 'variables_json_string', '' );
+
+        if ( is_string( $variables ) && ! empty( $variables ) ) {
+            $decoded = json_decode( $variables, true );
+
+            if ( is_array( $decoded ) ) {
+                return $decoded;
+            }
+        }
+
+        // Return empty array if no variables found.
+        return array();
+    }
+
+    /**
+     * Get available fonts.
+     *
+     * Returns the fonts defined in Oxygen/Breakdance global settings.
+     * Attempts to use the Oxygen_Data class first, then falls back to
+     * direct option access.
+     *
+     * @since 1.0.0
+     * @return array Available fonts configuration.
+     */
+    private function get_fonts(): array {
+        // Try using Oxygen_Data class if available.
+        if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
+            $oxygen_data = new Oxygen_Data();
+            $styles      = $oxygen_data->get_global_styles( 'fonts' );
+
+            if ( ! empty( $styles['fonts'] ) && is_array( $styles['fonts'] ) ) {
+                return $styles['fonts'];
+            }
+        }
+
+        // Fallback: get directly from global settings option.
+        $meta_prefix     = $this->get_meta_prefix();
+        $global_settings = get_option( $meta_prefix . 'global_settings_json_string', '' );
+
+        if ( is_string( $global_settings ) && ! empty( $global_settings ) ) {
+            $settings = json_decode( $global_settings, true );
+
+            if ( is_array( $settings ) && isset( $settings['typography'] ) && is_array( $settings['typography'] ) ) {
+                return $settings['typography'];
+            }
+        }
+
+        // Return empty array if no fonts found.
+        return array();
+    }
+
+    /**
      * Get the current builder name.
      *
      * @since 1.0.0
@@ -3342,53 +4966,6 @@ class REST_API {
                 'rest_post_not_found',
                 __( 'Post not found.', 'oxybridge-wp' ),
                 array( 'status' => 404 )
-            );
-        }
-
-        return true;
-    }
-
-    /**
-     * Validate element ID format.
-     *
-     * Validates that the provided value is a valid element ID format
-     * (alphanumeric with dashes, typically a UUID).
-     *
-     * @since 1.0.0
-     * @param mixed            $value   The parameter value.
-     * @param \WP_REST_Request $request The request object.
-     * @param string           $param   The parameter name.
-     * @return bool|\WP_Error True if valid, WP_Error otherwise.
-     */
-    public function validate_element_id( $value, \WP_REST_Request $request, $param ) {
-        if ( ! is_string( $value ) || empty( $value ) ) {
-            return new \WP_Error(
-                'rest_invalid_param',
-                /* translators: %s: parameter name */
-                sprintf( __( '%s must be a non-empty string.', 'oxybridge-wp' ), $param ),
-                array( 'status' => 400 )
-            );
-        }
-
-        // Allow UUID format, alphanumeric with dashes, and common element ID patterns.
-        // Element IDs can be UUIDs (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
-        // or simple identifiers (e.g., "element-1", "root", "section-abc123").
-        if ( ! preg_match( '/^[a-zA-Z0-9][a-zA-Z0-9\-_]*$/', $value ) ) {
-            return new \WP_Error(
-                'rest_invalid_param',
-                /* translators: %s: parameter name */
-                sprintf( __( '%s must contain only alphanumeric characters, dashes, and underscores.', 'oxybridge-wp' ), $param ),
-                array( 'status' => 400 )
-            );
-        }
-
-        // Maximum length check to prevent abuse.
-        if ( strlen( $value ) > 100 ) {
-            return new \WP_Error(
-                'rest_invalid_param',
-                /* translators: %s: parameter name */
-                sprintf( __( '%s exceeds maximum length of 100 characters.', 'oxybridge-wp' ), $param ),
-                array( 'status' => 400 )
             );
         }
 

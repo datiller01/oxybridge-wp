@@ -21,11 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 use function Breakdance\Data\get_tree;
 use function Breakdance\Data\is_valid_tree;
 use function Breakdance\Data\get_meta;
-use function Breakdance\Data\set_meta;
 use function Breakdance\Data\get_global_option;
 use function Breakdance\Data\get_tree_elements;
 use function Breakdance\BreakdanceOxygen\Strings\__bdox;
-use function Breakdance\Render\generateCacheForPost;
 
 /**
  * Class Oxygen_Data
@@ -239,139 +237,6 @@ class Oxygen_Data {
         }
 
         return true;
-    }
-
-    /**
-     * Save a tree structure to a post.
-     *
-     * Validates the tree, saves it using the appropriate meta format,
-     * triggers WordPress revision system, and regenerates CSS cache.
-     *
-     * @since 1.0.0
-     *
-     * @param int   $post_id The post ID to save the tree to.
-     * @param array $tree    The complete tree structure to save.
-     * @return array {
-     *     Response array.
-     *
-     *     @type bool   $success Whether the save was successful.
-     *     @type string $message Success or error message.
-     *     @type int    $post_id The post ID that was saved.
-     * }
-     */
-    public function save_tree( int $post_id, array $tree ): array {
-        // Verify post exists.
-        $post = get_post( $post_id );
-        if ( ! $post ) {
-            return array(
-                'success' => false,
-                'message' => __( 'Post not found.', 'oxybridge' ),
-                'post_id' => $post_id,
-            );
-        }
-
-        // Validate tree structure using Breakdance function or fallback.
-        if ( ! $this->validate_tree( $tree ) ) {
-            return array(
-                'success' => false,
-                'message' => __( 'Invalid tree structure. Tree must have a root element with id, data, and children properties.', 'oxybridge' ),
-                'post_id' => $post_id,
-            );
-        }
-
-        // Encode tree to JSON string.
-        $tree_json = wp_json_encode( $tree );
-        if ( false === $tree_json ) {
-            return array(
-                'success' => false,
-                'message' => __( 'Failed to encode tree to JSON.', 'oxybridge' ),
-                'post_id' => $post_id,
-            );
-        }
-
-        // Get the correct meta prefix for Oxygen/Breakdance.
-        $meta_prefix = $this->get_meta_prefix();
-
-        // Prepare data in Breakdance format.
-        $data = array(
-            'tree_json_string' => $tree_json,
-        );
-
-        // Try using Breakdance set_meta function if available.
-        if ( function_exists( 'Breakdance\Data\set_meta' ) ) {
-            set_meta( $post_id, 'data', wp_json_encode( $data ) );
-        } else {
-            // Fallback to direct meta update.
-            update_post_meta( $post_id, $meta_prefix . 'data', wp_json_encode( $data ) );
-        }
-
-        // Trigger WordPress revision by updating the post.
-        $update_result = wp_update_post(
-            array(
-                'ID'            => $post_id,
-                'post_modified' => current_time( 'mysql' ),
-            )
-        );
-
-        if ( is_wp_error( $update_result ) ) {
-            return array(
-                'success' => false,
-                'message' => __( 'Failed to update post revision.', 'oxybridge' ),
-                'post_id' => $post_id,
-            );
-        }
-
-        // Regenerate CSS cache using Breakdance function if available.
-        $css_regenerated = $this->regenerate_css_for_post( $post_id );
-
-        return array(
-            'success'         => true,
-            'message'         => __( 'Tree saved successfully.', 'oxybridge' ),
-            'post_id'         => $post_id,
-            'css_regenerated' => $css_regenerated,
-        );
-    }
-
-    /**
-     * Regenerate CSS cache for a post.
-     *
-     * @since 1.0.0
-     *
-     * @param int $post_id The post ID to regenerate CSS for.
-     * @return bool True if CSS was regenerated, false otherwise.
-     */
-    public function regenerate_css_for_post( int $post_id ): bool {
-        // Try Breakdance render function first.
-        if ( function_exists( 'Breakdance\Render\generateCacheForPost' ) ) {
-            try {
-                generateCacheForPost( $post_id );
-                return true;
-            } catch ( \Exception $e ) {
-                // Log error but don't fail the save operation.
-                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-                    error_log( 'Oxybridge: Failed to regenerate CSS for post ' . $post_id . ': ' . $e->getMessage() );
-                }
-                return false;
-            }
-        }
-
-        // Try Oxygen classic CSS regeneration.
-        if ( class_exists( 'OxyEl' ) && method_exists( 'OxyEl', 'generate_stylesheet' ) ) {
-            try {
-                \OxyEl::generate_stylesheet( $post_id );
-                return true;
-            } catch ( \Exception $e ) {
-                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-                    error_log( 'Oxybridge: Failed to regenerate CSS for post ' . $post_id . ': ' . $e->getMessage() );
-                }
-                return false;
-            }
-        }
-
-        // No CSS regeneration function available.
-        return false;
     }
 
     /**
@@ -821,810 +686,834 @@ class Oxygen_Data {
     }
 
     /**
+     * Save document tree to post meta.
+     *
+     * Saves the Oxygen/Breakdance design tree structure to post meta,
+     * using the correct format for the active builder.
+     *
+     * @since 1.0.0
+     *
+     * @param int   $post_id The post ID.
+     * @param array $tree    The tree structure to save.
+     * @return bool True if saved successfully, false otherwise.
+     */
+    public function save_document_tree( int $post_id, array $tree ): bool {
+        // Validate tree structure.
+        if ( ! $this->validate_tree( $tree ) ) {
+            return false;
+        }
+
+        $meta_prefix = $this->get_meta_prefix();
+
+        // Prepare tree data in Breakdance/Oxygen 6 format.
+        $tree_json = wp_json_encode( $tree );
+
+        if ( $tree_json === false ) {
+            return false;
+        }
+
+        $data = array(
+            'tree_json_string' => $tree_json,
+        );
+
+        // Encode the wrapper data.
+        $encoded_data = wp_json_encode( $data );
+
+        if ( $encoded_data === false ) {
+            return false;
+        }
+
+        // Save to post meta.
+        $result = update_post_meta( $post_id, $meta_prefix . 'data', $encoded_data );
+
+        /**
+         * Fires after document tree has been saved via Oxygen_Data.
+         *
+         * @since 1.0.0
+         * @param int   $post_id The post ID.
+         * @param array $tree    The tree structure that was saved.
+         * @param bool  $result  Whether the save was successful.
+         */
+        do_action( 'oxybridge_oxygen_data_tree_saved', $post_id, $tree, (bool) $result );
+
+        return (bool) $result;
+    }
+
+    /**
+     * Create a new page with Oxygen design.
+     *
+     * Creates a WordPress page/post and optionally initializes it
+     * with Oxygen/Breakdance design data.
+     *
+     * @since 1.0.0
+     *
+     * @param array $args {
+     *     Page creation arguments.
+     *
+     *     @type string $title       Page title (required).
+     *     @type string $status      Post status. Default 'draft'.
+     *     @type string $post_type   Post type. Default 'page'.
+     *     @type string $slug        Post name/slug.
+     *     @type string $content     Post content.
+     *     @type int    $parent      Parent post ID.
+     *     @type array  $tree        Oxygen design tree.
+     *     @type bool   $enable_oxygen Enable Oxygen for this page. Default true.
+     * }
+     * @return int|\WP_Error The new post ID or WP_Error on failure.
+     */
+    public function create_page( array $args ) {
+        $defaults = array(
+            'title'         => '',
+            'status'        => 'draft',
+            'post_type'     => 'page',
+            'slug'          => '',
+            'content'       => '',
+            'parent'        => 0,
+            'tree'          => array(),
+            'enable_oxygen' => true,
+        );
+
+        $args = wp_parse_args( $args, $defaults );
+
+        // Title is required.
+        if ( empty( $args['title'] ) ) {
+            return new \WP_Error( 'missing_title', __( 'Page title is required.', 'oxybridge-wp' ) );
+        }
+
+        // Validate post type.
+        if ( ! post_type_exists( $args['post_type'] ) ) {
+            return new \WP_Error(
+                'invalid_post_type',
+                sprintf( __( 'Post type "%s" does not exist.', 'oxybridge-wp' ), $args['post_type'] )
+            );
+        }
+
+        // Build post data.
+        $post_data = array(
+            'post_title'  => sanitize_text_field( $args['title'] ),
+            'post_status' => sanitize_key( $args['status'] ),
+            'post_type'   => sanitize_key( $args['post_type'] ),
+        );
+
+        if ( ! empty( $args['slug'] ) ) {
+            $post_data['post_name'] = sanitize_title( $args['slug'] );
+        }
+
+        if ( ! empty( $args['content'] ) ) {
+            $post_data['post_content'] = wp_kses_post( $args['content'] );
+        }
+
+        if ( $args['parent'] > 0 ) {
+            $post_data['post_parent'] = absint( $args['parent'] );
+        }
+
+        // Insert the post.
+        $post_id = wp_insert_post( $post_data, true );
+
+        if ( is_wp_error( $post_id ) ) {
+            return $post_id;
+        }
+
+        // Handle Oxygen design data.
+        if ( ! empty( $args['tree'] ) ) {
+            $this->save_document_tree( $post_id, $args['tree'] );
+        } elseif ( $args['enable_oxygen'] ) {
+            // Create empty tree for Oxygen builder.
+            $empty_tree = $this->create_empty_tree();
+            $this->save_document_tree( $post_id, $empty_tree );
+        }
+
+        return $post_id;
+    }
+
+    /**
+     * Create a new Oxygen/Breakdance template.
+     *
+     * Creates a template post of the specified type with optional
+     * Oxygen/Breakdance design data.
+     *
+     * @since 1.0.0
+     *
+     * @param array $args {
+     *     Template creation arguments.
+     *
+     *     @type string $title         Template title (required).
+     *     @type string $template_type Template type slug (header, footer, template, block, part, popup).
+     *     @type string $status        Post status. Default 'publish'.
+     *     @type string $slug          Post name/slug.
+     *     @type array  $tree          Oxygen design tree.
+     *     @type bool   $enable_oxygen Enable Oxygen for this template. Default true.
+     * }
+     * @return int|\WP_Error The new template post ID or WP_Error on failure.
+     */
+    public function create_template( array $args ) {
+        $defaults = array(
+            'title'         => '',
+            'template_type' => '',
+            'status'        => 'publish',
+            'slug'          => '',
+            'tree'          => array(),
+            'enable_oxygen' => true,
+        );
+
+        $args = wp_parse_args( $args, $defaults );
+
+        // Title is required.
+        if ( empty( $args['title'] ) ) {
+            return new \WP_Error( 'missing_title', __( 'Template title is required.', 'oxybridge-wp' ) );
+        }
+
+        // Template type is required.
+        if ( empty( $args['template_type'] ) ) {
+            return new \WP_Error( 'missing_template_type', __( 'Template type is required.', 'oxybridge-wp' ) );
+        }
+
+        // Get the post type for this template type.
+        $post_type = $this->get_post_type_for_template_type( $args['template_type'] );
+
+        if ( ! $post_type ) {
+            return new \WP_Error(
+                'invalid_template_type',
+                sprintf(
+                    /* translators: %s: template type */
+                    __( 'Invalid template type "%s".', 'oxybridge-wp' ),
+                    $args['template_type']
+                )
+            );
+        }
+
+        // Validate post type exists.
+        if ( ! post_type_exists( $post_type ) ) {
+            return new \WP_Error(
+                'post_type_not_available',
+                sprintf(
+                    /* translators: %s: post type */
+                    __( 'Template post type "%s" is not registered.', 'oxybridge-wp' ),
+                    $post_type
+                )
+            );
+        }
+
+        // Build post data.
+        $post_data = array(
+            'post_title'  => sanitize_text_field( $args['title'] ),
+            'post_status' => sanitize_key( $args['status'] ),
+            'post_type'   => $post_type,
+        );
+
+        if ( ! empty( $args['slug'] ) ) {
+            $post_data['post_name'] = sanitize_title( $args['slug'] );
+        }
+
+        // Insert the post.
+        $post_id = wp_insert_post( $post_data, true );
+
+        if ( is_wp_error( $post_id ) ) {
+            return $post_id;
+        }
+
+        // Handle Oxygen design data.
+        if ( ! empty( $args['tree'] ) ) {
+            $this->save_document_tree( $post_id, $args['tree'] );
+        } elseif ( $args['enable_oxygen'] ) {
+            // Create empty tree for Oxygen builder.
+            $empty_tree = $this->create_empty_tree();
+            $this->save_document_tree( $post_id, $empty_tree );
+        }
+
+        return $post_id;
+    }
+
+    /**
+     * Get the WordPress post type for a template type slug.
+     *
+     * @since 1.0.0
+     *
+     * @param string $template_type The template type slug.
+     * @return string|false The post type or false if invalid.
+     */
+    private function get_post_type_for_template_type( string $template_type ) {
+        $is_oxygen_mode = defined( 'BREAKDANCE_MODE' ) && BREAKDANCE_MODE === 'oxygen';
+
+        if ( $is_oxygen_mode ) {
+            $type_map = array(
+                'template' => 'oxygen_template',
+                'header'   => 'oxygen_header',
+                'footer'   => 'oxygen_footer',
+                'block'    => 'oxygen_block',
+                'part'     => 'oxygen_part',
+            );
+        } else {
+            $type_map = array(
+                'template' => 'breakdance_template',
+                'header'   => 'breakdance_header',
+                'footer'   => 'breakdance_footer',
+                'block'    => 'breakdance_block',
+                'popup'    => 'breakdance_popup',
+                'part'     => 'breakdance_part',
+            );
+        }
+
+        $normalized_type = strtolower( $template_type );
+
+        return isset( $type_map[ $normalized_type ] ) ? $type_map[ $normalized_type ] : false;
+    }
+
+    /**
+     * Create an empty tree structure for new Oxygen pages.
+     *
+     * @since 1.0.0
+     *
+     * @return array The empty tree structure.
+     */
+    public function create_empty_tree(): array {
+        return array(
+            'root' => array(
+                'id'       => $this->generate_element_id(),
+                'data'     => array(
+                    'type' => 'root',
+                ),
+                'children' => array(),
+            ),
+        );
+    }
+
+    /**
      * Generate a unique element ID.
      *
-     * Uses WordPress's UUID generation for unique element identifiers.
-     *
      * @since 1.0.0
      *
-     * @return string UUID v4 string.
+     * @return string The generated element ID.
      */
     public function generate_element_id(): string {
-        return wp_generate_uuid4();
+        return 'el-' . bin2hex( random_bytes( 8 ) );
     }
 
     /**
-     * Find an element by ID in the tree structure.
+     * Clone a document (page, post, or template) including Oxygen design data.
      *
-     * Recursively searches the tree to find an element with the given ID.
-     * Returns a reference to the element array for direct modification.
+     * Creates a complete copy of a post with all its Oxygen/Breakdance design
+     * data, regenerating element IDs to ensure uniqueness.
      *
      * @since 1.0.0
      *
-     * @param array  $tree       The tree or subtree to search. Pass by reference for modification.
-     * @param string $element_id The element ID to find.
-     * @return array|null Reference to the found element, or null if not found.
+     * @param int   $source_id The ID of the source post to clone.
+     * @param array $args {
+     *     Optional. Clone arguments.
+     *
+     *     @type string $title       Title for the cloned post. Default "Copy of [original title]".
+     *     @type string $status      Post status for the clone. Default 'draft'.
+     *     @type string $slug        Post slug for the clone. Default auto-generated.
+     *     @type bool   $clone_meta  Whether to clone post meta. Default true.
+     *     @type bool   $clone_terms Whether to clone taxonomy terms. Default true.
+     * }
+     * @return int|\WP_Error The new post ID or WP_Error on failure.
      */
-    public function find_element_in_tree( array &$tree, string $element_id ): ?array {
-        // Check if this is the root level with 'root' key.
-        if ( isset( $tree['root'] ) ) {
-            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
-                return $tree['root'];
+    public function clone_document( int $source_id, array $args = array() ) {
+        $defaults = array(
+            'title'       => '',
+            'status'      => 'draft',
+            'slug'        => '',
+            'clone_meta'  => true,
+            'clone_terms' => true,
+        );
+
+        $args = wp_parse_args( $args, $defaults );
+
+        // Get the source post.
+        $source_post = get_post( $source_id );
+
+        if ( ! $source_post ) {
+            return new \WP_Error( 'source_not_found', __( 'Source post not found.', 'oxybridge-wp' ) );
+        }
+
+        // Generate title if not provided.
+        $title = ! empty( $args['title'] )
+            ? $args['title']
+            /* translators: %s: original post title */
+            : sprintf( __( 'Copy of %s', 'oxybridge-wp' ), $source_post->post_title );
+
+        // Build new post data.
+        $new_post_data = array(
+            'post_title'   => sanitize_text_field( $title ),
+            'post_content' => $source_post->post_content,
+            'post_excerpt' => $source_post->post_excerpt,
+            'post_status'  => sanitize_key( $args['status'] ),
+            'post_type'    => $source_post->post_type,
+            'post_author'  => get_current_user_id(),
+            'post_parent'  => $source_post->post_parent,
+            'menu_order'   => $source_post->menu_order,
+        );
+
+        if ( ! empty( $args['slug'] ) ) {
+            $new_post_data['post_name'] = sanitize_title( $args['slug'] );
+        }
+
+        // Insert the new post.
+        $new_post_id = wp_insert_post( $new_post_data, true );
+
+        if ( is_wp_error( $new_post_id ) ) {
+            return $new_post_id;
+        }
+
+        // Clone post meta if requested.
+        if ( $args['clone_meta'] ) {
+            $this->clone_post_meta( $source_id, $new_post_id );
+        }
+
+        // Clone taxonomy terms if requested.
+        if ( $args['clone_terms'] ) {
+            $this->clone_post_terms( $source_id, $new_post_id );
+        }
+
+        /**
+         * Fires after a document has been cloned via Oxygen_Data.
+         *
+         * @since 1.0.0
+         * @param int   $new_post_id The newly created post ID.
+         * @param int   $source_id   The source post ID.
+         * @param array $args        The clone arguments.
+         */
+        do_action( 'oxybridge_oxygen_data_document_cloned', $new_post_id, $source_id, $args );
+
+        return $new_post_id;
+    }
+
+    /**
+     * Clone post meta from one post to another.
+     *
+     * Copies all post meta from the source post to the target post,
+     * with special handling for Oxygen/Breakdance design data to
+     * regenerate element IDs.
+     *
+     * @since 1.0.0
+     *
+     * @param int $source_id The source post ID.
+     * @param int $target_id The target post ID.
+     * @return bool True on success, false on failure.
+     */
+    public function clone_post_meta( int $source_id, int $target_id ): bool {
+        $source_meta = get_post_meta( $source_id );
+
+        if ( ! is_array( $source_meta ) ) {
+            return false;
+        }
+
+        $meta_prefix = $this->get_meta_prefix();
+
+        foreach ( $source_meta as $meta_key => $meta_values ) {
+            // Skip internal WordPress meta.
+            if ( strpos( $meta_key, '_edit_' ) === 0 ) {
+                continue;
             }
-            // Search in root's children.
-            if ( isset( $tree['root']['children'] ) && is_array( $tree['root']['children'] ) ) {
-                $result = $this->find_element_in_children( $tree['root']['children'], $element_id );
-                if ( $result !== null ) {
-                    return $result;
+
+            foreach ( $meta_values as $meta_value ) {
+                $meta_value = maybe_unserialize( $meta_value );
+
+                // For Oxygen/Breakdance tree data, regenerate element IDs.
+                if ( $meta_key === $meta_prefix . 'data' ) {
+                    $meta_value = $this->clone_tree_data( $meta_value );
                 }
+
+                add_post_meta( $target_id, $meta_key, $meta_value );
             }
-            return null;
         }
 
-        // Check current element.
-        if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
-            return $tree;
+        return true;
+    }
+
+    /**
+     * Clone taxonomy terms from one post to another.
+     *
+     * Copies all taxonomy term associations from the source post
+     * to the target post.
+     *
+     * @since 1.0.0
+     *
+     * @param int $source_id The source post ID.
+     * @param int $target_id The target post ID.
+     * @return bool True on success, false on failure.
+     */
+    public function clone_post_terms( int $source_id, int $target_id ): bool {
+        $source_post = get_post( $source_id );
+
+        if ( ! $source_post ) {
+            return false;
         }
 
-        // Search in children.
+        $taxonomies = get_object_taxonomies( $source_post->post_type );
+
+        foreach ( $taxonomies as $taxonomy ) {
+            $terms = wp_get_object_terms( $source_id, $taxonomy, array( 'fields' => 'ids' ) );
+
+            if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+                wp_set_object_terms( $target_id, $terms, $taxonomy );
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Clone tree data with regenerated element IDs.
+     *
+     * Decodes the tree data, regenerates all element IDs to ensure
+     * uniqueness, and re-encodes the data for storage.
+     *
+     * @since 1.0.0
+     *
+     * @param string|array $tree_data The tree data (JSON string or decoded array).
+     * @return string|array The cloned tree data with new IDs.
+     */
+    public function clone_tree_data( $tree_data ) {
+        // Decode if it's a JSON string.
+        $decoded = is_string( $tree_data ) ? json_decode( $tree_data, true ) : $tree_data;
+
+        if ( ! is_array( $decoded ) ) {
+            return $tree_data;
+        }
+
+        // Handle Breakdance/Oxygen 6 format with tree_json_string.
+        if ( isset( $decoded['tree_json_string'] ) ) {
+            $tree = json_decode( $decoded['tree_json_string'], true );
+
+            if ( is_array( $tree ) ) {
+                $tree = $this->regenerate_element_ids( $tree );
+                $decoded['tree_json_string'] = wp_json_encode( $tree );
+
+                return is_string( $tree_data ) ? wp_json_encode( $decoded ) : $decoded;
+            }
+        }
+
+        // If no tree_json_string, try to regenerate IDs on the decoded data directly.
+        $decoded = $this->regenerate_element_ids( $decoded );
+
+        return is_string( $tree_data ) ? wp_json_encode( $decoded ) : $decoded;
+    }
+
+    /**
+     * Recursively regenerate element IDs in a tree structure.
+     *
+     * Creates new unique IDs for all elements in the tree to ensure
+     * the cloned content has no ID conflicts with the original.
+     *
+     * @since 1.0.0
+     *
+     * @param array $tree The tree or element array.
+     * @return array The tree with regenerated IDs.
+     */
+    public function regenerate_element_ids( array $tree ): array {
+        // Regenerate ID if present.
+        if ( isset( $tree['id'] ) && is_string( $tree['id'] ) ) {
+            $tree['id'] = $this->generate_element_id();
+        }
+
+        // Process root element.
+        if ( isset( $tree['root'] ) && is_array( $tree['root'] ) ) {
+            $tree['root'] = $this->regenerate_element_ids( $tree['root'] );
+        }
+
+        // Process children recursively.
         if ( isset( $tree['children'] ) && is_array( $tree['children'] ) ) {
-            return $this->find_element_in_children( $tree['children'], $element_id );
+            foreach ( $tree['children'] as $index => $child ) {
+                if ( is_array( $child ) ) {
+                    $tree['children'][ $index ] = $this->regenerate_element_ids( $child );
+                }
+            }
         }
 
-        return null;
+        return $tree;
     }
 
     /**
-     * Find an element in a children array.
+     * Render a document/template to HTML.
      *
-     * Helper method for recursive element search.
-     *
-     * @since 1.0.0
-     *
-     * @param array  $children   Array of child elements.
-     * @param string $element_id The element ID to find.
-     * @return array|null The found element, or null if not found.
-     */
-    private function find_element_in_children( array $children, string $element_id ): ?array {
-        foreach ( $children as $child ) {
-            if ( isset( $child['id'] ) && $child['id'] === $element_id ) {
-                return $child;
-            }
-
-            // Recursively search in children.
-            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
-                $result = $this->find_element_in_children( $child['children'], $element_id );
-                if ( $result !== null ) {
-                    return $result;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Find and return a reference to an element's children array for modification.
+     * Uses Breakdance's rendering system if available, otherwise falls back
+     * to a basic tree-to-HTML conversion.
      *
      * @since 1.0.0
      *
-     * @param array  $tree       The tree to search (passed by reference).
-     * @param string $element_id The element ID whose children to find.
-     * @return array|null Reference to children array, or null if not found.
-     */
-    private function &find_element_children_ref( array &$tree, string $element_id ): ?array {
-        $null = null;
-
-        // Check if this is the root level with 'root' key.
-        if ( isset( $tree['root'] ) ) {
-            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
-                if ( ! isset( $tree['root']['children'] ) ) {
-                    $tree['root']['children'] = array();
-                }
-                return $tree['root']['children'];
-            }
-            // Search in root's children.
-            if ( isset( $tree['root']['children'] ) && is_array( $tree['root']['children'] ) ) {
-                $result = &$this->find_children_in_array( $tree['root']['children'], $element_id );
-                if ( $result !== null ) {
-                    return $result;
-                }
-            }
-            return $null;
-        }
-
-        // Check current element.
-        if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
-            if ( ! isset( $tree['children'] ) ) {
-                $tree['children'] = array();
-            }
-            return $tree['children'];
-        }
-
-        // Search in children.
-        if ( isset( $tree['children'] ) && is_array( $tree['children'] ) ) {
-            return $this->find_children_in_array( $tree['children'], $element_id );
-        }
-
-        return $null;
-    }
-
-    /**
-     * Find children array reference in a children array.
-     *
-     * @since 1.0.0
-     *
-     * @param array  $children   Array of child elements (passed by reference).
-     * @param string $element_id The element ID whose children to find.
-     * @return array|null Reference to children array, or null if not found.
-     */
-    private function &find_children_in_array( array &$children, string $element_id ): ?array {
-        $null = null;
-
-        foreach ( $children as &$child ) {
-            if ( isset( $child['id'] ) && $child['id'] === $element_id ) {
-                if ( ! isset( $child['children'] ) ) {
-                    $child['children'] = array();
-                }
-                return $child['children'];
-            }
-
-            // Recursively search in children.
-            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
-                $result = &$this->find_children_in_array( $child['children'], $element_id );
-                if ( $result !== null ) {
-                    return $result;
-                }
-            }
-        }
-
-        return $null;
-    }
-
-    /**
-     * Create a new element in a document tree.
-     *
-     * Creates a new element with a unique UUID, validates that the parent exists,
-     * and inserts it at the specified position in the parent's children array.
-     *
-     * @since 1.0.0
-     *
-     * @param int    $post_id      The post ID containing the tree.
-     * @param string $parent_id    The ID of the parent element to insert into.
-     * @param string $element_type The element type (e.g., "EssentialElements\\Section").
-     * @param array  $properties   Optional. Element properties. Default empty array.
-     * @param mixed  $position     Optional. Position: 'first', 'last', or integer index. Default 'last'.
+     * @param int  $post_id     The post ID to render.
+     * @param bool $include_css Whether to include inline CSS.
      * @return array {
-     *     Response array.
+     *     Render result array.
      *
-     *     @type bool   $success    Whether the creation was successful.
-     *     @type string $message    Success or error message.
-     *     @type string $element_id The new element's UUID (only on success).
-     *     @type int    $post_id    The post ID.
+     *     @type string $html        The rendered HTML content.
+     *     @type string $css         The CSS content (if requested).
+     *     @type bool   $has_content Whether content was rendered.
+     *     @type string $method      The render method used ('breakdance', 'fallback').
      * }
      */
-    public function create_element( int $post_id, string $parent_id, string $element_type, array $properties = array(), $position = 'last' ): array {
-        // Get the current tree.
-        $tree = $this->get_template_tree( $post_id );
-
-        if ( $tree === false ) {
-            return array(
-                'success' => false,
-                'message' => __( 'Could not retrieve document tree. Post may not exist or have no Oxygen content.', 'oxybridge' ),
-                'post_id' => $post_id,
-            );
-        }
-
-        // Find the parent element's children array.
-        $parent_children = &$this->find_element_children_ref( $tree, $parent_id );
-
-        if ( $parent_children === null ) {
-            return array(
-                'success' => false,
-                'message' => sprintf(
-                    /* translators: %s: parent element ID */
-                    __( 'Parent element with ID "%s" not found in tree.', 'oxybridge' ),
-                    $parent_id
-                ),
-                'post_id' => $post_id,
-            );
-        }
-
-        // Generate unique ID for the new element.
-        $element_id = $this->generate_element_id();
-
-        // Create the new element structure.
-        $new_element = array(
-            'id'       => $element_id,
-            'data'     => array(
-                'type'       => $element_type,
-                'properties' => $properties,
-            ),
-            'children' => array(),
+    public function render_document_to_html( int $post_id, bool $include_css = false ): array {
+        $result = array(
+            'html'        => '',
+            'css'         => '',
+            'has_content' => false,
+            'method'      => 'fallback',
         );
 
-        // Insert at the specified position.
-        if ( $position === 'first' ) {
-            array_unshift( $parent_children, $new_element );
-        } elseif ( $position === 'last' || ! is_numeric( $position ) ) {
-            $parent_children[] = $new_element;
-        } else {
-            $index = absint( $position );
-            $index = min( $index, count( $parent_children ) ); // Clamp to array bounds.
-            array_splice( $parent_children, $index, 0, array( $new_element ) );
-        }
+        // Try using Breakdance's render function if available.
+        if ( function_exists( '\Breakdance\Render\render' ) ) {
+            try {
+                // Set up the post context for rendering.
+                global $post;
+                $original_post = $post;
+                $post          = get_post( $post_id );
+                setup_postdata( $post );
 
-        // Save the modified tree.
-        $save_result = $this->save_tree( $post_id, $tree );
+                // Render using Breakdance.
+                $html = \Breakdance\Render\render( $post_id );
 
-        if ( ! $save_result['success'] ) {
-            return array(
-                'success' => false,
-                'message' => $save_result['message'],
-                'post_id' => $post_id,
-            );
-        }
+                // Restore original post context.
+                $post = $original_post;
+                if ( $original_post ) {
+                    setup_postdata( $original_post );
+                } else {
+                    wp_reset_postdata();
+                }
 
-        return array(
-            'success'    => true,
-            'message'    => __( 'Element created successfully.', 'oxybridge' ),
-            'element_id' => $element_id,
-            'post_id'    => $post_id,
-        );
-    }
-
-    /**
-     * Update an element's properties in the document tree.
-     *
-     * Finds the element by ID and performs a partial update by merging
-     * the provided properties with existing properties.
-     *
-     * @since 1.0.0
-     *
-     * @param int    $post_id    The post ID containing the tree.
-     * @param string $element_id The ID of the element to update.
-     * @param array  $properties The properties to merge/update.
-     * @return bool True if update was successful, false otherwise.
-     */
-    public function update_element( int $post_id, string $element_id, array $properties ): bool {
-        // Get the current tree.
-        $tree = $this->get_template_tree( $post_id );
-
-        if ( $tree === false ) {
-            return false;
-        }
-
-        // Update the element in the tree.
-        $updated = $this->update_element_in_tree( $tree, $element_id, $properties );
-
-        if ( ! $updated ) {
-            return false;
-        }
-
-        // Save the modified tree.
-        $save_result = $this->save_tree( $post_id, $tree );
-
-        return $save_result['success'];
-    }
-
-    /**
-     * Update an element's properties in a tree structure.
-     *
-     * Recursively searches the tree and updates the element's properties
-     * by merging with existing values.
-     *
-     * @since 1.0.0
-     *
-     * @param array  $tree       The tree to search (passed by reference).
-     * @param string $element_id The element ID to update.
-     * @param array  $properties The properties to merge.
-     * @return bool True if element was found and updated, false otherwise.
-     */
-    private function update_element_in_tree( array &$tree, string $element_id, array $properties ): bool {
-        // Check if this is the root level with 'root' key.
-        if ( isset( $tree['root'] ) ) {
-            if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
-                $this->merge_element_properties( $tree['root'], $properties );
-                return true;
+                if ( ! empty( $html ) ) {
+                    $result['html']        = $html;
+                    $result['has_content'] = true;
+                    $result['method']      = 'breakdance';
+                }
+            } catch ( \Exception $e ) {
+                // Rendering failed, continue to fallback.
             }
-            // Search in root's children.
-            if ( isset( $tree['root']['children'] ) && is_array( $tree['root']['children'] ) ) {
-                return $this->update_element_in_children( $tree['root']['children'], $element_id, $properties );
+        }
+
+        // Try alternative render function if first method failed.
+        if ( empty( $result['html'] ) && function_exists( '\Breakdance\Render\renderDocument' ) ) {
+            try {
+                $html = \Breakdance\Render\renderDocument( $post_id );
+                if ( ! empty( $html ) ) {
+                    $result['html']        = $html;
+                    $result['has_content'] = true;
+                    $result['method']      = 'breakdance';
+                }
+            } catch ( \Exception $e ) {
+                // Rendering failed, continue to fallback.
             }
-            return false;
         }
 
-        // Check current element.
-        if ( isset( $tree['id'] ) && $tree['id'] === $element_id ) {
-            $this->merge_element_properties( $tree, $properties );
-            return true;
-        }
+        // Fallback: render from tree structure.
+        if ( empty( $result['html'] ) ) {
+            $tree = $this->get_template_tree( $post_id );
 
-        // Search in children.
-        if ( isset( $tree['children'] ) && is_array( $tree['children'] ) ) {
-            return $this->update_element_in_children( $tree['children'], $element_id, $properties );
-        }
-
-        return false;
-    }
-
-    /**
-     * Update an element in a children array.
-     *
-     * Helper method for recursive element update.
-     *
-     * @since 1.0.0
-     *
-     * @param array  $children   Array of child elements (passed by reference).
-     * @param string $element_id The element ID to update.
-     * @param array  $properties The properties to merge.
-     * @return bool True if element was found and updated, false otherwise.
-     */
-    private function update_element_in_children( array &$children, string $element_id, array $properties ): bool {
-        foreach ( $children as &$child ) {
-            if ( isset( $child['id'] ) && $child['id'] === $element_id ) {
-                $this->merge_element_properties( $child, $properties );
-                return true;
-            }
-
-            // Recursively search in children.
-            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
-                if ( $this->update_element_in_children( $child['children'], $element_id, $properties ) ) {
-                    return true;
+            if ( $tree !== false && isset( $tree['root']['children'] ) ) {
+                $html = $this->render_tree_to_html( $tree['root']['children'] );
+                if ( ! empty( $html ) ) {
+                    $result['html']        = $html;
+                    $result['has_content'] = true;
+                    $result['method']      = 'fallback';
                 }
             }
         }
 
-        return false;
+        // Get CSS if requested.
+        if ( $include_css ) {
+            $result['css'] = $this->get_document_css( $post_id );
+        }
+
+        return $result;
     }
 
     /**
-     * Merge properties into an element.
+     * Render tree elements to HTML.
      *
-     * Performs a deep merge of properties, preserving existing values
-     * that are not being updated.
-     *
-     * @since 1.0.0
-     *
-     * @param array $element    The element to update (passed by reference).
-     * @param array $properties The properties to merge.
-     */
-    private function merge_element_properties( array &$element, array $properties ): void {
-        // Ensure data and properties structure exists.
-        if ( ! isset( $element['data'] ) ) {
-            $element['data'] = array();
-        }
-        if ( ! isset( $element['data']['properties'] ) ) {
-            $element['data']['properties'] = array();
-        }
-
-        // Merge properties recursively.
-        $element['data']['properties'] = $this->array_merge_recursive_distinct(
-            $element['data']['properties'],
-            $properties
-        );
-    }
-
-    /**
-     * Recursively merge arrays, replacing values rather than appending.
-     *
-     * Unlike array_merge_recursive, this replaces scalar values instead
-     * of converting them to arrays.
+     * Recursively converts tree structure to basic HTML output.
      *
      * @since 1.0.0
      *
-     * @param array $array1 The base array.
-     * @param array $array2 The array to merge into base.
-     * @return array The merged array.
+     * @param array $elements Array of element nodes.
+     * @return string Rendered HTML.
      */
-    private function array_merge_recursive_distinct( array $array1, array $array2 ): array {
-        $merged = $array1;
+    private function render_tree_to_html( array $elements ): string {
+        $html = '';
 
-        foreach ( $array2 as $key => $value ) {
-            if ( is_array( $value ) && isset( $merged[ $key ] ) && is_array( $merged[ $key ] ) ) {
-                $merged[ $key ] = $this->array_merge_recursive_distinct( $merged[ $key ], $value );
+        foreach ( $elements as $element ) {
+            if ( ! is_array( $element ) ) {
+                continue;
+            }
+
+            // Determine element type.
+            $type = '';
+            if ( isset( $element['data']['type'] ) ) {
+                $type = $element['data']['type'];
+            } elseif ( isset( $element['type'] ) ) {
+                $type = $element['type'];
+            }
+
+            // Get element ID.
+            $element_id = isset( $element['id'] ) ? $element['id'] : 'el-' . bin2hex( random_bytes( 4 ) );
+
+            // Get element properties.
+            $properties = isset( $element['data']['properties'] )
+                ? $element['data']['properties']
+                : ( isset( $element['data'] ) ? $element['data'] : array() );
+
+            // Map type to HTML tag.
+            $tag = $this->map_element_type_to_tag( $type );
+
+            // Get content from properties.
+            $content = $this->extract_element_content( $properties );
+
+            // Build classes.
+            $classes = array(
+                'ob-element',
+                sanitize_html_class( 'ob-' . strtolower( str_replace( '\\', '-', $type ) ) ),
+                sanitize_html_class( $element_id ),
+            );
+
+            // Add custom classes from properties.
+            if ( isset( $properties['classes'] ) && is_array( $properties['classes'] ) ) {
+                foreach ( $properties['classes'] as $class ) {
+                    $classes[] = sanitize_html_class( $class );
+                }
+            }
+
+            $class_attr = implode( ' ', array_filter( $classes ) );
+
+            // Render children recursively.
+            $children_html = '';
+            if ( isset( $element['children'] ) && is_array( $element['children'] ) ) {
+                $children_html = $this->render_tree_to_html( $element['children'] );
+            }
+
+            // Build element HTML.
+            $void_elements = array( 'img', 'br', 'hr', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr' );
+
+            if ( in_array( $tag, $void_elements, true ) ) {
+                $html .= sprintf( '<%s class="%s" />', esc_attr( $tag ), esc_attr( $class_attr ) );
             } else {
-                $merged[ $key ] = $value;
+                $html .= sprintf(
+                    '<%s class="%s">%s%s</%s>',
+                    esc_attr( $tag ),
+                    esc_attr( $class_attr ),
+                    $content,
+                    $children_html,
+                    esc_attr( $tag )
+                );
             }
         }
 
-        return $merged;
+        return $html;
     }
 
     /**
-     * Delete an element from the document tree.
-     *
-     * Finds the element by ID and removes it along with all its children.
-     * The root element cannot be deleted.
+     * Map element type to HTML tag.
      *
      * @since 1.0.0
      *
-     * @param int    $post_id    The post ID containing the tree.
-     * @param string $element_id The ID of the element to delete.
-     * @return bool True if deletion was successful, false otherwise.
+     * @param string $type The element type.
+     * @return string The HTML tag.
      */
-    public function delete_element( int $post_id, string $element_id ): bool {
-        // Get the current tree.
-        $tree = $this->get_template_tree( $post_id );
+    private function map_element_type_to_tag( string $type ): string {
+        $type_lower = strtolower( $type );
 
-        if ( $tree === false ) {
-            return false;
-        }
-
-        // Prevent deletion of root element.
-        if ( isset( $tree['root']['id'] ) && $tree['root']['id'] === $element_id ) {
-            return false;
-        }
-
-        // Delete the element from the tree.
-        $deleted = $this->delete_element_in_tree( $tree, $element_id );
-
-        if ( ! $deleted ) {
-            return false;
-        }
-
-        // Save the modified tree.
-        $save_result = $this->save_tree( $post_id, $tree );
-
-        return $save_result['success'];
-    }
-
-    /**
-     * Delete an element from a tree structure.
-     *
-     * Recursively searches the tree and removes the element with the given ID.
-     * All children of the deleted element are also removed.
-     *
-     * @since 1.0.0
-     *
-     * @param array  $tree       The tree to search (passed by reference).
-     * @param string $element_id The element ID to delete.
-     * @return bool True if element was found and deleted, false otherwise.
-     */
-    private function delete_element_in_tree( array &$tree, string $element_id ): bool {
-        // Check if this is the root level with 'root' key.
-        if ( isset( $tree['root'] ) ) {
-            // Search in root's children.
-            if ( isset( $tree['root']['children'] ) && is_array( $tree['root']['children'] ) ) {
-                return $this->delete_element_in_children( $tree['root']['children'], $element_id );
-            }
-            return false;
-        }
-
-        // Search in children.
-        if ( isset( $tree['children'] ) && is_array( $tree['children'] ) ) {
-            return $this->delete_element_in_children( $tree['children'], $element_id );
-        }
-
-        return false;
-    }
-
-    /**
-     * Delete an element from a children array.
-     *
-     * Helper method for recursive element deletion.
-     *
-     * @since 1.0.0
-     *
-     * @param array  $children   Array of child elements (passed by reference).
-     * @param string $element_id The element ID to delete.
-     * @return bool True if element was found and deleted, false otherwise.
-     */
-    private function delete_element_in_children( array &$children, string $element_id ): bool {
-        foreach ( $children as $index => $child ) {
-            if ( isset( $child['id'] ) && $child['id'] === $element_id ) {
-                // Remove the element and its children.
-                array_splice( $children, $index, 1 );
-                return true;
-            }
-
-            // Recursively search in children.
-            if ( isset( $children[ $index ]['children'] ) && is_array( $children[ $index ]['children'] ) ) {
-                if ( $this->delete_element_in_children( $children[ $index ]['children'], $element_id ) ) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Find an element by ID within a post's document tree.
-     *
-     * This is a convenience method that retrieves the tree for a post
-     * and searches for an element by its ID. For direct tree manipulation,
-     * use find_element_in_tree() instead.
-     *
-     * @since 1.0.0
-     *
-     * @param int    $post_id    The post ID containing the tree.
-     * @param string $element_id The element ID to find.
-     * @return array|null The found element data, or null if not found.
-     */
-    public function find_element_by_id( int $post_id, string $element_id ): ?array {
-        $tree = $this->get_template_tree( $post_id );
-
-        if ( $tree === false ) {
-            return null;
-        }
-
-        return $this->find_element_in_tree( $tree, $element_id );
-    }
-
-    /**
-     * Get available element types that can be used in Oxygen/Breakdance.
-     *
-     * Returns a list of registered element types with their metadata.
-     * This includes both Essential Elements and any custom registered elements.
-     *
-     * @since 1.0.0
-     *
-     * @return array Array of available element types with their info.
-     */
-    public function get_available_element_types(): array {
-        $element_types = array();
-
-        // Try to get element types from Breakdance's element registry.
-        if ( class_exists( '\Breakdance\Elements\GlobalsRegistry' ) ) {
-            try {
-                $registry = \Breakdance\Elements\GlobalsRegistry::getInstance();
-                if ( method_exists( $registry, 'getElements' ) ) {
-                    $elements = $registry->getElements();
-                    if ( is_array( $elements ) ) {
-                        foreach ( $elements as $element ) {
-                            $element_types[] = $this->format_element_type( $element );
-                        }
-                        return $element_types;
-                    }
-                }
-            } catch ( \Exception $e ) {
-                // Fall through to other methods.
-            }
-        }
-
-        // Try Breakdance\Elements\Elements class.
-        if ( class_exists( '\Breakdance\Elements\Elements' ) ) {
-            try {
-                if ( method_exists( '\Breakdance\Elements\Elements', 'getAll' ) ) {
-                    $elements = \Breakdance\Elements\Elements::getAll();
-                    if ( is_array( $elements ) ) {
-                        foreach ( $elements as $element ) {
-                            $element_types[] = $this->format_element_type( $element );
-                        }
-                        return $element_types;
-                    }
-                }
-            } catch ( \Exception $e ) {
-                // Fall through to fallback.
-            }
-        }
-
-        // Fallback: Return common Essential Elements types.
-        // These are the standard elements available in Oxygen 6 / Breakdance.
-        return $this->get_fallback_element_types();
-    }
-
-    /**
-     * Format an element type from the registry into a standardized array.
-     *
-     * @since 1.0.0
-     *
-     * @param mixed $element The element from the registry.
-     * @return array Formatted element type info.
-     */
-    private function format_element_type( $element ): array {
-        // Handle array format.
-        if ( is_array( $element ) ) {
-            return array(
-                'type'        => $element['slug'] ?? $element['type'] ?? 'unknown',
-                'name'        => $element['name'] ?? $element['label'] ?? 'Unknown',
-                'category'    => $element['category'] ?? 'general',
-                'description' => $element['description'] ?? '',
-            );
-        }
-
-        // Handle object format.
-        if ( is_object( $element ) ) {
-            return array(
-                'type'        => $element->slug ?? $element->type ?? ( method_exists( $element, 'getSlug' ) ? $element->getSlug() : 'unknown' ),
-                'name'        => $element->name ?? $element->label ?? ( method_exists( $element, 'getName' ) ? $element->getName() : 'Unknown' ),
-                'category'    => $element->category ?? ( method_exists( $element, 'getCategory' ) ? $element->getCategory() : 'general' ),
-                'description' => $element->description ?? '',
-            );
-        }
-
-        // Handle string format (just the type slug).
-        if ( is_string( $element ) ) {
-            return array(
-                'type'        => $element,
-                'name'        => $this->format_element_name( $element ),
-                'category'    => 'general',
-                'description' => '',
-            );
-        }
-
-        return array(
-            'type'        => 'unknown',
-            'name'        => 'Unknown',
-            'category'    => 'general',
-            'description' => '',
+        $tag_map = array(
+            'section'   => 'section',
+            'container' => 'div',
+            'div'       => 'div',
+            'columns'   => 'div',
+            'column'    => 'div',
+            'heading'   => 'h2',
+            'text'      => 'p',
+            'richtext'  => 'div',
+            'paragraph' => 'p',
+            'image'     => 'img',
+            'button'    => 'button',
+            'link'      => 'a',
+            'nav'       => 'nav',
+            'header'    => 'header',
+            'footer'    => 'footer',
+            'article'   => 'article',
+            'aside'     => 'aside',
+            'main'      => 'main',
+            'form'      => 'form',
+            'root'      => 'div',
         );
+
+        if ( isset( $tag_map[ $type_lower ] ) ) {
+            return $tag_map[ $type_lower ];
+        }
+
+        // Check partial matches.
+        foreach ( $tag_map as $key => $tag ) {
+            if ( stripos( $type_lower, $key ) !== false ) {
+                return $tag;
+            }
+        }
+
+        return 'div';
     }
 
     /**
-     * Format an element type slug into a human-readable name.
+     * Extract content from element properties.
      *
      * @since 1.0.0
      *
-     * @param string $type The element type slug.
-     * @return string Human-readable name.
+     * @param array $properties The element properties.
+     * @return string The extracted content.
      */
-    private function format_element_name( string $type ): string {
-        // Extract the element name from namespace format (e.g., "EssentialElements\\Section" -> "Section").
-        $parts = explode( '\\', $type );
-        $name  = end( $parts );
+    private function extract_element_content( array $properties ): string {
+        $content_keys = array( 'text', 'content', 'html', 'value', 'label' );
 
-        // Convert camelCase to Title Case with spaces.
-        $name = preg_replace( '/([a-z])([A-Z])/', '$1 $2', $name );
+        foreach ( $content_keys as $key ) {
+            if ( isset( $properties[ $key ] ) && is_string( $properties[ $key ] ) ) {
+                return wp_kses_post( $properties[ $key ] );
+            }
+        }
 
-        return ucwords( $name );
+        if ( isset( $properties['content']['text'] ) ) {
+            return wp_kses_post( $properties['content']['text'] );
+        }
+
+        return '';
     }
 
     /**
-     * Get fallback list of common Essential Elements types.
+     * Get CSS for a document.
      *
-     * Used when the element registry is not accessible.
+     * Retrieves the CSS associated with a rendered document.
      *
      * @since 1.0.0
      *
-     * @return array Array of common element types.
+     * @param int $post_id The post ID.
+     * @return string The CSS content.
      */
-    private function get_fallback_element_types(): array {
-        return array(
-            // Layout Elements.
-            array(
-                'type'        => 'EssentialElements\\Section',
-                'name'        => 'Section',
-                'category'    => 'layout',
-                'description' => 'Container section for grouping content.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Container',
-                'name'        => 'Container',
-                'category'    => 'layout',
-                'description' => 'Flexible container element.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Columns',
-                'name'        => 'Columns',
-                'category'    => 'layout',
-                'description' => 'Multi-column layout element.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Column',
-                'name'        => 'Column',
-                'category'    => 'layout',
-                'description' => 'Individual column within Columns element.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Div',
-                'name'        => 'Div',
-                'category'    => 'layout',
-                'description' => 'Generic div container.',
-            ),
-            // Basic Elements.
-            array(
-                'type'        => 'EssentialElements\\Heading',
-                'name'        => 'Heading',
-                'category'    => 'basic',
-                'description' => 'Heading text element (H1-H6).',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Text',
-                'name'        => 'Text',
-                'category'    => 'basic',
-                'description' => 'Rich text content element.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\RichText',
-                'name'        => 'Rich Text',
-                'category'    => 'basic',
-                'description' => 'Rich text editor element.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Image',
-                'name'        => 'Image',
-                'category'    => 'basic',
-                'description' => 'Image element with responsive support.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Button',
-                'name'        => 'Button',
-                'category'    => 'basic',
-                'description' => 'Button element with link support.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Icon',
-                'name'        => 'Icon',
-                'category'    => 'basic',
-                'description' => 'Icon element.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Video',
-                'name'        => 'Video',
-                'category'    => 'basic',
-                'description' => 'Video embed element.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Spacer',
-                'name'        => 'Spacer',
-                'category'    => 'basic',
-                'description' => 'Vertical spacing element.',
-            ),
-            // Form Elements.
-            array(
-                'type'        => 'EssentialElements\\FormBuilder',
-                'name'        => 'Form Builder',
-                'category'    => 'forms',
-                'description' => 'Form builder element.',
-            ),
-            // Interactive Elements.
-            array(
-                'type'        => 'EssentialElements\\Accordion',
-                'name'        => 'Accordion',
-                'category'    => 'interactive',
-                'description' => 'Accordion/collapsible content element.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Tabs',
-                'name'        => 'Tabs',
-                'category'    => 'interactive',
-                'description' => 'Tabbed content element.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Slider',
-                'name'        => 'Slider',
-                'category'    => 'interactive',
-                'description' => 'Image/content slider element.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Modal',
-                'name'        => 'Modal',
-                'category'    => 'interactive',
-                'description' => 'Modal/popup element.',
-            ),
-            // WordPress Elements.
-            array(
-                'type'        => 'EssentialElements\\PostContent',
-                'name'        => 'Post Content',
-                'category'    => 'wordpress',
-                'description' => 'Dynamic post content.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\PostTitle',
-                'name'        => 'Post Title',
-                'category'    => 'wordpress',
-                'description' => 'Dynamic post title.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\PostsLoop',
-                'name'        => 'Posts Loop',
-                'category'    => 'wordpress',
-                'description' => 'Loop through posts.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Menu',
-                'name'        => 'Menu',
-                'category'    => 'wordpress',
-                'description' => 'WordPress navigation menu.',
-            ),
-            array(
-                'type'        => 'EssentialElements\\Shortcode',
-                'name'        => 'Shortcode',
-                'category'    => 'wordpress',
-                'description' => 'Execute WordPress shortcodes.',
-            ),
+    public function get_document_css( int $post_id ): string {
+        $meta_prefix = $this->get_meta_prefix();
+
+        // Try post meta first.
+        $css = get_post_meta( $post_id, $meta_prefix . 'css_cache', true );
+        if ( ! empty( $css ) ) {
+            return $css;
+        }
+
+        $css = get_post_meta( $post_id, $meta_prefix . 'css', true );
+        if ( ! empty( $css ) ) {
+            return $css;
+        }
+
+        // Check for cached CSS file.
+        $upload_dir     = wp_upload_dir();
+        $possible_files = array(
+            $upload_dir['basedir'] . '/breakdance/css/post-' . $post_id . '.css',
+            $upload_dir['basedir'] . '/breakdance/css/' . $post_id . '.css',
+            $upload_dir['basedir'] . '/oxygen/css/' . $post_id . '.css',
         );
+
+        foreach ( $possible_files as $file ) {
+            if ( file_exists( $file ) ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+                $file_css = file_get_contents( $file );
+                if ( ! empty( $file_css ) ) {
+                    return $file_css;
+                }
+            }
+        }
+
+        return '';
     }
 }
