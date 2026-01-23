@@ -4505,8 +4505,9 @@ class REST_API {
             return false;
         }
 
-        // Save to post meta.
-        $result = update_post_meta( $post_id, $meta_prefix . 'data', $encoded_data );
+        // WordPress update_post_meta calls wp_unslash() which strips backslashes.
+        // We need to use wp_slash() to preserve the escaped quotes in our JSON.
+        $result = update_post_meta( $post_id, $meta_prefix . 'data', wp_slash( $encoded_data ) );
 
         /**
          * Fires after document tree has been saved.
