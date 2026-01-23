@@ -1409,10 +1409,11 @@ class Property_Transformer {
             );
         }
 
-        // Background color.
-        if ( isset( $node['backgroundColor'] ) ) {
+        // Background color (supports both 'backgroundColor' and shorthand 'background').
+        $bg_color = $node['backgroundColor'] ?? $node['background'] ?? null;
+        if ( $bg_color !== null ) {
             $props['color'] = array(
-                $breakpoint => $node['backgroundColor'],
+                $breakpoint => $bg_color,
             );
         }
 
@@ -3317,21 +3318,25 @@ class Property_Transformer {
                 $design['layout'] = $layout;
             } elseif ( $type === 'Div' ) {
                 $design['container'] = array( 'layout' => $layout );
-                // Div padding goes in container.padding.padding
-                $padding = $this->build_padding_properties( $node, $breakpoint );
-                if ( ! empty( $padding ) ) {
-                    $design['container']['padding'] = array( 'padding' => $padding );
-                }
             } else {
                 $design['layout'] = $layout;
             }
         }
 
-        // Build spacing/padding properties (Section).
+        // Build spacing/padding properties.
         if ( $type === 'Section' ) {
             $padding = $this->build_padding_properties( $node, $breakpoint );
             if ( ! empty( $padding ) ) {
                 $design['spacing'] = array( 'padding' => $padding );
+            }
+        } elseif ( $type === 'Div' ) {
+            // Div padding goes in container.padding.padding
+            $padding = $this->build_padding_properties( $node, $breakpoint );
+            if ( ! empty( $padding ) ) {
+                if ( ! isset( $design['container'] ) ) {
+                    $design['container'] = array();
+                }
+                $design['container']['padding'] = array( 'padding' => $padding );
             }
         }
 
@@ -3345,6 +3350,14 @@ class Property_Transformer {
         $effects = $this->build_element_design( $type, $node, $breakpoint );
         if ( ! empty( $effects ) ) {
             $design = $this->merge_deep( $design, $effects );
+        }
+
+        // Build custom CSS for grid layouts (workaround for Div elements).
+        if ( $type === 'Div' && isset( $node['display'] ) && $node['display'] === 'grid' ) {
+            $custom_css = $this->build_grid_custom_css( $node, $breakpoint );
+            if ( ! empty( $custom_css ) ) {
+                $design['custom_css'] = array( 'css' => $custom_css );
+            }
         }
 
         // Handle responsive breakpoints.
@@ -3443,32 +3456,56 @@ class Property_Transformer {
         if ( $display === 'grid' || isset( $node['gridColumns'] ) ) {
             $layout['layout'] = 'grid';
             if ( isset( $node['gridColumns'] ) ) {
-                $layout['gridTemplateColumns'] = array(
-                    $breakpoint => $node['gridColumns'],
+                // Parse gridColumns to extract items per row.
+                // Supports: "4", "repeat(4, 1fr)", "repeat(4, minmax(0, 1fr))".
+                $cols = $node['gridColumns'];
+                if ( preg_match( '/repeat\s*\(\s*(\d+)/', $cols, $matches ) ) {
+                    $items_per_row = (int) $matches[1];
+                } elseif ( is_numeric( $cols ) ) {
+                    $items_per_row = (int) $cols;
+                } else {
+                    $items_per_row = 4; // Default.
+                }
+                $layout['g_items_per_row'] = array(
+                    $breakpoint => $items_per_row,
                 );
+            }
+            // Grid gap uses g_space_between_items.
+            if ( isset( $node['gap'] ) ) {
+                $gap_obj = $this->to_unit_object( $node['gap'] );
+                $layout['g_space_between_items'] = array( $breakpoint => $gap_obj );
             }
         } elseif ( $display === 'flex' || $flex_dir ) {
             if ( $flex_dir === 'column' ) {
                 $layout['layout'] = 'vertical';
+                // Vertical gap uses v_gap.
+                if ( isset( $node['gap'] ) ) {
+                    $layout['v_gap'] = array( $breakpoint => $this->to_unit_object( $node['gap'] ) );
+                }
             } else {
                 $layout['layout'] = 'horizontal';
+                // Horizontal gap uses h_gap.
+                if ( isset( $node['gap'] ) ) {
+                    $layout['h_gap'] = array( $breakpoint => $this->to_unit_object( $node['gap'] ) );
+                }
             }
         }
 
-        // Gap.
-        if ( isset( $node['gap'] ) ) {
-            $gap_obj = $this->to_unit_object( $node['gap'] );
-            $layout['horizontalGap'] = array( $breakpoint => $gap_obj );
-            $layout['verticalGap'] = array( $breakpoint => $gap_obj );
+        // Alignment for flex layouts.
+        if ( isset( $node['alignItems'] ) && isset( $layout['layout'] ) ) {
+            if ( $layout['layout'] === 'vertical' ) {
+                $layout['v_align'] = array( $breakpoint => $node['alignItems'] );
+            } elseif ( $layout['layout'] === 'horizontal' ) {
+                $layout['h_vertical_align'] = array( $breakpoint => $node['alignItems'] );
+            }
         }
 
-        // Alignment.
-        if ( isset( $node['alignItems'] ) ) {
-            $layout['alignItems'] = array( $breakpoint => $node['alignItems'] );
-        }
-
-        if ( isset( $node['justifyContent'] ) ) {
-            $layout['justifyContent'] = array( $breakpoint => $node['justifyContent'] );
+        if ( isset( $node['justifyContent'] ) && isset( $layout['layout'] ) ) {
+            if ( $layout['layout'] === 'vertical' ) {
+                $layout['v_vertical_align'] = array( $breakpoint => $node['justifyContent'] );
+            } elseif ( $layout['layout'] === 'horizontal' ) {
+                $layout['h_align'] = array( $breakpoint => $node['justifyContent'] );
+            }
         }
 
         // Text alignment for sections/containers.
@@ -3523,21 +3560,38 @@ class Property_Transformer {
             $design['typography']['typography']['custom']['customTypography']['textAlign'][ $bp_key ] = $bp_props['textAlign'];
         }
 
-        // Layout overrides.
+        // Layout overrides for grid.
         if ( isset( $bp_props['gridColumns'] ) ) {
-            $layout_path = ( $type === 'Div' ) ? 'container' : 'layout';
-            if ( $type === 'Div' ) {
-                $design['container']['layout']['gridTemplateColumns'][ $bp_key ] = $bp_props['gridColumns'];
+            // Parse gridColumns to extract items per row.
+            $cols = $bp_props['gridColumns'];
+            if ( preg_match( '/repeat\s*\(\s*(\d+)/', $cols, $matches ) ) {
+                $items_per_row = (int) $matches[1];
+            } elseif ( is_numeric( $cols ) ) {
+                $items_per_row = (int) $cols;
             } else {
-                $design['layout']['gridTemplateColumns'][ $bp_key ] = $bp_props['gridColumns'];
+                $items_per_row = 4;
+            }
+            if ( $type === 'Div' ) {
+                $design['container']['layout']['g_items_per_row'][ $bp_key ] = $items_per_row;
+            } else {
+                $design['layout']['g_items_per_row'][ $bp_key ] = $items_per_row;
             }
         }
 
+        // Gap overrides - use correct property based on layout type.
         if ( isset( $bp_props['gap'] ) ) {
             $gap_obj = $this->to_unit_object( $bp_props['gap'] );
-            $layout_ref = ( $type === 'Div' ) ? $design['container']['layout'] : $design['layout'];
-            $layout_ref['horizontalGap'][ $bp_key ] = $gap_obj;
-            $layout_ref['verticalGap'][ $bp_key ] = $gap_obj;
+            $layout_ref = ( $type === 'Div' ) ? ( $design['container']['layout'] ?? array() ) : ( $design['layout'] ?? array() );
+            $layout_type = $layout_ref['layout'] ?? null;
+
+            if ( $layout_type === 'grid' ) {
+                $layout_ref['g_space_between_items'][ $bp_key ] = $gap_obj;
+            } elseif ( $layout_type === 'vertical' ) {
+                $layout_ref['v_gap'][ $bp_key ] = $gap_obj;
+            } elseif ( $layout_type === 'horizontal' ) {
+                $layout_ref['h_gap'][ $bp_key ] = $gap_obj;
+            }
+
             if ( $type === 'Div' ) {
                 $design['container']['layout'] = $layout_ref;
             } else {
@@ -3556,6 +3610,18 @@ class Property_Transformer {
                     $design['spacing']['padding'][ $side ][ $bp_key ] = $this->to_unit_object( $value );
                 }
             }
+        }
+
+        // Background overrides (supports both 'background' and 'backgroundColor').
+        $bg_color = $bp_props['backgroundColor'] ?? $bp_props['background'] ?? null;
+        if ( $bg_color !== null ) {
+            if ( ! isset( $design['background'] ) ) {
+                $design['background'] = array();
+            }
+            if ( ! isset( $design['background']['color'] ) ) {
+                $design['background']['color'] = array();
+            }
+            $design['background']['color'][ $bp_key ] = $bg_color;
         }
     }
 
@@ -3583,6 +3649,68 @@ class Property_Transformer {
         }
 
         return array( 'style' => $value );
+    }
+
+    /**
+     * Build custom CSS for grid layouts.
+     *
+     * @param array  $node       Simplified node.
+     * @param string $breakpoint Target breakpoint.
+     * @return array Custom CSS by breakpoint.
+     */
+    private function build_grid_custom_css( array $node, string $breakpoint ): array {
+        $css = array();
+
+        // Parse grid columns to get items per row.
+        $cols = $node['gridColumns'] ?? 'repeat(4, 1fr)';
+        if ( preg_match( '/repeat\s*\(\s*(\d+)/', $cols, $matches ) ) {
+            $items_per_row = (int) $matches[1];
+        } elseif ( is_numeric( $cols ) ) {
+            $items_per_row = (int) $cols;
+        } else {
+            $items_per_row = 4;
+        }
+
+        // Get gap.
+        $gap = isset( $node['gap'] ) ? $node['gap'] : '20px';
+
+        // Build base breakpoint CSS.
+        $base_css = "%%SELECTOR%% {\n";
+        $base_css .= "  display: grid;\n";
+        $base_css .= "  grid-template-columns: repeat({$items_per_row}, minmax(0, 1fr));\n";
+        $base_css .= "  gap: {$gap};\n";
+        $base_css .= '}';
+        $css[ $breakpoint ] = $base_css;
+
+        // Handle responsive breakpoints.
+        if ( isset( $node['responsive'] ) ) {
+            foreach ( $node['responsive'] as $bp_name => $bp_props ) {
+                $bp_key = $this->get_breakpoint_key( $bp_name );
+                $bp_css_parts = array();
+
+                if ( isset( $bp_props['gridColumns'] ) ) {
+                    $bp_cols = $bp_props['gridColumns'];
+                    if ( preg_match( '/repeat\s*\(\s*(\d+)/', $bp_cols, $matches ) ) {
+                        $bp_items = (int) $matches[1];
+                    } elseif ( is_numeric( $bp_cols ) ) {
+                        $bp_items = (int) $bp_cols;
+                    } else {
+                        $bp_items = 4;
+                    }
+                    $bp_css_parts[] = "grid-template-columns: repeat({$bp_items}, minmax(0, 1fr))";
+                }
+
+                if ( isset( $bp_props['gap'] ) ) {
+                    $bp_css_parts[] = "gap: {$bp_props['gap']}";
+                }
+
+                if ( ! empty( $bp_css_parts ) ) {
+                    $css[ $bp_key ] = '%%SELECTOR%% { ' . implode( '; ', $bp_css_parts ) . '; }';
+                }
+            }
+        }
+
+        return $css;
     }
 
     /**
