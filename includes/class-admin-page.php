@@ -64,6 +64,7 @@ class Admin_Page {
             'toplevel_page_' . self::MENU_SLUG,
             'oxybridge_page_oxybridge-reference',
             'oxybridge_page_oxybridge-howto',
+            'oxybridge_page_oxybridge-ai',
         );
 
         if ( ! in_array( $hook_suffix, $oxybridge_pages, true ) ) {
@@ -130,6 +131,16 @@ class Admin_Page {
             self::CAPABILITY,
             'oxybridge-howto',
             array( $this, 'render_howto_page' )
+        );
+
+        // AI Integration submenu.
+        add_submenu_page(
+            self::MENU_SLUG,
+            __( 'AI Integration', 'oxybridge-wp' ),
+            __( 'AI Integration', 'oxybridge-wp' ),
+            self::CAPABILITY,
+            'oxybridge-ai',
+            array( $this, 'render_ai_page' )
         );
     }
 
@@ -773,6 +784,255 @@ curl -u "username:app-password" \
                     </ul>
                 </div>
 
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render the AI Integration page content.
+     *
+     * Displays AI agent integration documentation and endpoints.
+     *
+     * @since 1.1.0
+     * @return void
+     */
+    public function render_ai_page() {
+        $site_url     = get_site_url();
+        $api_base_url = $site_url . '/wp-json/oxybridge/v1/';
+        ?>
+        <div class="wrap oxybridge-admin">
+            <h1><?php esc_html_e( 'AI Integration', 'oxybridge-wp' ); ?></h1>
+
+            <div class="oxybridge-card">
+                <h2><?php esc_html_e( 'AI Agent Pipeline', 'oxybridge-wp' ); ?></h2>
+                <p><?php esc_html_e( 'OxyBridge provides a minimal-context architecture optimized for AI agents. Instead of passing large documentation, agents receive a compact 3.9KB context with everything needed to generate pages.', 'oxybridge-wp' ); ?></p>
+
+                <h3><?php esc_html_e( 'Context Size Comparison', 'oxybridge-wp' ); ?></h3>
+                <table class="widefat striped">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Approach', 'oxybridge-wp' ); ?></th>
+                            <th><?php esc_html_e( 'Size', 'oxybridge-wp' ); ?></th>
+                            <th><?php esc_html_e( 'Tokens (~)', 'oxybridge-wp' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><?php esc_html_e( 'Full Documentation', 'oxybridge-wp' ); ?></td>
+                            <td>~35KB</td>
+                            <td>~9,000</td>
+                        </tr>
+                        <tr>
+                            <td><strong><?php esc_html_e( 'AI Context Endpoint', 'oxybridge-wp' ); ?></strong></td>
+                            <td><strong>3.9KB</strong></td>
+                            <td><strong>~1,000</strong></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3"><em><?php esc_html_e( '89% reduction in context usage', 'oxybridge-wp' ); ?></em></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="oxybridge-card">
+                <h2><?php esc_html_e( 'AI Endpoints', 'oxybridge-wp' ); ?></h2>
+
+                <h3><?php esc_html_e( 'Master Context Endpoint', 'oxybridge-wp' ); ?></h3>
+                <p><?php esc_html_e( 'Returns everything an AI agent needs in a single request:', 'oxybridge-wp' ); ?></p>
+                <pre><code>GET <?php echo esc_html( $api_base_url ); ?>ai/context</code></pre>
+                <p><?php esc_html_e( 'Includes: element schema, design tokens, component list, API reference', 'oxybridge-wp' ); ?></p>
+
+                <h3><?php esc_html_e( 'Individual Endpoints', 'oxybridge-wp' ); ?></h3>
+                <table class="widefat striped">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Endpoint', 'oxybridge-wp' ); ?></th>
+                            <th><?php esc_html_e( 'Method', 'oxybridge-wp' ); ?></th>
+                            <th><?php esc_html_e( 'Description', 'oxybridge-wp' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>/ai/context</code></td>
+                            <td>GET</td>
+                            <td><?php esc_html_e( 'Complete AI context (3.9KB)', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/tokens</code></td>
+                            <td>GET</td>
+                            <td><?php esc_html_e( 'Design tokens (colors, fonts, spacing)', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/schema</code></td>
+                            <td>GET</td>
+                            <td><?php esc_html_e( 'Full element schema', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/components</code></td>
+                            <td>GET</td>
+                            <td><?php esc_html_e( 'List all 21 components', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/components/{name}</code></td>
+                            <td>GET</td>
+                            <td><?php esc_html_e( 'Get specific component JSON', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/templates</code></td>
+                            <td>GET</td>
+                            <td><?php esc_html_e( 'List saved templates', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/templates</code></td>
+                            <td>POST</td>
+                            <td><?php esc_html_e( 'Save new template', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/templates/{name}</code></td>
+                            <td>GET</td>
+                            <td><?php esc_html_e( 'Get specific template', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/templates/{name}</code></td>
+                            <td>DELETE</td>
+                            <td><?php esc_html_e( 'Delete template', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="oxybridge-card">
+                <h2><?php esc_html_e( 'Available Components', 'oxybridge-wp' ); ?></h2>
+                <p><?php esc_html_e( '21 pre-built component snippets ready for AI agents:', 'oxybridge-wp' ); ?></p>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                    <div>
+                        <h4><?php esc_html_e( 'Heroes', 'oxybridge-wp' ); ?></h4>
+                        <ul>
+                            <li><code>hero_section</code></li>
+                            <li><code>hero_split</code></li>
+                        </ul>
+
+                        <h4><?php esc_html_e( 'Features', 'oxybridge-wp' ); ?></h4>
+                        <ul>
+                            <li><code>feature_grid</code></li>
+                            <li><code>feature_list</code></li>
+                        </ul>
+
+                        <h4><?php esc_html_e( 'CTAs', 'oxybridge-wp' ); ?></h4>
+                        <ul>
+                            <li><code>cta_section</code></li>
+                            <li><code>cta_banner</code></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4><?php esc_html_e( 'Pricing', 'oxybridge-wp' ); ?></h4>
+                        <ul>
+                            <li><code>pricing_table</code></li>
+                            <li><code>pricing_cards</code></li>
+                        </ul>
+
+                        <h4><?php esc_html_e( 'Testimonials', 'oxybridge-wp' ); ?></h4>
+                        <ul>
+                            <li><code>testimonial_single</code></li>
+                            <li><code>testimonial_grid</code></li>
+                            <li><code>testimonial_slider</code></li>
+                        </ul>
+
+                        <h4><?php esc_html_e( 'Team & FAQ', 'oxybridge-wp' ); ?></h4>
+                        <ul>
+                            <li><code>team_grid</code></li>
+                            <li><code>faq_accordion</code></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4><?php esc_html_e( 'Gallery', 'oxybridge-wp' ); ?></h4>
+                        <ul>
+                            <li><code>gallery_grid</code></li>
+                            <li><code>gallery_masonry</code></li>
+                        </ul>
+
+                        <h4><?php esc_html_e( 'Other', 'oxybridge-wp' ); ?></h4>
+                        <ul>
+                            <li><code>stats_counter</code></li>
+                            <li><code>logo_cloud</code></li>
+                            <li><code>newsletter_signup</code></li>
+                            <li><code>contact_form</code></li>
+                        </ul>
+
+                        <h4><?php esc_html_e( 'Footers', 'oxybridge-wp' ); ?></h4>
+                        <ul>
+                            <li><code>footer_simple</code></li>
+                            <li><code>footer_complex</code></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="oxybridge-card">
+                <h2><?php esc_html_e( 'AI Agent Workflow', 'oxybridge-wp' ); ?></h2>
+                <p><?php esc_html_e( 'Typical workflow for an AI agent to create a page:', 'oxybridge-wp' ); ?></p>
+
+                <ol>
+                    <li>
+                        <strong><?php esc_html_e( 'Get Context', 'oxybridge-wp' ); ?></strong>
+                        <pre><code>GET /wp-json/oxybridge/v1/ai/context</code></pre>
+                        <p><?php esc_html_e( 'Receive schema, tokens, and component list (~3.9KB)', 'oxybridge-wp' ); ?></p>
+                    </li>
+                    <li>
+                        <strong><?php esc_html_e( 'Get Component (optional)', 'oxybridge-wp' ); ?></strong>
+                        <pre><code>GET /wp-json/oxybridge/v1/ai/components/hero_section</code></pre>
+                        <p><?php esc_html_e( 'Retrieve a pre-built component to use as starting point', 'oxybridge-wp' ); ?></p>
+                    </li>
+                    <li>
+                        <strong><?php esc_html_e( 'Create Page', 'oxybridge-wp' ); ?></strong>
+                        <pre><code>POST /wp-json/oxybridge/v1/pages
+{
+  "title": "My Landing Page",
+  "status": "publish",
+  "tree": { ... }
+}</code></pre>
+                        <p><?php esc_html_e( 'Create the page with the generated tree structure', 'oxybridge-wp' ); ?></p>
+                    </li>
+                    <li>
+                        <strong><?php esc_html_e( 'Regenerate CSS', 'oxybridge-wp' ); ?></strong>
+                        <pre><code>POST /wp-json/oxybridge/v1/regenerate-css/{page_id}</code></pre>
+                        <p><?php esc_html_e( 'Generate the CSS styles for the page', 'oxybridge-wp' ); ?></p>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="oxybridge-card">
+                <h2><?php esc_html_e( 'Design Tokens', 'oxybridge-wp' ); ?></h2>
+                <p><?php esc_html_e( 'The /ai/tokens endpoint returns the site design tokens extracted from global styles:', 'oxybridge-wp' ); ?></p>
+
+                <pre><code>{
+  "colors": {
+    "primary": "#0066cc",
+    "secondary": "#1d293d",
+    "accent": "#ff6b35",
+    "text": "#333333",
+    "background": "#ffffff"
+  },
+  "fonts": {
+    "heading": "Inter, sans-serif",
+    "body": "Inter, sans-serif"
+  },
+  "spacing": {
+    "sm": "8px",
+    "md": "16px",
+    "lg": "32px",
+    "xl": "64px"
+  }
+}</code></pre>
+                <p><?php esc_html_e( 'AI agents can use these tokens to match the site brand when generating pages.', 'oxybridge-wp' ); ?></p>
+            </div>
+
+            <div class="oxybridge-card">
+                <h2><?php esc_html_e( 'Quick Test', 'oxybridge-wp' ); ?></h2>
+                <p><?php esc_html_e( 'Test the AI context endpoint:', 'oxybridge-wp' ); ?></p>
+                <pre><code>curl "<?php echo esc_html( $api_base_url ); ?>ai/context"</code></pre>
             </div>
         </div>
         <?php
