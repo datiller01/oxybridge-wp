@@ -211,6 +211,11 @@ class REST_API {
                         'description' => __( 'Oxygen/Breakdance design tree JSON structure.', 'oxybridge-wp' ),
                         'type'        => 'object',
                     ),
+                    'use_simplified' => array(
+                        'description' => __( 'Set true if tree uses simplified format (will be auto-transformed to Breakdance format).', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => false,
+                    ),
                     'enable_oxygen' => array(
                         'description' => __( 'Enable Oxygen builder for this page (creates empty tree if tree not provided).', 'oxybridge-wp' ),
                         'type'        => 'boolean',
@@ -714,6 +719,100 @@ class REST_API {
                         ),
                     ),
                 ),
+            )
+        );
+
+        // =================================================================
+        // AI Transformation & Validation Endpoints (Simplified Format)
+        // =================================================================
+
+        // AI transform endpoint - transforms simplified format to Breakdance format.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/transform',
+            array(
+                'methods'             => \WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'transform_simplified_tree' ),
+                'permission_callback' => '__return_true',
+                'args'                => array(
+                    'tree' => array(
+                        'description' => __( 'Simplified tree to transform.', 'oxybridge-wp' ),
+                        'type'        => 'object',
+                        'required'    => true,
+                    ),
+                ),
+            )
+        );
+
+        // AI validate endpoint - validates properties before saving.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/validate',
+            array(
+                'methods'             => \WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'validate_simplified_tree' ),
+                'permission_callback' => '__return_true',
+                'args'                => array(
+                    'tree' => array(
+                        'description' => __( 'Tree to validate.', 'oxybridge-wp' ),
+                        'type'        => 'object',
+                        'required'    => true,
+                    ),
+                ),
+            )
+        );
+
+        // AI preview CSS endpoint - previews CSS that would be generated.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/preview-css',
+            array(
+                'methods'             => \WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'preview_element_css' ),
+                'permission_callback' => '__return_true',
+                'args'                => array(
+                    'element_type' => array(
+                        'description'       => __( 'Element type.', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'properties'   => array(
+                        'description' => __( 'Element properties.', 'oxybridge-wp' ),
+                        'type'        => 'object',
+                        'required'    => true,
+                    ),
+                ),
+            )
+        );
+
+        // AI element schema endpoint - returns schema for specific element.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/schema/elements/(?P<type>[a-zA-Z0-9_-]+)',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_ai_element_schema' ),
+                'permission_callback' => '__return_true',
+                'args'                => array(
+                    'type' => array(
+                        'description'       => __( 'Element type (e.g., Heading, Section).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                ),
+            )
+        );
+
+        // AI simplified schema endpoint - returns full simplified schema.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/schema/simplified',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_ai_simplified_schema' ),
+                'permission_callback' => '__return_true',
             )
         );
 
@@ -3705,15 +3804,22 @@ class REST_API {
      * @return \WP_REST_Response|\WP_Error The response object or error.
      */
     public function create_page( \WP_REST_Request $request ) {
-        $title         = $request->get_param( 'title' );
-        $status        = $request->get_param( 'status' );
-        $post_type     = $request->get_param( 'post_type' );
-        $slug          = $request->get_param( 'slug' );
-        $content       = $request->get_param( 'content' );
-        $parent        = $request->get_param( 'parent' );
-        $tree          = $request->get_param( 'tree' );
-        $enable_oxygen = $request->get_param( 'enable_oxygen' );
-        $template      = $request->get_param( 'template' );
+        $title           = $request->get_param( 'title' );
+        $status          = $request->get_param( 'status' );
+        $post_type       = $request->get_param( 'post_type' );
+        $slug            = $request->get_param( 'slug' );
+        $content         = $request->get_param( 'content' );
+        $parent          = $request->get_param( 'parent' );
+        $tree            = $request->get_param( 'tree' );
+        $use_simplified  = $request->get_param( 'use_simplified' );
+        $enable_oxygen   = $request->get_param( 'enable_oxygen' );
+        $template        = $request->get_param( 'template' );
+
+        // Transform simplified tree to Breakdance format if requested.
+        if ( $use_simplified && ! empty( $tree ) ) {
+            $transformer = new Property_Transformer();
+            $tree = $transformer->transform_tree( $tree );
+        }
 
         // Validate post type exists and is not a reserved template type.
         if ( ! post_type_exists( $post_type ) ) {
@@ -5702,5 +5808,138 @@ class REST_API {
         }
 
         return $names;
+    }
+
+    // =================================================================
+    // AI Transformation & Validation Methods (Simplified Format Support)
+    // =================================================================
+
+    /**
+     * Transform simplified tree to Breakdance format.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function transform_simplified_tree( \WP_REST_Request $request ) {
+        $tree = $request->get_param( 'tree' );
+
+        if ( empty( $tree ) ) {
+            return new \WP_Error(
+                'missing_tree',
+                __( 'Tree parameter is required.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $transformer = new Property_Transformer();
+        $transformed = $transformer->transform_tree( $tree );
+
+        return rest_ensure_response( array(
+            'success'     => true,
+            'tree'        => $transformed,
+            'transformed' => true,
+        ) );
+    }
+
+    /**
+     * Validate simplified tree.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function validate_simplified_tree( \WP_REST_Request $request ) {
+        $tree = $request->get_param( 'tree' );
+
+        if ( empty( $tree ) ) {
+            return new \WP_Error(
+                'missing_tree',
+                __( 'Tree parameter is required.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $validator = new Style_Validator();
+        $result    = $validator->validate_tree( $tree );
+
+        return rest_ensure_response( array(
+            'valid'    => $result['valid'],
+            'errors'   => $result['errors'],
+            'warnings' => $result['warnings'],
+        ) );
+    }
+
+    /**
+     * Preview CSS for an element.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function preview_element_css( \WP_REST_Request $request ) {
+        $element_type = $request->get_param( 'element_type' );
+        $properties   = $request->get_param( 'properties' );
+
+        if ( empty( $element_type ) || empty( $properties ) ) {
+            return new \WP_Error(
+                'missing_params',
+                __( 'Both element_type and properties are required.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $validator = new Style_Validator();
+        $result    = $validator->validate_with_preview( $element_type, $properties );
+
+        return rest_ensure_response( $result );
+    }
+
+    /**
+     * Get simplified schema for a specific element.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_ai_element_schema( \WP_REST_Request $request ) {
+        $type = $request->get_param( 'type' );
+
+        $schema       = new Property_Schema();
+        $element_info = $schema->get_element_simplified_schema( $type );
+
+        if ( empty( $element_info ) ) {
+            return new \WP_Error(
+                'element_not_found',
+                sprintf( __( 'Element type "%s" not found.', 'oxybridge-wp' ), $type ),
+                array( 'status' => 404 )
+            );
+        }
+
+        return rest_ensure_response( array(
+            'type'       => $type,
+            'breakdance_type' => $schema->get_element_type( $type ),
+            'properties' => $element_info['properties'] ?? array(),
+            'permissions' => $element_info['permissions'] ?? array(),
+        ) );
+    }
+
+    /**
+     * Get full simplified schema.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_ai_simplified_schema( \WP_REST_Request $request ) {
+        $generator = new Schema_Generator();
+        $schema    = $generator->generate();
+
+        return rest_ensure_response( $schema );
     }
 }

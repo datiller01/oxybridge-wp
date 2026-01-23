@@ -898,6 +898,31 @@ curl -u "username:app-password" \
                             <td>DELETE</td>
                             <td><?php esc_html_e( 'Delete template', 'oxybridge-wp' ); ?></td>
                         </tr>
+                        <tr>
+                            <td><code>/ai/schema/simplified</code></td>
+                            <td>GET</td>
+                            <td><?php esc_html_e( 'Simplified format schema (auto-generated)', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/schema/elements/{type}</code></td>
+                            <td>GET</td>
+                            <td><?php esc_html_e( 'Schema for specific element type', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/transform</code></td>
+                            <td>POST</td>
+                            <td><?php esc_html_e( 'Transform simplified format to Breakdance format', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/validate</code></td>
+                            <td>POST</td>
+                            <td><?php esc_html_e( 'Validate properties before saving', 'oxybridge-wp' ); ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>/ai/preview-css</code></td>
+                            <td>POST</td>
+                            <td><?php esc_html_e( 'Preview CSS for an element', 'oxybridge-wp' ); ?></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -1001,6 +1026,99 @@ curl -u "username:app-password" \
                         <p><?php esc_html_e( 'Generate the CSS styles for the page', 'oxybridge-wp' ); ?></p>
                     </li>
                 </ol>
+            </div>
+
+            <div class="oxybridge-card">
+                <h2><?php esc_html_e( 'Simplified Format (Recommended)', 'oxybridge-wp' ); ?></h2>
+                <p><?php esc_html_e( 'Use use_simplified: true when creating pages to write AI-friendly flat properties that get auto-transformed to Breakdance\'s nested format.', 'oxybridge-wp' ); ?></p>
+
+                <h3><?php esc_html_e( 'Example Request', 'oxybridge-wp' ); ?></h3>
+                <pre><code>POST /wp-json/oxybridge/v1/pages
+{
+  "title": "Landing Page",
+  "use_simplified": true,
+  "tree": {
+    "root": {
+      "children": [{
+        "type": "Section",
+        "background": "#f5f5f5",
+        "padding": "80px 30px",
+        "children": [{
+          "type": "Heading",
+          "text": "Welcome",
+          "tag": "h1",
+          "color": "#333",
+          "fontSize": "48px",
+          "responsive": {
+            "tablet": { "fontSize": "36px" },
+            "phone": { "fontSize": "28px" }
+          }
+        }]
+      }]
+    }
+  }
+}</code></pre>
+
+                <h3><?php esc_html_e( 'Supported Properties', 'oxybridge-wp' ); ?></h3>
+                <table class="widefat striped">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Property', 'oxybridge-wp' ); ?></th>
+                            <th><?php esc_html_e( 'Type', 'oxybridge-wp' ); ?></th>
+                            <th><?php esc_html_e( 'Description', 'oxybridge-wp' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>text</code></td><td>string</td><td><?php esc_html_e( 'Element text content', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>tag</code></td><td>enum</td><td><?php esc_html_e( 'HTML tag (h1-h6, p, span)', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>color</code></td><td>color</td><td><?php esc_html_e( 'Text color', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>fontSize</code></td><td>unit</td><td><?php esc_html_e( 'Font size (e.g., "48px", "1.5rem")', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>fontWeight</code></td><td>enum</td><td><?php esc_html_e( 'Font weight (400, 500, 600, 700)', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>lineHeight</code></td><td>unit</td><td><?php esc_html_e( 'Line height', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>textAlign</code></td><td>enum</td><td><?php esc_html_e( 'Text alignment (left, center, right)', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>background</code></td><td>color</td><td><?php esc_html_e( 'Background color', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>padding</code></td><td>spacing</td><td><?php esc_html_e( 'Padding (shorthand: "20px 40px")', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>margin</code></td><td>spacing</td><td><?php esc_html_e( 'Margin (shorthand)', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>display</code></td><td>enum</td><td><?php esc_html_e( 'Display type (flex, grid, block)', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>flexDirection</code></td><td>enum</td><td><?php esc_html_e( 'Flex direction', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>justifyContent</code></td><td>enum</td><td><?php esc_html_e( 'Justify content', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>alignItems</code></td><td>enum</td><td><?php esc_html_e( 'Align items', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>gap</code></td><td>unit</td><td><?php esc_html_e( 'Gap between children', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>gridColumns</code></td><td>string</td><td><?php esc_html_e( 'Grid template columns', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>width</code></td><td>unit</td><td><?php esc_html_e( 'Element width', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>maxWidth</code></td><td>unit</td><td><?php esc_html_e( 'Maximum width', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>minHeight</code></td><td>unit</td><td><?php esc_html_e( 'Minimum height', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>borderRadius</code></td><td>unit</td><td><?php esc_html_e( 'Border radius', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>customCss</code></td><td>code</td><td><?php esc_html_e( 'Custom CSS (use %%SELECTOR%%)', 'oxybridge-wp' ); ?></td></tr>
+                    </tbody>
+                </table>
+
+                <h3><?php esc_html_e( 'Code Elements', 'oxybridge-wp' ); ?></h3>
+                <table class="widefat striped">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Element', 'oxybridge-wp' ); ?></th>
+                            <th><?php esc_html_e( 'Property', 'oxybridge-wp' ); ?></th>
+                            <th><?php esc_html_e( 'Description', 'oxybridge-wp' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>HtmlCode</code></td><td><code>html</code></td><td><?php esc_html_e( 'Custom HTML/JS code', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>CssCode</code></td><td><code>css</code></td><td><?php esc_html_e( 'Page-specific CSS', 'oxybridge-wp' ); ?></td></tr>
+                        <tr><td><code>PhpCode</code></td><td><code>php</code></td><td><?php esc_html_e( 'Dynamic PHP (requires unfiltered_html)', 'oxybridge-wp' ); ?></td></tr>
+                    </tbody>
+                </table>
+
+                <h3><?php esc_html_e( 'Responsive Breakpoints', 'oxybridge-wp' ); ?></h3>
+                <p><?php esc_html_e( 'Use the responsive object to override properties at different breakpoints:', 'oxybridge-wp' ); ?></p>
+                <pre><code>{
+  "type": "Heading",
+  "fontSize": "48px",
+  "responsive": {
+    "tablet": { "fontSize": "36px" },
+    "phone": { "fontSize": "28px" }
+  }
+}</code></pre>
             </div>
 
             <div class="oxybridge-card">
