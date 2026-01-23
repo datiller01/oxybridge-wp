@@ -77,38 +77,6 @@ class Admin_Page {
             defined( 'OXYBRIDGE_VERSION' ) ? OXYBRIDGE_VERSION : '1.0.0'
         );
 
-        // Enqueue admin JavaScript with jQuery dependency.
-        wp_enqueue_script(
-            'oxybridge-admin',
-            $plugin_url . 'assets/js/admin.js',
-            array( 'jquery' ),
-            defined( 'OXYBRIDGE_VERSION' ) ? OXYBRIDGE_VERSION : '1.0.0',
-            true
-        );
-
-        // Localize script with AJAX URL, nonce, and translated strings.
-        wp_localize_script(
-            'oxybridge-admin',
-            'oxybridgeAdmin',
-            array(
-                'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-                'nonce'   => wp_create_nonce( 'oxybridge_server_nonce' ),
-                'strings' => array(
-                    'installing'       => __( 'Installing dependencies...', 'oxybridge-wp' ),
-                    'launching'        => __( 'Launching server...', 'oxybridge-wp' ),
-                    'stopping'         => __( 'Stopping server...', 'oxybridge-wp' ),
-                    'checking'         => __( 'Checking status...', 'oxybridge-wp' ),
-                    'processing'       => __( 'Processing...', 'oxybridge-wp' ),
-                    'ajaxError'        => __( 'AJAX request failed', 'oxybridge-wp' ),
-                    'statusError'      => __( 'Error checking status', 'oxybridge-wp' ),
-                    'statusRunning'    => __( 'Running', 'oxybridge-wp' ),
-                    'statusStopped'    => __( 'Stopped', 'oxybridge-wp' ),
-                    'statusNotInstalled' => __( 'Dependencies not installed', 'oxybridge-wp' ),
-                    'statusNotBuilt'   => __( 'Server not built', 'oxybridge-wp' ),
-                    'statusUnknown'    => __( 'Unknown status', 'oxybridge-wp' ),
-                ),
-            )
-        );
     }
 
     /**
@@ -145,8 +113,8 @@ class Admin_Page {
         $profile_url       = admin_url( 'profile.php#application-passwords-section' );
         $is_oxygen_active  = function_exists( 'oxybridge_is_oxygen_active' ) && oxybridge_is_oxygen_active();
         ?>
-        <div class="wrap">
-            <h1><?php esc_html_e( 'Oxybridge Instructions', 'oxybridge-wp' ); ?></h1>
+        <div class="wrap oxybridge-admin-wrap">
+            <h1><?php esc_html_e( 'Oxybridge', 'oxybridge-wp' ); ?></h1>
 
             <?php if ( ! $is_oxygen_active ) : ?>
                 <div class="notice notice-warning">
@@ -157,249 +125,326 @@ class Admin_Page {
                 </div>
             <?php endif; ?>
 
-            <div class="card">
-                <h2><?php esc_html_e( 'About Oxybridge', 'oxybridge-wp' ); ?></h2>
-                <p>
-                    <?php esc_html_e( 'Oxybridge WP creates a bridge between Oxygen Builder and AI assistants through the Model Context Protocol (MCP). It exposes a secure REST API that allows external MCP servers to read and query Oxygen template data, styles, and element structures.', 'oxybridge-wp' ); ?>
-                </p>
-            </div>
+            <div class="oxybridge-columns">
+                <!-- Left Column: Setup & Info -->
+                <div class="oxybridge-column oxybridge-column-left">
 
-            <div class="card">
-                <h2><?php esc_html_e( 'Setup Instructions', 'oxybridge-wp' ); ?></h2>
+                    <div class="card">
+                        <h2><?php esc_html_e( 'About Oxybridge', 'oxybridge-wp' ); ?></h2>
+                        <p>
+                            <?php esc_html_e( 'Oxybridge WP exposes a secure REST API that allows external tools to read, query, and modify Oxygen template data, styles, and element structures.', 'oxybridge-wp' ); ?>
+                        </p>
+                    </div>
 
-                <h3><?php esc_html_e( '1. Ensure Oxygen Builder is Installed', 'oxybridge-wp' ); ?></h3>
-                <p>
-                    <?php esc_html_e( 'Oxybridge requires Oxygen Builder 6.x (Breakdance-based) or classic Oxygen Builder to be installed and activated.', 'oxybridge-wp' ); ?>
-                </p>
-                <?php if ( $is_oxygen_active ) : ?>
-                    <p><span class="dashicons dashicons-yes-alt" style="color: #46b450;"></span> <?php esc_html_e( 'Oxygen Builder is active.', 'oxybridge-wp' ); ?></p>
-                <?php else : ?>
-                    <p><span class="dashicons dashicons-warning" style="color: #dc3232;"></span> <?php esc_html_e( 'Oxygen Builder is not active.', 'oxybridge-wp' ); ?></p>
-                <?php endif; ?>
+                    <div class="card">
+                        <h2><?php esc_html_e( 'Setup Instructions', 'oxybridge-wp' ); ?></h2>
 
-                <h3><?php esc_html_e( '2. Create an Application Password', 'oxybridge-wp' ); ?></h3>
-                <p>
-                    <?php esc_html_e( 'WordPress Application Passwords are used to authenticate API requests securely.', 'oxybridge-wp' ); ?>
-                </p>
-                <ol>
-                    <li>
-                        <?php
-                        printf(
-                            /* translators: %s: Link to user profile */
-                            wp_kses(
-                                __( 'Go to <a href="%s">Users &gt; Profile</a> (or your user profile).', 'oxybridge-wp' ),
-                                array( 'a' => array( 'href' => array() ) )
-                            ),
-                            esc_url( $profile_url )
-                        );
-                        ?>
-                    </li>
-                    <li><?php esc_html_e( 'Scroll down to the "Application Passwords" section.', 'oxybridge-wp' ); ?></li>
-                    <li><?php esc_html_e( 'Enter a name (e.g., "Oxybridge MCP") and click "Add New Application Password".', 'oxybridge-wp' ); ?></li>
-                    <li><?php esc_html_e( 'Copy the generated password immediately — you will not be able to see it again.', 'oxybridge-wp' ); ?></li>
-                </ol>
-                <p>
-                    <a href="<?php echo esc_url( $profile_url ); ?>" class="button button-secondary">
-                        <?php esc_html_e( 'Go to Application Passwords', 'oxybridge-wp' ); ?>
-                    </a>
-                </p>
+                        <h3><?php esc_html_e( '1. Ensure Oxygen Builder is Installed', 'oxybridge-wp' ); ?></h3>
+                        <p>
+                            <?php esc_html_e( 'Oxybridge requires Oxygen Builder 6.x (Breakdance-based) or classic Oxygen Builder to be installed and activated.', 'oxybridge-wp' ); ?>
+                        </p>
+                        <?php if ( $is_oxygen_active ) : ?>
+                            <p><span class="dashicons dashicons-yes-alt" style="color: #46b450;"></span> <?php esc_html_e( 'Oxygen Builder is active.', 'oxybridge-wp' ); ?></p>
+                        <?php else : ?>
+                            <p><span class="dashicons dashicons-warning" style="color: #dc3232;"></span> <?php esc_html_e( 'Oxygen Builder is not active.', 'oxybridge-wp' ); ?></p>
+                        <?php endif; ?>
 
-                <h3><?php esc_html_e( '3. Configure the MCP Server', 'oxybridge-wp' ); ?></h3>
-                <p>
-                    <?php esc_html_e( 'Configure the oxybridge-mcp server with your WordPress credentials:', 'oxybridge-wp' ); ?>
-                </p>
-                <ul>
-                    <li><strong><?php esc_html_e( 'WordPress URL:', 'oxybridge-wp' ); ?></strong> <code><?php echo esc_html( $site_url ); ?></code></li>
-                    <li><strong><?php esc_html_e( 'Username:', 'oxybridge-wp' ); ?></strong> <?php esc_html_e( 'Your WordPress username', 'oxybridge-wp' ); ?></li>
-                    <li><strong><?php esc_html_e( 'Application Password:', 'oxybridge-wp' ); ?></strong> <?php esc_html_e( 'The password generated in step 2', 'oxybridge-wp' ); ?></li>
-                </ul>
-            </div>
+                        <h3><?php esc_html_e( '2. Create an Application Password', 'oxybridge-wp' ); ?></h3>
+                        <p>
+                            <?php esc_html_e( 'WordPress Application Passwords are used to authenticate API requests securely.', 'oxybridge-wp' ); ?>
+                        </p>
+                        <ol>
+                            <li>
+                                <?php
+                                printf(
+                                    /* translators: %s: Link to user profile */
+                                    wp_kses(
+                                        __( 'Go to <a href="%s">Users &gt; Profile</a> (or your user profile).', 'oxybridge-wp' ),
+                                        array( 'a' => array( 'href' => array() ) )
+                                    ),
+                                    esc_url( $profile_url )
+                                );
+                                ?>
+                            </li>
+                            <li><?php esc_html_e( 'Scroll down to the "Application Passwords" section.', 'oxybridge-wp' ); ?></li>
+                            <li><?php esc_html_e( 'Enter a name (e.g., "Oxybridge") and click "Add New Application Password".', 'oxybridge-wp' ); ?></li>
+                            <li><?php esc_html_e( 'Copy the generated password immediately — you will not be able to see it again.', 'oxybridge-wp' ); ?></li>
+                        </ol>
+                        <p>
+                            <a href="<?php echo esc_url( $profile_url ); ?>" class="button button-secondary">
+                                <?php esc_html_e( 'Go to Application Passwords', 'oxybridge-wp' ); ?>
+                            </a>
+                        </p>
+                    </div>
 
-            <div class="card">
-                <h2><?php esc_html_e( 'REST API Endpoints', 'oxybridge-wp' ); ?></h2>
-                <p>
-                    <?php
-                    printf(
-                        /* translators: %s: API base URL */
-                        esc_html__( 'The REST API is available at: %s', 'oxybridge-wp' ),
-                        '<code>' . esc_html( $api_base_url ) . '</code>'
-                    );
-                    ?>
-                </p>
+                    <div class="card">
+                        <h2><?php esc_html_e( 'Plugin Information', 'oxybridge-wp' ); ?></h2>
+                        <table class="widefat striped">
+                            <tbody>
+                                <tr>
+                                    <th><?php esc_html_e( 'Version', 'oxybridge-wp' ); ?></th>
+                                    <td><?php echo esc_html( defined( 'OXYBRIDGE_VERSION' ) ? OXYBRIDGE_VERSION : '1.0.0' ); ?></td>
+                                </tr>
+                                <tr>
+                                    <th><?php esc_html_e( 'REST API Namespace', 'oxybridge-wp' ); ?></th>
+                                    <td><code>oxybridge/v1</code></td>
+                                </tr>
+                                <tr>
+                                    <th><?php esc_html_e( 'REST API Base URL', 'oxybridge-wp' ); ?></th>
+                                    <td><code><?php echo esc_html( $api_base_url ); ?></code></td>
+                                </tr>
+                                <tr>
+                                    <th><?php esc_html_e( 'Requires PHP', 'oxybridge-wp' ); ?></th>
+                                    <td>7.4+</td>
+                                </tr>
+                                <tr>
+                                    <th><?php esc_html_e( 'Requires WordPress', 'oxybridge-wp' ); ?></th>
+                                    <td>5.9+</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-                <h3><?php esc_html_e( 'Available Endpoints', 'oxybridge-wp' ); ?></h3>
-                <table class="widefat striped">
-                    <thead>
-                        <tr>
-                            <th><?php esc_html_e( 'Method', 'oxybridge-wp' ); ?></th>
-                            <th><?php esc_html_e( 'Endpoint', 'oxybridge-wp' ); ?></th>
-                            <th><?php esc_html_e( 'Description', 'oxybridge-wp' ); ?></th>
-                            <th><?php esc_html_e( 'Auth Required', 'oxybridge-wp' ); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>GET</code></td>
-                            <td><code>/health</code></td>
-                            <td><?php esc_html_e( 'Health check and version info', 'oxybridge-wp' ); ?></td>
-                            <td><?php esc_html_e( 'No', 'oxybridge-wp' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>POST</code></td>
-                            <td><code>/auth</code></td>
-                            <td><?php esc_html_e( 'Authenticate and get nonce', 'oxybridge-wp' ); ?></td>
-                            <td><?php esc_html_e( 'Yes', 'oxybridge-wp' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>GET</code></td>
-                            <td><code>/templates</code></td>
-                            <td><?php esc_html_e( 'List all Oxygen templates', 'oxybridge-wp' ); ?></td>
-                            <td><?php esc_html_e( 'Yes', 'oxybridge-wp' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>GET</code></td>
-                            <td><code>/templates/{id}</code></td>
-                            <td><?php esc_html_e( 'Get a specific template by ID', 'oxybridge-wp' ); ?></td>
-                            <td><?php esc_html_e( 'Yes', 'oxybridge-wp' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>GET</code></td>
-                            <td><code>/pages</code></td>
-                            <td><?php esc_html_e( 'List pages with Oxygen content', 'oxybridge-wp' ); ?></td>
-                            <td><?php esc_html_e( 'Yes', 'oxybridge-wp' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>GET</code></td>
-                            <td><code>/documents/{id}</code></td>
-                            <td><?php esc_html_e( 'Read Oxygen document tree', 'oxybridge-wp' ); ?></td>
-                            <td><?php esc_html_e( 'Yes', 'oxybridge-wp' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>GET</code></td>
-                            <td><code>/styles/global</code></td>
-                            <td><?php esc_html_e( 'Get global style settings', 'oxybridge-wp' ); ?></td>
-                            <td><?php esc_html_e( 'Yes', 'oxybridge-wp' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>GET</code></td>
-                            <td><code>/settings</code></td>
-                            <td><?php esc_html_e( 'Read global Oxygen settings', 'oxybridge-wp' ); ?></td>
-                            <td><?php esc_html_e( 'Yes', 'oxybridge-wp' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>GET</code></td>
-                            <td><code>/schema</code></td>
-                            <td><?php esc_html_e( 'Get element definitions', 'oxybridge-wp' ); ?></td>
-                            <td><?php esc_html_e( 'Yes', 'oxybridge-wp' ); ?></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="card">
-                <h2><?php esc_html_e( 'Authentication', 'oxybridge-wp' ); ?></h2>
-                <p>
-                    <?php esc_html_e( 'All endpoints (except /health) require authentication using HTTP Basic Auth with your WordPress username and Application Password.', 'oxybridge-wp' ); ?>
-                </p>
-
-                <h3><?php esc_html_e( 'Example Request', 'oxybridge-wp' ); ?></h3>
-                <pre style="background: #f1f1f1; padding: 15px; overflow-x: auto;"><code>curl -u "username:application-password" \
-  <?php echo esc_html( $api_base_url ); ?>templates</code></pre>
-
-                <h3><?php esc_html_e( 'Authentication Header', 'oxybridge-wp' ); ?></h3>
-                <p>
-                    <?php esc_html_e( 'Alternatively, you can use the Authorization header with Base64-encoded credentials:', 'oxybridge-wp' ); ?>
-                </p>
-                <pre style="background: #f1f1f1; padding: 15px; overflow-x: auto;"><code>Authorization: Basic base64(username:application-password)</code></pre>
-            </div>
-
-            <div class="card">
-                <h2><?php esc_html_e( 'MCP Integration', 'oxybridge-wp' ); ?></h2>
-                <p>
-                    <?php esc_html_e( 'Oxybridge is designed to work with the companion oxybridge-mcp Node.js server, which connects to AI assistants like Claude Desktop via the Model Context Protocol (MCP).', 'oxybridge-wp' ); ?>
-                </p>
-
-                <h3><?php esc_html_e( 'Use Cases', 'oxybridge-wp' ); ?></h3>
-                <ul>
-                    <li><?php esc_html_e( 'Let AI assistants understand your Oxygen site structure', 'oxybridge-wp' ); ?></li>
-                    <li><?php esc_html_e( 'Query templates programmatically for documentation', 'oxybridge-wp' ); ?></li>
-                    <li><?php esc_html_e( 'Build custom integrations with Oxygen Builder data', 'oxybridge-wp' ); ?></li>
-                    <li><?php esc_html_e( 'Enable AI-powered design assistance workflows', 'oxybridge-wp' ); ?></li>
-                </ul>
-
-                <h3><?php esc_html_e( 'Resources', 'oxybridge-wp' ); ?></h3>
-                <ul>
-                    <li>
-                        <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener noreferrer">
-                            <?php esc_html_e( 'Model Context Protocol Documentation', 'oxybridge-wp' ); ?>
-                            <span class="dashicons dashicons-external" style="font-size: 16px; text-decoration: none;"></span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="card oxybridge-server-card" id="oxybridge-server-management">
-                <h2><?php esc_html_e( 'MCP Server Management', 'oxybridge-wp' ); ?></h2>
-                <p>
-                    <?php esc_html_e( 'Manage the oxybridge-mcp Node.js server directly from WordPress. Install dependencies, start and stop the server, and monitor its status.', 'oxybridge-wp' ); ?>
-                </p>
-
-                <div class="oxybridge-status-wrapper">
-                    <span class="oxybridge-status-label"><?php esc_html_e( 'Server Status:', 'oxybridge-wp' ); ?></span>
-                    <span id="oxybridge-server-status" class="oxybridge-server-status status-checking">
-                        <span class="dashicons dashicons-update spin"></span>
-                        <?php esc_html_e( 'Checking...', 'oxybridge-wp' ); ?>
-                    </span>
                 </div>
 
-                <p class="oxybridge-actions">
-                    <button type="button" id="oxybridge-install-btn" class="button">
-                        <span class="dashicons dashicons-download"></span>
-                        <?php esc_html_e( 'Install Dependencies', 'oxybridge-wp' ); ?>
-                    </button>
-                    <button type="button" id="oxybridge-launch-btn" class="button button-primary">
-                        <span class="dashicons dashicons-controls-play"></span>
-                        <?php esc_html_e( 'Launch Server', 'oxybridge-wp' ); ?>
-                    </button>
-                    <button type="button" id="oxybridge-stop-btn" class="button">
-                        <span class="dashicons dashicons-controls-pause"></span>
-                        <?php esc_html_e( 'Stop Server', 'oxybridge-wp' ); ?>
-                    </button>
-                    <button type="button" id="oxybridge-status-btn" class="button">
-                        <span class="dashicons dashicons-update"></span>
-                        <?php esc_html_e( 'Refresh Status', 'oxybridge-wp' ); ?>
-                    </button>
-                </p>
+                <!-- Right Column: REST API Documentation -->
+                <div class="oxybridge-column oxybridge-column-right">
 
-                <div id="oxybridge-output" class="oxybridge-output" style="display: none;"></div>
-            </div>
+                    <div class="card">
+                        <h2><?php esc_html_e( 'Authentication', 'oxybridge-wp' ); ?></h2>
+                        <p><?php esc_html_e( 'Most endpoints require HTTP Basic Auth with your WordPress username and Application Password.', 'oxybridge-wp' ); ?></p>
+                        <pre class="oxybridge-code"><code>curl -u "username:app-password" <?php echo esc_html( $api_base_url ); ?>templates</code></pre>
+                        <p class="oxybridge-hint"><?php esc_html_e( 'Or use the Authorization header:', 'oxybridge-wp' ); ?> <code>Authorization: Basic base64(username:app-password)</code></p>
+                    </div>
 
-            <div class="card">
-                <h2><?php esc_html_e( 'Plugin Information', 'oxybridge-wp' ); ?></h2>
-                <table class="widefat striped">
-                    <tbody>
-                        <tr>
-                            <th><?php esc_html_e( 'Version', 'oxybridge-wp' ); ?></th>
-                            <td><?php echo esc_html( defined( 'OXYBRIDGE_VERSION' ) ? OXYBRIDGE_VERSION : '1.0.0' ); ?></td>
-                        </tr>
-                        <tr>
-                            <th><?php esc_html_e( 'REST API Namespace', 'oxybridge-wp' ); ?></th>
-                            <td><code>oxybridge/v1</code></td>
-                        </tr>
-                        <tr>
-                            <th><?php esc_html_e( 'REST API Base URL', 'oxybridge-wp' ); ?></th>
-                            <td><code><?php echo esc_html( $api_base_url ); ?></code></td>
-                        </tr>
-                        <tr>
-                            <th><?php esc_html_e( 'Requires PHP', 'oxybridge-wp' ); ?></th>
-                            <td>7.4+</td>
-                        </tr>
-                        <tr>
-                            <th><?php esc_html_e( 'Requires WordPress', 'oxybridge-wp' ); ?></th>
-                            <td>5.9+</td>
-                        </tr>
-                    </tbody>
-                </table>
+                    <!-- Public Endpoints -->
+                    <div class="card">
+                        <h2><?php esc_html_e( 'Public Endpoints', 'oxybridge-wp' ); ?> <span class="oxybridge-badge oxybridge-badge-public"><?php esc_html_e( 'No Auth', 'oxybridge-wp' ); ?></span></h2>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/health</code></h3>
+                            <p><?php esc_html_e( 'Quick health check. Returns plugin version, Oxygen status, WordPress/PHP versions, and timestamp. Use this to verify API connectivity.', 'oxybridge-wp' ); ?></p>
+                            <pre class="oxybridge-code"><code>curl <?php echo esc_html( $api_base_url ); ?>health</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/info</code></h3>
+                            <p><?php esc_html_e( 'Detailed plugin information including available capabilities, builder type (Oxygen/Breakdance), and environment details.', 'oxybridge-wp' ); ?></p>
+                            <pre class="oxybridge-code"><code>curl <?php echo esc_html( $api_base_url ); ?>info</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Read Endpoints -->
+                    <div class="card">
+                        <h2><?php esc_html_e( 'Read Endpoints', 'oxybridge-wp' ); ?> <span class="oxybridge-badge oxybridge-badge-auth"><?php esc_html_e( 'Auth Required', 'oxybridge-wp' ); ?></span></h2>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/documents/{id}</code></h3>
+                            <p><?php esc_html_e( 'Read the full Oxygen/Breakdance design tree for any page or post. This is the primary endpoint for accessing design data.', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>include_metadata</code> (bool, default: true),
+                                <code>flatten_elements</code> (bool, default: false)
+                            </p>
+                            <pre class="oxybridge-code"><code># Get full tree with metadata
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>documents/123"
+
+# Get flattened element list (easier to parse)
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>documents/123?flatten_elements=true"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/pages</code></h3>
+                            <p><?php esc_html_e( 'List all pages/posts that have Oxygen content. Supports pagination, filtering by post type, and search.', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>post_type</code> (string),
+                                <code>search</code> (string),
+                                <code>status</code> (string),
+                                <code>has_oxygen_content</code> (bool),
+                                <code>per_page</code> (int, 1-100),
+                                <code>page</code> (int)
+                            </p>
+                            <pre class="oxybridge-code"><code># List all pages with Oxygen content
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>pages"
+
+# Search pages by title
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>pages?search=about&per_page=50"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/templates</code></h3>
+                            <p><?php esc_html_e( 'List all Oxygen/Breakdance templates (headers, footers, blocks, etc.).', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>template_type</code> (string: header, footer, template, block, part)
+                            </p>
+                            <pre class="oxybridge-code"><code># List all templates
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>templates"
+
+# List only headers
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>templates?template_type=header"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/templates/{id}</code></h3>
+                            <p><?php esc_html_e( 'Get a specific template with its full design tree and element structure.', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>include_elements</code> (bool, default: true)
+                            </p>
+                            <pre class="oxybridge-code"><code>curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>templates/456"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/render/{id}</code></h3>
+                            <p><?php esc_html_e( 'Render a page/template design to HTML output. Useful for previewing or exporting content.', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>include_css</code> (bool),
+                                <code>include_wrapper</code> (bool)
+                            </p>
+                            <pre class="oxybridge-code"><code>curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>render/123?include_css=true"</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Style & Schema Endpoints -->
+                    <div class="card">
+                        <h2><?php esc_html_e( 'Styles & Schema', 'oxybridge-wp' ); ?> <span class="oxybridge-badge oxybridge-badge-auth"><?php esc_html_e( 'Auth Required', 'oxybridge-wp' ); ?></span></h2>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/styles/global</code></h3>
+                            <p><?php esc_html_e( 'Get global design system settings including colors, fonts, spacing, and CSS variables.', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>category</code> (colors|fonts|spacing|all),
+                                <code>include_variables</code> (bool),
+                                <code>include_selectors</code> (bool)
+                            </p>
+                            <pre class="oxybridge-code"><code># Get all global styles
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>styles/global"
+
+# Get only colors
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>styles/global?category=colors"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/colors</code> | <code>/fonts</code> | <code>/variables</code> | <code>/classes</code></h3>
+                            <p><?php esc_html_e( 'Convenience endpoints to get specific style categories directly.', 'oxybridge-wp' ); ?></p>
+                            <pre class="oxybridge-code"><code>curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>colors"
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>fonts"
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>variables"
+curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>classes"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/breakpoints</code></h3>
+                            <p><?php esc_html_e( 'Get responsive breakpoint definitions (desktop, tablet, mobile sizes).', 'oxybridge-wp' ); ?></p>
+                            <pre class="oxybridge-code"><code>curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>breakpoints"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/settings</code></h3>
+                            <p><?php esc_html_e( 'Read global Oxygen/Breakdance builder settings.', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>key</code> (string - specific setting key)
+                            </p>
+                            <pre class="oxybridge-code"><code>curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>settings"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-get">GET</code> <code>/schema</code></h3>
+                            <p><?php esc_html_e( 'Get element type definitions and available controls. Useful for understanding what properties each element supports.', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>element_type</code> (string),
+                                <code>include_controls</code> (bool)
+                            </p>
+                            <pre class="oxybridge-code"><code>curl -u user:pass "<?php echo esc_html( $api_base_url ); ?>schema?element_type=Section"</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Write Endpoints -->
+                    <div class="card">
+                        <h2><?php esc_html_e( 'Write Endpoints', 'oxybridge-wp' ); ?> <span class="oxybridge-badge oxybridge-badge-write"><?php esc_html_e( 'Auth Required', 'oxybridge-wp' ); ?></span></h2>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-post">POST</code> <code>/auth</code></h3>
+                            <p><?php esc_html_e( 'Authenticate and receive a WordPress nonce for subsequent requests. Returns user ID and username on success.', 'oxybridge-wp' ); ?></p>
+                            <pre class="oxybridge-code"><code>curl -X POST -u user:pass "<?php echo esc_html( $api_base_url ); ?>auth"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-post">POST</code> <code>/pages</code></h3>
+                            <p><?php esc_html_e( 'Create a new page with Oxygen design. Optionally provide a complete design tree or create an empty Oxygen-enabled page.', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>title</code> (required),
+                                <code>status</code> (draft|publish),
+                                <code>post_type</code>,
+                                <code>slug</code>,
+                                <code>tree</code> (JSON object),
+                                <code>enable_oxygen</code> (bool)
+                            </p>
+                            <pre class="oxybridge-code"><code>curl -X POST -u user:pass \
+  -H "Content-Type: application/json" \
+  -d '{"title":"New Page","status":"draft"}' \
+  "<?php echo esc_html( $api_base_url ); ?>pages"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-post">POST</code> <code>/templates</code></h3>
+                            <p><?php esc_html_e( 'Create a new Oxygen/Breakdance template (header, footer, block, etc.).', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>title</code> (required),
+                                <code>template_type</code> (required: header|footer|template|block|part),
+                                <code>status</code>,
+                                <code>tree</code> (JSON object)
+                            </p>
+                            <pre class="oxybridge-code"><code>curl -X POST -u user:pass \
+  -H "Content-Type: application/json" \
+  -d '{"title":"New Header","template_type":"header"}' \
+  "<?php echo esc_html( $api_base_url ); ?>templates"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-post">POST</code> <code>/clone/{id}</code></h3>
+                            <p><?php esc_html_e( 'Clone an existing page or template with all its Oxygen design data. Element IDs are regenerated to ensure uniqueness.', 'oxybridge-wp' ); ?></p>
+                            <p class="oxybridge-params"><strong><?php esc_html_e( 'Parameters:', 'oxybridge-wp' ); ?></strong>
+                                <code>title</code> (optional),
+                                <code>status</code> (draft|publish),
+                                <code>slug</code>
+                            </p>
+                            <pre class="oxybridge-code"><code>curl -X POST -u user:pass \
+  -d '{"title":"Cloned Page","status":"draft"}' \
+  "<?php echo esc_html( $api_base_url ); ?>clone/123"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-post">POST</code> <code>/validate</code></h3>
+                            <p><?php esc_html_e( 'Validate a design tree JSON structure without saving. Use this to check if your tree is valid before creating/updating content.', 'oxybridge-wp' ); ?></p>
+                            <pre class="oxybridge-code"><code>curl -X POST -u user:pass \
+  -H "Content-Type: application/json" \
+  -d '{"tree":{"root":{"id":"el-1","data":{"type":"root"},"children":[]}}}' \
+  "<?php echo esc_html( $api_base_url ); ?>validate"</code></pre>
+                        </div>
+
+                        <div class="oxybridge-endpoint">
+                            <h3><code class="method-post">POST</code> <code>/regenerate-css/{id}</code> | <code>/regenerate-css</code></h3>
+                            <p><?php esc_html_e( 'Regenerate CSS cache for a specific post or all posts. Use after programmatically modifying design data.', 'oxybridge-wp' ); ?></p>
+                            <pre class="oxybridge-code"><code># Regenerate CSS for specific post
+curl -X POST -u user:pass "<?php echo esc_html( $api_base_url ); ?>regenerate-css/123"
+
+# Regenerate CSS for all posts (batch)
+curl -X POST -u user:pass "<?php echo esc_html( $api_base_url ); ?>regenerate-css?batch_size=50"</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Response Format -->
+                    <div class="card">
+                        <h2><?php esc_html_e( 'Response Format', 'oxybridge-wp' ); ?></h2>
+                        <p><?php esc_html_e( 'All responses are JSON. Successful responses return the requested data directly. Errors follow the WordPress REST API format:', 'oxybridge-wp' ); ?></p>
+                        <pre class="oxybridge-code"><code>{
+  "code": "rest_forbidden",
+  "message": "Sorry, you are not allowed to do that.",
+  "data": { "status": 403 }
+}</code></pre>
+                        <p class="oxybridge-hint"><?php esc_html_e( 'Common status codes: 200 (success), 201 (created), 400 (bad request), 401 (unauthorized), 403 (forbidden), 404 (not found)', 'oxybridge-wp' ); ?></p>
+                    </div>
+
+                </div>
             </div>
 
         </div>

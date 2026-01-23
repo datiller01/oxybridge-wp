@@ -4,7 +4,7 @@
  *
  * Provides data access methods for Oxygen Builder templates using the
  * Breakdance\Data namespace API. This class wraps the underlying data
- * layer to provide a clean interface for MCP tool integration.
+ * layer to provide a clean interface for REST API integration.
  *
  * @package Oxybridge
  * @since 1.0.0
@@ -378,8 +378,8 @@ class Oxygen_Data {
         }
 
         // Fallback to direct option access.
-        $meta_prefix = $this->get_meta_prefix();
-        $settings    = get_option( $meta_prefix . 'global_settings_json_string' );
+        $option_prefix = $this->get_option_prefix();
+        $settings      = get_option( $option_prefix . 'global_settings_json_string' );
 
         if ( is_string( $settings ) ) {
             $decoded = json_decode( $settings, true );
@@ -408,8 +408,8 @@ class Oxygen_Data {
         }
 
         // Fallback to direct option access.
-        $meta_prefix = $this->get_meta_prefix();
-        $variables   = get_option( $meta_prefix . 'variables_json_string' );
+        $option_prefix = $this->get_option_prefix();
+        $variables     = get_option( $option_prefix . 'variables_json_string' );
 
         if ( is_string( $variables ) ) {
             $decoded = json_decode( $variables, true );
@@ -438,8 +438,8 @@ class Oxygen_Data {
         }
 
         // Fallback to direct option access.
-        $meta_prefix = $this->get_meta_prefix();
-        $selectors   = get_option( $meta_prefix . 'breakdance_classes_json_string' );
+        $option_prefix = $this->get_option_prefix();
+        $selectors     = get_option( $option_prefix . 'breakdance_classes_json_string' );
 
         if ( is_string( $selectors ) ) {
             $decoded = json_decode( $selectors, true );
@@ -656,7 +656,36 @@ class Oxygen_Data {
      * @return string The meta prefix.
      */
     private function get_meta_prefix(): string {
-        // Try to get prefix from Breakdance.
+        // Try to get prefix from Breakdance/Oxygen.
+        // Note: Oxygen uses '_meta_prefix' (with underscore) for post meta keys.
+        if ( function_exists( 'Breakdance\BreakdanceOxygen\Strings\__bdox' ) ) {
+            $prefix = __bdox( '_meta_prefix' );
+            if ( is_string( $prefix ) ) {
+                return $prefix;
+            }
+        }
+
+        // Check for Oxygen mode.
+        if ( defined( 'BREAKDANCE_MODE' ) && BREAKDANCE_MODE === 'oxygen' ) {
+            return '_oxygen_';
+        }
+
+        // Default to Breakdance prefix.
+        return '_breakdance_';
+    }
+
+    /**
+     * Get the option prefix for global settings/options.
+     *
+     * Options use 'meta_prefix' (without underscore) unlike post meta.
+     *
+     * @since 1.0.0
+     *
+     * @return string The option prefix.
+     */
+    private function get_option_prefix(): string {
+        // Try to get prefix from Breakdance/Oxygen.
+        // Note: Options use 'meta_prefix' (without underscore).
         if ( function_exists( 'Breakdance\BreakdanceOxygen\Strings\__bdox' ) ) {
             $prefix = __bdox( 'meta_prefix' );
             if ( is_string( $prefix ) ) {

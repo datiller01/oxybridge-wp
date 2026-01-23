@@ -2,7 +2,7 @@
 /**
  * REST API class for Oxybridge.
  *
- * Handles registration of custom REST API endpoints for MCP bridge communication.
+ * Handles registration of custom REST API endpoints for Oxybridge.
  *
  * @package Oxybridge
  */
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class REST_API
  *
- * Registers and manages custom REST API endpoints for the Oxybridge MCP bridge.
+ * Registers and manages custom REST API endpoints for Oxybridge.
  * Provides endpoints for reading Oxygen/Breakdance document trees, templates,
  * global settings, and other builder data.
  *
@@ -44,7 +44,7 @@ class REST_API {
     /**
      * Register REST API routes.
      *
-     * Registers all custom endpoints for the Oxybridge MCP bridge.
+     * Registers all custom endpoints for Oxybridge.
      *
      * @since 1.0.0
      * @return void
@@ -2001,7 +2001,35 @@ class REST_API {
      * @return string The meta prefix.
      */
     private function get_meta_prefix(): string {
-        // Try to get prefix from Breakdance.
+        // Try to get prefix from Breakdance/Oxygen.
+        // Note: Post meta uses '_meta_prefix' (with underscore).
+        if ( function_exists( 'Breakdance\BreakdanceOxygen\Strings\__bdox' ) ) {
+            $prefix = \Breakdance\BreakdanceOxygen\Strings\__bdox( '_meta_prefix' );
+            if ( is_string( $prefix ) ) {
+                return $prefix;
+            }
+        }
+
+        // Check for Oxygen mode.
+        if ( defined( 'BREAKDANCE_MODE' ) && BREAKDANCE_MODE === 'oxygen' ) {
+            return '_oxygen_';
+        }
+
+        // Default to Breakdance prefix.
+        return '_breakdance_';
+    }
+
+    /**
+     * Get the option prefix for global settings/options.
+     *
+     * Options use 'meta_prefix' (without underscore) unlike post meta.
+     *
+     * @since 1.0.0
+     * @return string The option prefix.
+     */
+    private function get_option_prefix(): string {
+        // Try to get prefix from Breakdance/Oxygen.
+        // Note: Options use 'meta_prefix' (without underscore).
         if ( function_exists( 'Breakdance\BreakdanceOxygen\Strings\__bdox' ) ) {
             $prefix = \Breakdance\BreakdanceOxygen\Strings\__bdox( 'meta_prefix' );
             if ( is_string( $prefix ) ) {
@@ -2069,7 +2097,7 @@ class REST_API {
         }
 
         // Add design variables to the response.
-        $variables = $this->get_design_variables();
+        $variables = $this->fetch_design_variables_data();
         if ( ! empty( $variables ) ) {
             $response_data['variables'] = $variables;
         }
@@ -2110,8 +2138,8 @@ class REST_API {
      * @return array The global settings data.
      */
     private function get_global_settings_fallback(): array {
-        $meta_prefix     = $this->get_meta_prefix();
-        $global_settings = get_option( $meta_prefix . 'global_settings_json_string', '' );
+        $option_prefix   = $this->get_option_prefix();
+        $global_settings = get_option( $option_prefix . 'global_settings_json_string', '' );
 
         if ( is_string( $global_settings ) && ! empty( $global_settings ) ) {
             $decoded = json_decode( $global_settings, true );
@@ -3037,7 +3065,7 @@ class REST_API {
 
         // Add variables if requested.
         if ( $include_variables ) {
-            $variables = $this->get_design_variables();
+            $variables = $this->fetch_design_variables_data();
             if ( ! empty( $variables ) && ! isset( $styles['variables'] ) ) {
                 $styles['variables'] = $variables;
             }
@@ -4567,8 +4595,8 @@ class REST_API {
      * @return array The global styles data.
      */
     private function get_global_styles_fallback( string $category ): array {
-        $meta_prefix     = $this->get_meta_prefix();
-        $global_settings = get_option( $meta_prefix . 'global_settings_json_string', '' );
+        $option_prefix   = $this->get_option_prefix();
+        $global_settings = get_option( $option_prefix . 'global_settings_json_string', '' );
 
         if ( is_string( $global_settings ) && ! empty( $global_settings ) ) {
             $settings = json_decode( $global_settings, true );
@@ -4620,7 +4648,7 @@ class REST_API {
      * @since 1.0.0
      * @return array Design variables.
      */
-    private function get_design_variables(): array {
+    private function fetch_design_variables_data(): array {
         // Try using Oxygen_Data class if available.
         if ( class_exists( 'Oxybridge\Oxygen_Data' ) ) {
             $oxygen_data = new Oxygen_Data();
@@ -4628,8 +4656,8 @@ class REST_API {
         }
 
         // Fallback: get variables directly.
-        $meta_prefix = $this->get_meta_prefix();
-        $variables   = get_option( $meta_prefix . 'variables_json_string', '' );
+        $option_prefix = $this->get_option_prefix();
+        $variables     = get_option( $option_prefix . 'variables_json_string', '' );
 
         if ( is_string( $variables ) && ! empty( $variables ) ) {
             $decoded = json_decode( $variables, true );
@@ -4653,8 +4681,8 @@ class REST_API {
         }
 
         // Fallback: get selectors directly.
-        $meta_prefix = $this->get_meta_prefix();
-        $selectors   = get_option( $meta_prefix . 'breakdance_classes_json_string', '' );
+        $option_prefix = $this->get_option_prefix();
+        $selectors     = get_option( $option_prefix . 'breakdance_classes_json_string', '' );
 
         if ( is_string( $selectors ) && ! empty( $selectors ) ) {
             $decoded = json_decode( $selectors, true );
@@ -4674,8 +4702,8 @@ class REST_API {
      */
     private function get_breakpoints(): array {
         // Try to get breakpoints from Breakdance settings.
-        $meta_prefix = $this->get_meta_prefix();
-        $breakpoints = get_option( $meta_prefix . 'breakpoints', array() );
+        $option_prefix = $this->get_option_prefix();
+        $breakpoints   = get_option( $option_prefix . 'breakpoints', array() );
 
         if ( ! empty( $breakpoints ) && is_array( $breakpoints ) ) {
             return $breakpoints;
@@ -4739,8 +4767,8 @@ class REST_API {
         }
 
         // Fallback: get directly from global settings option.
-        $meta_prefix     = $this->get_meta_prefix();
-        $global_settings = get_option( $meta_prefix . 'global_settings_json_string', '' );
+        $option_prefix   = $this->get_option_prefix();
+        $global_settings = get_option( $option_prefix . 'global_settings_json_string', '' );
 
         if ( is_string( $global_settings ) && ! empty( $global_settings ) ) {
             $settings = json_decode( $global_settings, true );
@@ -4776,8 +4804,8 @@ class REST_API {
         }
 
         // Fallback: get directly from variables option.
-        $meta_prefix = $this->get_meta_prefix();
-        $variables   = get_option( $meta_prefix . 'variables_json_string', '' );
+        $option_prefix = $this->get_option_prefix();
+        $variables     = get_option( $option_prefix . 'variables_json_string', '' );
 
         if ( is_string( $variables ) && ! empty( $variables ) ) {
             $decoded = json_decode( $variables, true );
@@ -4813,8 +4841,8 @@ class REST_API {
         }
 
         // Fallback: get directly from global settings option.
-        $meta_prefix     = $this->get_meta_prefix();
-        $global_settings = get_option( $meta_prefix . 'global_settings_json_string', '' );
+        $option_prefix   = $this->get_option_prefix();
+        $global_settings = get_option( $option_prefix . 'global_settings_json_string', '' );
 
         if ( is_string( $global_settings ) && ! empty( $global_settings ) ) {
             $settings = json_decode( $global_settings, true );

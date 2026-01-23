@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Oxybridge WP
  * Plugin URI: https://github.com/your-repo/oxybridge
- * Description: MCP (Model Context Protocol) bridge for Oxygen Builder - Enables AI assistants to read and understand Oxygen templates.
+ * Description: REST API bridge for Oxygen Builder - Enables external tools to read, query, and modify Oxygen templates.
  * Author: Oxybridge Contributors
  * Version: 1.0.0
  * Author URI: https://github.com/your-repo/oxybridge
@@ -87,11 +87,6 @@ function oxybridge_init() {
     // Initialize admin page (works regardless of Oxygen status for informational purposes).
     if ( is_admin() && class_exists( 'Oxybridge\\Admin_Page' ) ) {
         new \Oxybridge\Admin_Page();
-    }
-
-    // Initialize Server Manager for MCP server process management (admin AJAX handlers).
-    if ( is_admin() && class_exists( 'Oxybridge\\Server_Manager' ) ) {
-        new \Oxybridge\Server_Manager();
     }
 
     // Check if Oxygen/Breakdance is active.

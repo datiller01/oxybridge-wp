@@ -1,6 +1,6 @@
 === Oxybridge WP ===
 Contributors: oxybridge-contributors
-Tags: oxygen, mcp, ai, builder, api
+Tags: oxygen, ai, builder, api, rest
 Requires at least: 5.9
 Tested up to: 6.4
 Stable tag: 1.0.0
@@ -8,11 +8,11 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-MCP (Model Context Protocol) bridge for Oxygen Builder - Enables AI assistants to read and understand Oxygen templates.
+REST API bridge for Oxygen Builder - Enables external tools to read, query, and modify Oxygen templates.
 
 == Description ==
 
-Oxybridge WP is a WordPress plugin that creates a bridge between Oxygen Builder and AI assistants through the Model Context Protocol (MCP). It exposes a secure REST API that allows external MCP servers to read and query Oxygen template data, styles, and element structures.
+Oxybridge WP is a WordPress plugin that exposes a secure REST API for Oxygen Builder. It allows external tools to read and query Oxygen template data, styles, and element structures.
 
 **Key Features:**
 
@@ -20,11 +20,10 @@ Oxybridge WP is a WordPress plugin that creates a bridge between Oxygen Builder 
 * **Element Parsing** - Query individual elements within templates with hierarchy information
 * **Global Styles** - Access Oxygen's global color palettes, fonts, and design tokens
 * **Secure Authentication** - Uses WordPress application passwords for API security
-* **MCP Integration** - Designed to work with the companion oxybridge-mcp Node.js server
 
 **Use Cases:**
 
-* Let AI assistants understand your Oxygen site structure
+* Let external tools understand your Oxygen site structure
 * Query templates programmatically for documentation
 * Build custom integrations with Oxygen Builder data
 * Enable AI-powered design assistance workflows
@@ -64,10 +63,9 @@ Oxybridge WP is a WordPress plugin that creates a bridge between Oxygen Builder 
 2. Create an Application Password in WordPress:
    - Go to Users > Profile (or your user profile)
    - Scroll to "Application Passwords"
-   - Enter a name (e.g., "Oxybridge MCP") and click "Add New Application Password"
+   - Enter a name (e.g., "Oxybridge") and click "Add New Application Password"
    - Copy the generated password (you won't see it again)
-3. Configure the oxybridge-mcp server with your WordPress URL and application password
-4. The REST API will be available at `/wp-json/oxybridge/v1/`
+3. The REST API will be available at `/wp-json/oxybridge/v1/`
 
 == Frequently Asked Questions ==
 
@@ -94,10 +92,6 @@ The API provides read-only access to:
 
 No, the current version (1.0.0) is read-only. Write operations for modifying templates are planned for a future release.
 
-= How do I use this with Claude Desktop? =
-
-Use the companion oxybridge-mcp Node.js server which connects to Claude Desktop via the Model Context Protocol. Configure the MCP server with your WordPress credentials to enable AI access to your Oxygen templates.
-
 = Is my data secure? =
 
 Yes, all API endpoints require authentication. Unauthenticated requests are rejected. The plugin follows WordPress security best practices including input sanitization, capability checks, and proper permission callbacks.
@@ -113,7 +107,6 @@ Currently, Oxybridge WP is specifically designed for Oxygen Builder. Breakdance 
 * REST API endpoints for templates, elements, and global styles
 * Application password authentication
 * Support for Oxygen 6.x (Breakdance-based) and classic Oxygen
-* MCP server integration support
 
 == Upgrade Notice ==
 
@@ -148,5 +141,3 @@ All endpoints require authentication via Application Passwords.
 == Additional Resources ==
 
 * [GitHub Repository](https://github.com/your-repo/oxybridge)
-* [MCP Server Documentation](https://github.com/your-repo/oxybridge-mcp)
-* [Model Context Protocol](https://modelcontextprotocol.io/)
