@@ -1,223 +1,1871 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "oxybridge-ai-schema",
+  "$id": "https://oxybridge.dev/ai/schema.json",
+  "title": "OxyBridge AI Styling Properties Schema",
+  "description": "Comprehensive schema defining all supported styling properties for AI-driven page generation with Breakdance/Oxygen builders",
   "version": "1.0.0",
-  "description": "Compact schema for AI-powered Breakdance page generation",
-
-  "elements": {
-    "Section": "EssentialElements\\Section",
-    "Div": "EssentialElements\\Div",
-    "Columns": "EssentialElements\\Columns",
-    "Column": "EssentialElements\\Column",
-    "Heading": "EssentialElements\\Heading",
-    "Text": "EssentialElements\\Text",
-    "RichText": "EssentialElements\\RichText",
-    "Button": "EssentialElements\\Button",
-    "Image": "EssentialElements\\Image2",
-    "Icon": "EssentialElements\\Icon",
-    "Video": "EssentialElements\\Video",
-    "Slider": "EssentialElements\\Slider",
-    "Tabs": "EssentialElements\\Tabs",
-    "Accordion": "EssentialElements\\Accordion",
-    "Form": "EssentialElements\\FormBuilder",
-    "Spacer": "EssentialElements\\Spacer"
-  },
-
-  "rules": {
-    "text_content": "All text uses content.content.text path",
-    "heading_tag": "Heading tag via content.content.tags (h1-h6)",
-    "link": "Links via content.content.link.url and link.type",
-    "image_url": "Images via content.image.url and content.image.from='url'"
-  },
-
-  "breakpoints": {
-    "desktop": "breakpoint_base",
-    "tablet_landscape": "breakpoint_tablet_landscape",
-    "tablet": "breakpoint_tablet_portrait",
-    "phone_landscape": "breakpoint_phone_landscape",
-    "phone": "breakpoint_phone_portrait"
-  },
-
-  "node_structure": {
-    "id": "unique_string",
-    "data": {
-      "type": "EssentialElements\\ElementName",
-      "properties": {}
+  "type": "object",
+  "definitions": {
+    "unitValue": {
+      "description": "A value with a CSS unit",
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^-?[\\d.]+(px|em|rem|%|vw|vh|vmin|vmax|deg|ms|s)$",
+          "examples": ["10px", "1.5rem", "45deg", "300ms"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "number": { "type": "number" },
+            "unit": { "type": "string" },
+            "style": { "type": "string" }
+          },
+          "required": ["number", "unit"]
+        }
+      ]
     },
-    "children": []
-  },
-
-  "property_patterns": {
-    "text_color": {
-      "path": "design.typography.color.breakpoint_base",
-      "example": "#333333"
+    "colorValue": {
+      "description": "A CSS color value",
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^(#[0-9A-Fa-f]{3,8}|rgb\\(|rgba\\(|hsl\\(|hsla\\(|var\\(--)",
+          "examples": ["#ff0000", "#333", "rgba(0,0,0,0.5)", "var(--primary-color)"]
+        }
+      ]
     },
-    "background_color": {
-      "path": "design.background.color",
-      "example": "#ffffff"
+    "cssVariable": {
+      "description": "A CSS custom property reference",
+      "type": "string",
+      "pattern": "^var\\(--[a-zA-Z0-9-_]+\\)",
+      "examples": ["var(--opacity)", "var(--shadow-color)", "var(--transition-duration)"]
     },
-    "font_size": {
-      "path": "design.typography.typography.custom.customTypography.fontSize.breakpoint_base",
-      "example": {"number": 18, "unit": "px"}
-    },
-    "font_weight": {
-      "path": "design.typography.typography.custom.customTypography.fontWeight",
-      "example": "600"
-    },
-    "padding": {
-      "path": "design.spacing.padding.[top|bottom|left|right].breakpoint_base",
-      "example": "20px"
-    },
-    "margin": {
-      "path": "design.spacing.margin_[top|bottom].breakpoint_base",
-      "example": "0px"
-    },
-    "width": {
-      "path": "design.size.width.breakpoint_base",
-      "example": "100%"
-    },
-    "max_width": {
-      "path": "design.size.maxWidth.breakpoint_base",
-      "example": {"number": 1200, "unit": "px"}
-    },
-    "border_radius": {
-      "path": "design.borders.radius.all.breakpoint_base",
-      "example": {"number": 8, "unit": "px"}
-    },
-    "flex_layout": {
-      "path": "design.layout",
-      "example": {
-        "display": {"breakpoint_base": "flex"},
-        "flexDirection": {"breakpoint_base": "column"},
-        "justifyContent": {"breakpoint_base": "center"},
-        "alignItems": {"breakpoint_base": "center"},
-        "horizontalGap": {"breakpoint_base": "20px"},
-        "verticalGap": {"breakpoint_base": "20px"}
+    "breakpointValue": {
+      "description": "Responsive value with breakpoint keys",
+      "type": "object",
+      "properties": {
+        "breakpoint_base": { "description": "Base/desktop value" },
+        "breakpoint_tablet_landscape": { "description": "Tablet landscape value" },
+        "breakpoint_tablet_portrait": { "description": "Tablet portrait value" },
+        "breakpoint_phone_landscape": { "description": "Phone landscape value" },
+        "breakpoint_phone_portrait": { "description": "Phone portrait value" }
       }
     },
-    "grid_layout": {
-      "path": "design.layout",
-      "example": {
-        "display": {"breakpoint_base": "grid"},
-        "gridTemplateColumns": {"breakpoint_base": "repeat(3, 1fr)"},
-        "horizontalGap": {"breakpoint_base": "30px"},
-        "verticalGap": {"breakpoint_base": "30px"}
-      }
-    }
-  },
-
-  "minimal_examples": {
-    "heading": {
-      "id": "h1",
-      "data": {
-        "type": "EssentialElements\\Heading",
-        "properties": {
-          "content": {"content": {"text": "Hello World", "tags": "h1"}},
-          "design": {"typography": {"color": {"breakpoint_base": "#000"}}}
-        }
-      },
-      "children": []
-    },
-    "text": {
-      "id": "p1",
-      "data": {
-        "type": "EssentialElements\\Text",
-        "properties": {
-          "content": {"content": {"text": "Paragraph text"}},
-          "design": {"typography": {"color": {"breakpoint_base": "#333"}}}
-        }
-      },
-      "children": []
-    },
-    "button": {
-      "id": "btn1",
-      "data": {
-        "type": "EssentialElements\\Button",
-        "properties": {
-          "content": {
-            "content": {
-              "text": "Click Me",
-              "link": {"url": "#", "type": "url"}
+    "gradientValue": {
+      "description": "A CSS gradient value (linear, radial, or conic)",
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^(linear-gradient|radial-gradient|conic-gradient|repeating-linear-gradient|repeating-radial-gradient)\\(",
+          "examples": [
+            "linear-gradient(90deg, #ff0000, #0000ff)",
+            "radial-gradient(circle, #ffffff, #000000)",
+            "linear-gradient(to right, var(--primary-color), var(--secondary-color))"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "Structured gradient definition",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["linear", "radial", "conic"],
+              "description": "Type of gradient"
+            },
+            "angle": {
+              "type": "string",
+              "pattern": "^-?[\\d.]+(deg)?$",
+              "description": "Angle for linear gradients"
+            },
+            "direction": {
+              "type": "string",
+              "enum": ["to top", "to bottom", "to left", "to right", "to top left", "to top right", "to bottom left", "to bottom right"],
+              "description": "Direction for linear gradients"
+            },
+            "shape": {
+              "type": "string",
+              "enum": ["circle", "ellipse"],
+              "description": "Shape for radial gradients"
+            },
+            "position": {
+              "type": "string",
+              "description": "Position for radial/conic gradients (e.g., 'center', '50% 50%', 'at top left')"
+            },
+            "stops": {
+              "type": "array",
+              "description": "Color stops in the gradient",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "color": { "$ref": "#/definitions/colorValue" },
+                  "position": { "type": "string", "pattern": "^[\\d.]+%?$" }
+                },
+                "required": ["color"]
+              },
+              "minItems": 2
             }
           },
-          "design": {
-            "button": {
-              "background": {"breakpoint_base": "#0066cc"},
-              "typography": {"color": {"breakpoint_base": "#fff"}}
-            }
-          }
+          "required": ["type", "stops"]
         }
-      },
-      "children": []
+      ]
     },
-    "section": {
-      "id": "section1",
-      "data": {
-        "type": "EssentialElements\\Section",
-        "properties": {
-          "design": {
-            "background": {"color": "#0a1628"},
-            "spacing": {
-              "padding": {
-                "top": {"breakpoint_base": "100px"},
-                "bottom": {"breakpoint_base": "100px"}
+    "blendModeValue": {
+      "description": "CSS blend mode value",
+      "type": "string",
+      "enum": [
+        "normal",
+        "multiply",
+        "screen",
+        "overlay",
+        "darken",
+        "lighten",
+        "color-dodge",
+        "color-burn",
+        "hard-light",
+        "soft-light",
+        "difference",
+        "exclusion",
+        "hue",
+        "saturation",
+        "color",
+        "luminosity"
+      ]
+    }
+  },
+  "properties": {
+    "effects": {
+      "type": "object",
+      "title": "Effects Properties",
+      "description": "Visual effects including opacity, shadows, filters, and transitions",
+      "properties": {
+        "opacity": {
+          "title": "Opacity",
+          "description": "Controls element transparency. Value between 0 (fully transparent) and 1 (fully opaque).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "50% transparent element",
+              "value": 0.5
+            },
+            {
+              "description": "Slightly transparent",
+              "value": 0.9
+            },
+            {
+              "description": "Fully opaque",
+              "value": 1
+            }
+          ],
+          "breakdancePath": "design.effects.opacity"
+        },
+        "opacityHover": {
+          "title": "Opacity (Hover)",
+          "description": "Element opacity on hover state",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Fade out on hover",
+              "value": 0.7
+            },
+            {
+              "description": "Full opacity on hover",
+              "value": 1
+            }
+          ],
+          "breakdancePath": "design.effects.opacity_hover"
+        },
+        "boxShadow": {
+          "title": "Box Shadow",
+          "description": "CSS box-shadow effect. Accepts standard CSS box-shadow syntax.",
+          "type": "string",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Subtle shadow",
+              "value": "0 2px 4px rgba(0,0,0,0.1)"
+            },
+            {
+              "description": "Medium elevation shadow",
+              "value": "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)"
+            },
+            {
+              "description": "Large dramatic shadow",
+              "value": "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)"
+            },
+            {
+              "description": "Inset shadow (inner shadow)",
+              "value": "inset 0 2px 4px rgba(0,0,0,0.06)"
+            },
+            {
+              "description": "Colored shadow",
+              "value": "0 4px 14px rgba(59,130,246,0.4)"
+            },
+            {
+              "description": "Multiple shadows",
+              "value": "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)"
+            },
+            {
+              "description": "Using CSS variable",
+              "value": "var(--shadow-lg)"
+            }
+          ],
+          "breakdancePath": "design.effects.box_shadow"
+        },
+        "boxShadowHover": {
+          "title": "Box Shadow (Hover)",
+          "description": "Box shadow on hover state. Pairs with transitionDuration for smooth effect.",
+          "type": "string",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Elevated shadow on hover",
+              "value": "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)"
+            },
+            {
+              "description": "Glow effect on hover",
+              "value": "0 0 20px rgba(59,130,246,0.5)"
+            }
+          ],
+          "breakdancePath": "design.effects.box_shadow_hover"
+        },
+        "mixBlendMode": {
+          "title": "Mix Blend Mode",
+          "description": "How element blends with background. Uses CSS blend-mode values.",
+          "type": "string",
+          "enum": [
+            "normal",
+            "multiply",
+            "screen",
+            "overlay",
+            "darken",
+            "lighten",
+            "color-dodge",
+            "color-burn",
+            "hard-light",
+            "soft-light",
+            "difference",
+            "exclusion",
+            "hue",
+            "saturation",
+            "color",
+            "luminosity"
+          ],
+          "default": "normal",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Darken blend for overlays",
+              "value": "multiply"
+            },
+            {
+              "description": "Lighten blend",
+              "value": "screen"
+            },
+            {
+              "description": "Contrast enhancement",
+              "value": "overlay"
+            }
+          ],
+          "breakdancePath": "design.effects.mix_blend_mode"
+        },
+        "mixBlendModeHover": {
+          "title": "Mix Blend Mode (Hover)",
+          "description": "Blend mode on hover state",
+          "type": "string",
+          "enum": [
+            "normal",
+            "multiply",
+            "screen",
+            "overlay",
+            "darken",
+            "lighten",
+            "color-dodge",
+            "color-burn",
+            "hard-light",
+            "soft-light",
+            "difference",
+            "exclusion",
+            "hue",
+            "saturation",
+            "color",
+            "luminosity"
+          ],
+          "responsive": true,
+          "breakdancePath": "design.effects.mix_blend_mode_hover"
+        },
+        "filter": {
+          "title": "CSS Filters",
+          "description": "Array of filter effects applied to the element. Multiple filters can be combined.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["blur", "brightness", "contrast", "grayscale", "hue-rotate", "invert", "saturate", "sepia"]
+              }
+            },
+            "required": ["type"]
+          },
+          "responsive": true,
+          "breakdancePath": "design.effects.filter"
+        },
+        "filterHover": {
+          "title": "CSS Filters (Hover)",
+          "description": "Filter effects on hover state",
+          "type": "array",
+          "responsive": true,
+          "breakdancePath": "design.effects.filter_hover"
+        },
+        "filterBlur": {
+          "title": "Blur Filter",
+          "description": "Applies Gaussian blur to element. Value in pixels.",
+          "type": "string",
+          "pattern": "^[\\d.]+(px)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Subtle blur",
+              "value": "2px"
+            },
+            {
+              "description": "Medium blur",
+              "value": "5px"
+            },
+            {
+              "description": "Heavy blur for background",
+              "value": "10px"
+            },
+            {
+              "description": "Frosted glass effect",
+              "value": "20px"
+            }
+          ],
+          "breakdancePath": "design.effects.filter[].type=blur"
+        },
+        "filterBrightness": {
+          "title": "Brightness Filter",
+          "description": "Adjusts element brightness. 100% is normal, <100% darker, >100% brighter.",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Dim by 20%",
+              "value": "80%"
+            },
+            {
+              "description": "Normal brightness",
+              "value": "100%"
+            },
+            {
+              "description": "Brighten by 20%",
+              "value": "120%"
+            },
+            {
+              "description": "Very bright",
+              "value": "150%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter[].type=brightness"
+        },
+        "filterContrast": {
+          "title": "Contrast Filter",
+          "description": "Adjusts element contrast. 100% is normal, <100% less contrast, >100% more contrast.",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Reduced contrast",
+              "value": "75%"
+            },
+            {
+              "description": "Normal contrast",
+              "value": "100%"
+            },
+            {
+              "description": "High contrast",
+              "value": "125%"
+            },
+            {
+              "description": "Very high contrast",
+              "value": "200%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter[].type=contrast"
+        },
+        "filterGrayscale": {
+          "title": "Grayscale Filter",
+          "description": "Converts element to grayscale. 0% is full color, 100% is fully grayscale.",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Full color",
+              "value": "0%"
+            },
+            {
+              "description": "Partial desaturation",
+              "value": "50%"
+            },
+            {
+              "description": "Fully grayscale",
+              "value": "100%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter[].type=grayscale"
+        },
+        "filterHueRotate": {
+          "title": "Hue Rotate Filter",
+          "description": "Rotates the hue of element colors. Value in degrees (0-360).",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "No rotation",
+              "value": "0deg"
+            },
+            {
+              "description": "Shift to warmer colors",
+              "value": "30deg"
+            },
+            {
+              "description": "Shift to complementary colors",
+              "value": "180deg"
+            },
+            {
+              "description": "Full rotation",
+              "value": "360deg"
+            }
+          ],
+          "breakdancePath": "design.effects.filter[].type=hue-rotate"
+        },
+        "filterInvert": {
+          "title": "Invert Filter",
+          "description": "Inverts element colors. 0% is normal, 100% is fully inverted.",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Normal colors",
+              "value": "0%"
+            },
+            {
+              "description": "Partially inverted",
+              "value": "50%"
+            },
+            {
+              "description": "Fully inverted",
+              "value": "100%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter[].type=invert"
+        },
+        "filterSaturate": {
+          "title": "Saturate Filter",
+          "description": "Adjusts color saturation. 100% is normal, <100% less saturated, >100% more saturated.",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Desaturated (muted)",
+              "value": "50%"
+            },
+            {
+              "description": "Normal saturation",
+              "value": "100%"
+            },
+            {
+              "description": "Vibrant colors",
+              "value": "150%"
+            },
+            {
+              "description": "Very saturated",
+              "value": "200%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter[].type=saturate"
+        },
+        "filterSepia": {
+          "title": "Sepia Filter",
+          "description": "Applies sepia tone effect. 0% is no effect, 100% is fully sepia.",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "No sepia effect",
+              "value": "0%"
+            },
+            {
+              "description": "Subtle vintage effect",
+              "value": "30%"
+            },
+            {
+              "description": "Strong vintage effect",
+              "value": "75%"
+            },
+            {
+              "description": "Full sepia",
+              "value": "100%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter[].type=sepia"
+        },
+        "transition": {
+          "title": "Transition",
+          "description": "Array of CSS transition definitions for smooth property changes.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "property": {
+                "type": "string",
+                "enum": ["all", "custom"],
+                "description": "Which properties to transition"
+              },
+              "custom_property": {
+                "type": "string",
+                "description": "Custom CSS property name when property is 'custom'"
+              },
+              "duration": {
+                "$ref": "#/definitions/unitValue",
+                "description": "Transition duration in ms or s"
+              },
+              "timing_function": {
+                "type": "string",
+                "enum": ["ease-in-out", "ease-in", "ease-out", "ease", "linear"],
+                "description": "Easing function"
+              },
+              "delay": {
+                "$ref": "#/definitions/unitValue",
+                "description": "Delay before transition starts"
               }
             }
-          }
-        }
-      },
-      "children": []
-    },
-    "div_flex": {
-      "id": "flex1",
-      "data": {
-        "type": "EssentialElements\\Div",
-        "properties": {
-          "design": {
-            "layout": {
-              "display": {"breakpoint_base": "flex"},
-              "justifyContent": {"breakpoint_base": "center"},
-              "horizontalGap": {"breakpoint_base": "20px"}
-            }
-          }
-        }
-      },
-      "children": []
-    },
-    "image": {
-      "id": "img1",
-      "data": {
-        "type": "EssentialElements\\Image2",
-        "properties": {
-          "content": {
-            "image": {
-              "from": "url",
-              "url": "https://example.com/image.jpg",
-              "alt": "Description"
-            }
           },
-          "design": {
-            "image": {
-              "width": {"breakpoint_base": "100%"},
-              "aspect_ratio": "16/9"
+          "responsive": true,
+          "breakdancePath": "design.effects.transition"
+        },
+        "transitionDuration": {
+          "title": "Transition Duration",
+          "description": "Duration of transition effect. Value in milliseconds (ms) or seconds (s).",
+          "type": "string",
+          "pattern": "^[\\d.]+(ms|s)$",
+          "default": "300ms",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Quick transition",
+              "value": "150ms"
+            },
+            {
+              "description": "Standard transition",
+              "value": "300ms"
+            },
+            {
+              "description": "Smooth transition",
+              "value": "500ms"
+            },
+            {
+              "description": "Slow transition",
+              "value": "1s"
             }
-          }
+          ],
+          "breakdancePath": "design.effects.transition[].duration"
+        },
+        "transitionTiming": {
+          "title": "Transition Timing Function",
+          "description": "Easing function that defines acceleration curve of transition.",
+          "type": "string",
+          "enum": ["ease-in-out", "ease-in", "ease-out", "ease", "linear"],
+          "default": "ease-in-out",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Smooth start and end",
+              "value": "ease-in-out"
+            },
+            {
+              "description": "Accelerate",
+              "value": "ease-in"
+            },
+            {
+              "description": "Decelerate",
+              "value": "ease-out"
+            },
+            {
+              "description": "Constant speed",
+              "value": "linear"
+            }
+          ],
+          "breakdancePath": "design.effects.transition[].timing_function"
+        },
+        "transitionProperty": {
+          "title": "Transition Property",
+          "description": "Which CSS properties to animate during transition.",
+          "type": "string",
+          "enum": ["all", "custom"],
+          "default": "all",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Animate all properties",
+              "value": "all"
+            },
+            {
+              "description": "Animate specific property",
+              "value": "custom"
+            }
+          ],
+          "breakdancePath": "design.effects.transition[].property"
+        },
+        "transitionCustomProperty": {
+          "title": "Transition Custom Property",
+          "description": "Specific CSS property name when transitionProperty is 'custom'.",
+          "type": "string",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Only animate opacity",
+              "value": "opacity"
+            },
+            {
+              "description": "Only animate transform",
+              "value": "transform"
+            },
+            {
+              "description": "Only animate background",
+              "value": "background-color"
+            },
+            {
+              "description": "Only animate shadow",
+              "value": "box-shadow"
+            }
+          ],
+          "breakdancePath": "design.effects.transition[].custom_property"
+        },
+        "transitionDelay": {
+          "title": "Transition Delay",
+          "description": "Delay before transition starts. Value in milliseconds (ms) or seconds (s).",
+          "type": "string",
+          "pattern": "^[\\d.]+(ms|s)$",
+          "default": "0ms",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "No delay",
+              "value": "0ms"
+            },
+            {
+              "description": "Short delay",
+              "value": "100ms"
+            },
+            {
+              "description": "Staggered animation delay",
+              "value": "200ms"
+            }
+          ],
+          "breakdancePath": "design.effects.transition[].delay"
+        },
+        "backgroundGradient": {
+          "title": "Background Gradient",
+          "description": "CSS gradient background. Supports linear, radial, and conic gradients. Can be combined with background colors using background blend modes.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientValue" }
+          ],
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Simple horizontal gradient",
+              "value": "linear-gradient(90deg, #667eea, #764ba2)"
+            },
+            {
+              "description": "Vertical gradient with transparency",
+              "value": "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%)"
+            },
+            {
+              "description": "Diagonal gradient",
+              "value": "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)"
+            },
+            {
+              "description": "Three-color gradient",
+              "value": "linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb)"
+            },
+            {
+              "description": "Radial gradient from center",
+              "value": "radial-gradient(circle at center, #ffffff 0%, #000000 100%)"
+            },
+            {
+              "description": "Radial gradient from corner",
+              "value": "radial-gradient(ellipse at top left, #667eea 0%, transparent 50%)"
+            },
+            {
+              "description": "Conic gradient (color wheel)",
+              "value": "conic-gradient(from 0deg, #ff6b6b, #feca57, #48dbfb, #ff6b6b)"
+            },
+            {
+              "description": "Repeating gradient stripes",
+              "value": "repeating-linear-gradient(45deg, #606dbc, #606dbc 10px, #465298 10px, #465298 20px)"
+            },
+            {
+              "description": "Using CSS variables",
+              "value": "linear-gradient(90deg, var(--primary-color), var(--secondary-color))"
+            },
+            {
+              "description": "Mesh gradient effect (multiple gradients)",
+              "value": "radial-gradient(at 40% 20%, #ff6b6b 0px, transparent 50%), radial-gradient(at 80% 0%, #feca57 0px, transparent 50%), radial-gradient(at 0% 50%, #48dbfb 0px, transparent 50%)"
+            }
+          ],
+          "breakdancePath": "design.background.gradient"
+        },
+        "backgroundGradientHover": {
+          "title": "Background Gradient (Hover)",
+          "description": "Gradient background on hover state. Pair with transitionDuration for smooth gradient transitions.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientValue" }
+          ],
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Shift gradient angle on hover",
+              "value": "linear-gradient(270deg, #667eea, #764ba2)"
+            },
+            {
+              "description": "Change colors on hover",
+              "value": "linear-gradient(90deg, #764ba2, #667eea)"
+            },
+            {
+              "description": "Intensify gradient on hover",
+              "value": "linear-gradient(90deg, #ff0000, #0000ff)"
+            }
+          ],
+          "breakdancePath": "design.background.gradient_hover"
+        },
+        "backgroundGradientOverlay": {
+          "title": "Background Gradient Overlay",
+          "description": "Gradient overlay applied on top of background image. Useful for hero sections with text over images.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientValue" }
+          ],
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Dark overlay for text readability",
+              "value": "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%)"
+            },
+            {
+              "description": "Color tint overlay",
+              "value": "linear-gradient(135deg, rgba(102,126,234,0.8) 0%, rgba(118,75,162,0.8) 100%)"
+            },
+            {
+              "description": "Transparent to solid overlay",
+              "value": "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.9) 100%)"
+            },
+            {
+              "description": "Radial spotlight effect",
+              "value": "radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%)"
+            }
+          ],
+          "breakdancePath": "design.background.overlay.gradient"
+        },
+        "backgroundBlendMode": {
+          "title": "Background Blend Mode",
+          "description": "How background layers (color, gradient, image) blend together. Different from mixBlendMode which blends the element with content behind it.",
+          "$ref": "#/definitions/blendModeValue",
+          "default": "normal",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Multiply gradient over image for darkening",
+              "value": "multiply"
+            },
+            {
+              "description": "Screen for lightening effect",
+              "value": "screen"
+            },
+            {
+              "description": "Overlay for contrast enhancement",
+              "value": "overlay"
+            },
+            {
+              "description": "Color blend for tinting images",
+              "value": "color"
+            },
+            {
+              "description": "Soft light for subtle color adjustment",
+              "value": "soft-light"
+            }
+          ],
+          "breakdancePath": "design.background.blend_mode"
+        },
+        "backgroundBlendModeHover": {
+          "title": "Background Blend Mode (Hover)",
+          "description": "Background blend mode on hover state. Create dynamic visual effects on interaction.",
+          "$ref": "#/definitions/blendModeValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Change from multiply to normal on hover",
+              "value": "normal"
+            },
+            {
+              "description": "Intensify with difference on hover",
+              "value": "difference"
+            }
+          ],
+          "breakdancePath": "design.background.blend_mode_hover"
+        },
+        "textGradient": {
+          "title": "Text Gradient",
+          "description": "Apply gradient fill to text. Creates eye-catching headings and display text. Uses background-clip: text internally.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientValue" }
+          ],
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Horizontal rainbow text",
+              "value": "linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb)"
+            },
+            {
+              "description": "Gold metallic text effect",
+              "value": "linear-gradient(180deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c)"
+            },
+            {
+              "description": "Blue to purple gradient text",
+              "value": "linear-gradient(90deg, #667eea, #764ba2)"
+            },
+            {
+              "description": "Subtle gradient for elegance",
+              "value": "linear-gradient(135deg, #1a1a2e, #16213e)"
+            },
+            {
+              "description": "Using theme colors",
+              "value": "linear-gradient(90deg, var(--primary-color), var(--accent-color))"
+            }
+          ],
+          "breakdancePath": "design.typography.text_gradient"
+        },
+        "textGradientHover": {
+          "title": "Text Gradient (Hover)",
+          "description": "Text gradient on hover state. Creates interactive text effects.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientValue" }
+          ],
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Shift gradient direction on hover",
+              "value": "linear-gradient(270deg, #667eea, #764ba2)"
+            },
+            {
+              "description": "Change to vibrant colors on hover",
+              "value": "linear-gradient(90deg, #ff0080, #7928ca)"
+            }
+          ],
+          "breakdancePath": "design.typography.text_gradient_hover"
         }
-      },
-      "children": []
+      }
+    },
+    "transform": {
+      "type": "object",
+      "title": "Transform Properties",
+      "description": "2D and 3D transformation properties",
+      "properties": {
+        "rotate": {
+          "title": "Rotate",
+          "description": "Rotation around X, Y, Z axes. Simplified rotation transform.",
+          "type": "object",
+          "properties": {
+            "rotateX": { "type": "string", "pattern": "^-?[\\d.]+(deg)?$" },
+            "rotateY": { "type": "string", "pattern": "^-?[\\d.]+(deg)?$" },
+            "rotateZ": { "type": "string", "pattern": "^-?[\\d.]+(deg)?$" }
+          },
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Rotate 45 degrees clockwise",
+              "value": { "rotateZ": "45deg" }
+            },
+            {
+              "description": "3D rotation",
+              "value": { "rotateX": "15deg", "rotateY": "30deg" }
+            },
+            {
+              "description": "Slight tilt",
+              "value": { "rotateZ": "-3deg" }
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].type=rotate"
+        },
+        "rotateX": {
+          "title": "Rotate X",
+          "description": "Rotation around the X axis (horizontal axis). Positive values tilt the top away from viewer.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Tilt forward",
+              "value": "15deg"
+            },
+            {
+              "description": "Tilt backward",
+              "value": "-15deg"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].rotate_x"
+        },
+        "rotateY": {
+          "title": "Rotate Y",
+          "description": "Rotation around the Y axis (vertical axis). Positive values turn the left side toward viewer.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Turn slightly left",
+              "value": "10deg"
+            },
+            {
+              "description": "Flip halfway (card flip)",
+              "value": "180deg"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].rotate_y"
+        },
+        "rotateZ": {
+          "title": "Rotate Z",
+          "description": "Rotation around the Z axis (perpendicular to screen). Standard 2D rotation.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Rotate 45 degrees clockwise",
+              "value": "45deg"
+            },
+            {
+              "description": "Rotate 90 degrees counter-clockwise",
+              "value": "-90deg"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].rotate_z"
+        },
+        "rotateHover": {
+          "title": "Rotate (Hover)",
+          "description": "Rotation on hover state. Use with transitionDuration for smooth animation.",
+          "type": "object",
+          "properties": {
+            "rotateX": { "type": "string", "pattern": "^-?[\\d.]+(deg)?$" },
+            "rotateY": { "type": "string", "pattern": "^-?[\\d.]+(deg)?$" },
+            "rotateZ": { "type": "string", "pattern": "^-?[\\d.]+(deg)?$" }
+          },
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Spin on hover",
+              "value": { "rotateZ": "360deg" }
+            },
+            {
+              "description": "Flip on hover",
+              "value": { "rotateY": "180deg" }
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms_hover[].type=rotate"
+        },
+        "rotateXHover": {
+          "title": "Rotate X (Hover)",
+          "description": "X-axis rotation on hover",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "breakdancePath": "design.effects.transform.transforms_hover[].rotate_x"
+        },
+        "rotateYHover": {
+          "title": "Rotate Y (Hover)",
+          "description": "Y-axis rotation on hover. Useful for card flip effects.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Full card flip",
+              "value": "180deg"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms_hover[].rotate_y"
+        },
+        "rotateZHover": {
+          "title": "Rotate Z (Hover)",
+          "description": "Z-axis (2D) rotation on hover",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Full spin on hover",
+              "value": "360deg"
+            },
+            {
+              "description": "Slight wiggle",
+              "value": "5deg"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms_hover[].rotate_z"
+        },
+        "scale": {
+          "title": "Scale",
+          "description": "Uniform scaling factor. 1 is normal size.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4,
+          "default": 1,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Half size",
+              "value": 0.5
+            },
+            {
+              "description": "Normal size",
+              "value": 1
+            },
+            {
+              "description": "50% larger",
+              "value": 1.5
+            },
+            {
+              "description": "Double size",
+              "value": 2
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].scale"
+        },
+        "scaleX": {
+          "title": "Scale X",
+          "description": "Horizontal scaling factor. Stretch or compress horizontally.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Compress horizontally",
+              "value": 0.8
+            },
+            {
+              "description": "Stretch horizontally",
+              "value": 1.2
+            },
+            {
+              "description": "Mirror horizontally",
+              "value": -1
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].scale_x"
+        },
+        "scaleY": {
+          "title": "Scale Y",
+          "description": "Vertical scaling factor. Stretch or compress vertically.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Compress vertically",
+              "value": 0.8
+            },
+            {
+              "description": "Stretch vertically",
+              "value": 1.2
+            },
+            {
+              "description": "Mirror vertically (flip upside down)",
+              "value": -1
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].scale_y"
+        },
+        "scaleZ": {
+          "title": "Scale Z",
+          "description": "Z-axis scaling factor for 3D transforms. Only visible with perspective.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Compress in Z",
+              "value": 0.5
+            },
+            {
+              "description": "Expand in Z",
+              "value": 2
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].scale_z"
+        },
+        "scaleHover": {
+          "title": "Scale (Hover)",
+          "description": "Uniform scaling on hover. Common for button/card interactions.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Slight grow on hover",
+              "value": 1.05
+            },
+            {
+              "description": "Noticeable grow on hover",
+              "value": 1.1
+            },
+            {
+              "description": "Shrink on hover (press effect)",
+              "value": 0.95
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms_hover[].scale"
+        },
+        "scaleXHover": {
+          "title": "Scale X (Hover)",
+          "description": "Horizontal scaling on hover",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4,
+          "responsive": true,
+          "breakdancePath": "design.effects.transform.transforms_hover[].scale_x"
+        },
+        "scaleYHover": {
+          "title": "Scale Y (Hover)",
+          "description": "Vertical scaling on hover",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4,
+          "responsive": true,
+          "breakdancePath": "design.effects.transform.transforms_hover[].scale_y"
+        },
+        "scaleZHover": {
+          "title": "Scale Z (Hover)",
+          "description": "Z-axis scaling on hover (3D)",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4,
+          "responsive": true,
+          "breakdancePath": "design.effects.transform.transforms_hover[].scale_z"
+        },
+        "skewX": {
+          "title": "Skew X",
+          "description": "Horizontal skew angle in degrees. Tilts the element along the X axis.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Subtle skew",
+              "value": "5deg"
+            },
+            {
+              "description": "Moderate skew",
+              "value": "15deg"
+            },
+            {
+              "description": "Negative skew",
+              "value": "-10deg"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].skew_x"
+        },
+        "skewY": {
+          "title": "Skew Y",
+          "description": "Vertical skew angle in degrees. Tilts the element along the Y axis.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Subtle vertical skew",
+              "value": "5deg"
+            },
+            {
+              "description": "Italic effect",
+              "value": "-15deg"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].skew_y"
+        },
+        "skewXHover": {
+          "title": "Skew X (Hover)",
+          "description": "Horizontal skew on hover state",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Skew effect on hover",
+              "value": "10deg"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms_hover[].skew_x"
+        },
+        "skewYHover": {
+          "title": "Skew Y (Hover)",
+          "description": "Vertical skew on hover state",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "breakdancePath": "design.effects.transform.transforms_hover[].skew_y"
+        },
+        "translateX": {
+          "title": "Translate X",
+          "description": "Horizontal translation distance. Move element left or right.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(px|em|rem|%|vw)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Move right 20px",
+              "value": "20px"
+            },
+            {
+              "description": "Move left 50%",
+              "value": "-50%"
+            },
+            {
+              "description": "Center horizontally (with left: 50%)",
+              "value": "-50%"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].translate_x"
+        },
+        "translateY": {
+          "title": "Translate Y",
+          "description": "Vertical translation distance. Move element up or down.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(px|em|rem|%|vh)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Move down 20px",
+              "value": "20px"
+            },
+            {
+              "description": "Move up 10px",
+              "value": "-10px"
+            },
+            {
+              "description": "Center vertically (with top: 50%)",
+              "value": "-50%"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].translate_y"
+        },
+        "translateZ": {
+          "title": "Translate Z",
+          "description": "Z-axis translation distance for 3D effects. Moves element toward/away from viewer.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(px)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Move toward viewer",
+              "value": "50px"
+            },
+            {
+              "description": "Move away from viewer",
+              "value": "-100px"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].translate_z"
+        },
+        "translateXHover": {
+          "title": "Translate X (Hover)",
+          "description": "Horizontal translation on hover. Create slide effects.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(px|em|rem|%|vw)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Slide right on hover",
+              "value": "10px"
+            },
+            {
+              "description": "Slide left on hover",
+              "value": "-10px"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms_hover[].translate_x"
+        },
+        "translateYHover": {
+          "title": "Translate Y (Hover)",
+          "description": "Vertical translation on hover. Create float/lift effects.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(px|em|rem|%|vh)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Float up on hover",
+              "value": "-5px"
+            },
+            {
+              "description": "Float up more pronounced",
+              "value": "-10px"
+            },
+            {
+              "description": "Drop down on hover",
+              "value": "5px"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms_hover[].translate_y"
+        },
+        "translateZHover": {
+          "title": "Translate Z (Hover)",
+          "description": "Z-axis translation on hover for 3D depth effects",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(px)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Pop toward viewer on hover",
+              "value": "30px"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms_hover[].translate_z"
+        },
+        "perspective": {
+          "title": "Perspective",
+          "description": "Distance from viewer for 3D transforms. Lower values = more dramatic effect.",
+          "type": "string",
+          "pattern": "^[\\d.]+(px)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Dramatic 3D effect",
+              "value": "500px"
+            },
+            {
+              "description": "Subtle 3D effect",
+              "value": "1000px"
+            },
+            {
+              "description": "Very subtle",
+              "value": "2000px"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.perspective"
+        },
+        "perspectiveHover": {
+          "title": "Perspective (Hover)",
+          "description": "Perspective distance on hover. Create depth-shifting effects.",
+          "type": "string",
+          "pattern": "^[\\d.]+(px)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Zoom in effect (closer perspective)",
+              "value": "400px"
+            },
+            {
+              "description": "Pull back effect",
+              "value": "1500px"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.perspective_hover"
+        },
+        "transformOrigin": {
+          "title": "Transform Origin",
+          "description": "Point around which transforms are applied",
+          "type": "string",
+          "enum": [
+            "top left",
+            "top center",
+            "top right",
+            "center left",
+            "center",
+            "center right",
+            "bottom left",
+            "bottom center",
+            "bottom right",
+            "custom"
+          ],
+          "default": "center",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Rotate from center",
+              "value": "center"
+            },
+            {
+              "description": "Rotate from top-left corner",
+              "value": "top left"
+            },
+            {
+              "description": "Scale from bottom",
+              "value": "bottom center"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.origin"
+        },
+        "transformOriginHover": {
+          "title": "Transform Origin (Hover)",
+          "description": "Transform origin point on hover",
+          "type": "string",
+          "enum": [
+            "top left",
+            "top center",
+            "top right",
+            "center left",
+            "center",
+            "center right",
+            "bottom left",
+            "bottom center",
+            "bottom right",
+            "custom"
+          ],
+          "responsive": true,
+          "breakdancePath": "design.effects.transform.origin_hover"
+        },
+        "transformOriginX": {
+          "title": "Transform Origin X",
+          "description": "Custom X position for transform origin (when using 'custom' origin)",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|%)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Left edge",
+              "value": "0%"
+            },
+            {
+              "description": "Center",
+              "value": "50%"
+            },
+            {
+              "description": "Custom pixel position",
+              "value": "100px"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.origin_position.x"
+        },
+        "transformOriginY": {
+          "title": "Transform Origin Y",
+          "description": "Custom Y position for transform origin (when using 'custom' origin)",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|%)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Top edge",
+              "value": "0%"
+            },
+            {
+              "description": "Center",
+              "value": "50%"
+            },
+            {
+              "description": "Custom pixel position",
+              "value": "50px"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.origin_position.y"
+        },
+        "transformStyle": {
+          "title": "Transform Style",
+          "description": "How child elements are positioned in 3D space",
+          "type": "string",
+          "enum": ["flat", "preserve-3d"],
+          "default": "flat",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Children flattened",
+              "value": "flat"
+            },
+            {
+              "description": "Children maintain 3D position",
+              "value": "preserve-3d"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transform_style"
+        },
+        "transformStyleHover": {
+          "title": "Transform Style (Hover)",
+          "description": "Transform style on hover state",
+          "type": "string",
+          "enum": ["flat", "preserve-3d"],
+          "responsive": true,
+          "breakdancePath": "design.effects.transform.transform_style_hover"
+        },
+        "perspectiveOriginX": {
+          "title": "Perspective Origin X",
+          "description": "X position of the vanishing point for 3D perspective",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|%)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Vanishing point on left",
+              "value": "0%"
+            },
+            {
+              "description": "Vanishing point in center",
+              "value": "50%"
+            },
+            {
+              "description": "Vanishing point on right",
+              "value": "100%"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.perspective_origin.x"
+        },
+        "perspectiveOriginY": {
+          "title": "Perspective Origin Y",
+          "description": "Y position of the vanishing point for 3D perspective",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|%)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Vanishing point at top",
+              "value": "0%"
+            },
+            {
+              "description": "Vanishing point in center",
+              "value": "50%"
+            },
+            {
+              "description": "Vanishing point at bottom",
+              "value": "100%"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.perspective_origin.y"
+        }
+      }
     }
   },
-
-  "api": {
-    "base_url": "/wp-json/oxybridge/v1",
-    "endpoints": {
-      "create_page": {"method": "POST", "path": "/pages", "body": {"title": "string", "status": "publish|draft", "tree": "object"}},
-      "get_document": {"method": "GET", "path": "/documents/{id}"},
-      "save_document": {"method": "POST", "path": "/documents/{id}", "body": {"tree": "object"}},
-      "regenerate_css": {"method": "POST", "path": "/regenerate-css/{id}"},
-      "get_templates": {"method": "GET", "path": "/templates"},
-      "get_colors": {"method": "GET", "path": "/colors"},
-      "get_fonts": {"method": "GET", "path": "/fonts"}
+  "examples": {
+    "fadeOnHover": {
+      "title": "Fade on Hover",
+      "description": "Element fades to 70% opacity on hover with smooth transition",
+      "properties": {
+        "opacity": 1,
+        "opacityHover": 0.7,
+        "transitionDuration": "300ms",
+        "transitionTiming": "ease-in-out"
+      }
+    },
+    "cardWithShadow": {
+      "title": "Card with Shadow",
+      "description": "Card element with subtle shadow that elevates on hover",
+      "properties": {
+        "boxShadow": "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
+        "boxShadowHover": "0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)",
+        "transitionDuration": "300ms",
+        "transitionTiming": "ease-in-out"
+      }
+    },
+    "grayscaleToColor": {
+      "title": "Grayscale to Color on Hover",
+      "description": "Image starts grayscale and reveals color on hover",
+      "properties": {
+        "filterGrayscale": "100%",
+        "filterGrayscaleHover": "0%",
+        "transitionDuration": "400ms",
+        "transitionTiming": "ease-out"
+      }
+    },
+    "frostedGlass": {
+      "title": "Frosted Glass Effect",
+      "description": "Semi-transparent element with blur backdrop",
+      "properties": {
+        "opacity": 0.8,
+        "filterBlur": "10px"
+      }
+    },
+    "scaleOnHover": {
+      "title": "Scale on Hover",
+      "description": "Element grows slightly on hover",
+      "properties": {
+        "scale": 1,
+        "scaleHover": 1.05,
+        "transitionDuration": "200ms",
+        "transitionTiming": "ease-out"
+      }
+    },
+    "vintagePhoto": {
+      "title": "Vintage Photo Effect",
+      "description": "Apply sepia and reduced saturation for vintage look",
+      "properties": {
+        "filterSepia": "40%",
+        "filterSaturate": "80%",
+        "filterContrast": "90%"
+      }
+    },
+    "smoothTransitions": {
+      "title": "Comprehensive Smooth Transitions",
+      "description": "All property changes animate smoothly",
+      "properties": {
+        "transition": [
+          {
+            "property": "all",
+            "duration": "300ms",
+            "timing_function": "ease-in-out",
+            "delay": "0ms"
+          }
+        ]
+      }
+    },
+    "staggeredTransitions": {
+      "title": "Staggered Property Transitions",
+      "description": "Different properties animate with different timings",
+      "properties": {
+        "transition": [
+          {
+            "property": "custom",
+            "custom_property": "opacity",
+            "duration": "200ms",
+            "timing_function": "ease-out",
+            "delay": "0ms"
+          },
+          {
+            "property": "custom",
+            "custom_property": "transform",
+            "duration": "300ms",
+            "timing_function": "ease-in-out",
+            "delay": "50ms"
+          },
+          {
+            "property": "custom",
+            "custom_property": "box-shadow",
+            "duration": "400ms",
+            "timing_function": "ease-out",
+            "delay": "100ms"
+          }
+        ]
+      }
+    },
+    "flipCard3D": {
+      "title": "3D Card Flip",
+      "description": "Card that flips 180 degrees on hover (requires preserve-3d parent)",
+      "properties": {
+        "rotateY": "0deg",
+        "rotateYHover": "180deg",
+        "transformStyle": "preserve-3d",
+        "perspective": "1000px",
+        "transitionDuration": "600ms",
+        "transitionTiming": "ease-in-out"
+      }
+    },
+    "subtleFloat": {
+      "title": "Subtle Float Effect",
+      "description": "Element appears to float up slightly on hover",
+      "properties": {
+        "translateY": "0px",
+        "translateYHover": "-5px",
+        "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+        "boxShadowHover": "0 8px 16px rgba(0,0,0,0.15)",
+        "transitionDuration": "300ms",
+        "transitionTiming": "ease-out"
+      }
+    },
+    "spinIcon": {
+      "title": "Spin Icon on Hover",
+      "description": "Icon rotates 360 degrees on hover (good for refresh/loading icons)",
+      "properties": {
+        "rotateZ": "0deg",
+        "rotateZHover": "360deg",
+        "transitionDuration": "500ms",
+        "transitionTiming": "ease-in-out"
+      }
+    },
+    "tiltCard3D": {
+      "title": "3D Tilt Card Effect",
+      "description": "Card tilts slightly in 3D space on hover for depth effect",
+      "properties": {
+        "rotateX": "0deg",
+        "rotateY": "0deg",
+        "rotateXHover": "-5deg",
+        "rotateYHover": "10deg",
+        "perspective": "1000px",
+        "transformOrigin": "center",
+        "transitionDuration": "300ms",
+        "transitionTiming": "ease-out"
+      }
+    },
+    "skewedHeading": {
+      "title": "Skewed Heading Effect",
+      "description": "Italic-like skew effect for stylized headings",
+      "properties": {
+        "skewX": "-5deg",
+        "transformOrigin": "bottom left"
+      }
+    },
+    "pressButton": {
+      "title": "Press Button Effect",
+      "description": "Button appears to press down when hovered",
+      "properties": {
+        "scale": 1,
+        "scaleHover": 0.95,
+        "translateY": "0px",
+        "translateYHover": "2px",
+        "boxShadow": "0 4px 6px rgba(0,0,0,0.2)",
+        "boxShadowHover": "0 2px 3px rgba(0,0,0,0.2)",
+        "transitionDuration": "150ms",
+        "transitionTiming": "ease-out"
+      }
+    },
+    "slideInEffect": {
+      "title": "Slide In on Hover",
+      "description": "Element slides horizontally on hover",
+      "properties": {
+        "translateX": "0px",
+        "translateXHover": "10px",
+        "transitionDuration": "200ms",
+        "transitionTiming": "ease-out"
+      }
+    },
+    "combinedTransformHover": {
+      "title": "Combined Transform on Hover",
+      "description": "Multiple transforms applied together on hover for dramatic effect",
+      "properties": {
+        "scale": 1,
+        "scaleHover": 1.1,
+        "rotateZ": "0deg",
+        "rotateZHover": "3deg",
+        "translateY": "0px",
+        "translateYHover": "-10px",
+        "boxShadow": "0 2px 8px rgba(0,0,0,0.1)",
+        "boxShadowHover": "0 12px 24px rgba(0,0,0,0.2)",
+        "transitionDuration": "300ms",
+        "transitionTiming": "ease-out"
+      }
+    },
+    "gradientBackground": {
+      "title": "Gradient Background",
+      "description": "Element with vibrant gradient background",
+      "properties": {
+        "backgroundGradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+      }
+    },
+    "gradientBackgroundHover": {
+      "title": "Gradient Background with Hover",
+      "description": "Gradient that shifts direction on hover",
+      "properties": {
+        "backgroundGradient": "linear-gradient(90deg, #667eea, #764ba2)",
+        "backgroundGradientHover": "linear-gradient(270deg, #667eea, #764ba2)",
+        "transitionDuration": "500ms",
+        "transitionTiming": "ease-in-out"
+      }
+    },
+    "heroOverlay": {
+      "title": "Hero Section with Gradient Overlay",
+      "description": "Dark gradient overlay for text readability over images",
+      "properties": {
+        "backgroundGradientOverlay": "linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%)"
+      }
+    },
+    "gradientText": {
+      "title": "Gradient Text Effect",
+      "description": "Eye-catching gradient text for headings",
+      "properties": {
+        "textGradient": "linear-gradient(90deg, #667eea, #764ba2)"
+      }
+    },
+    "gradientTextHover": {
+      "title": "Interactive Gradient Text",
+      "description": "Text gradient that changes on hover",
+      "properties": {
+        "textGradient": "linear-gradient(90deg, #667eea, #764ba2)",
+        "textGradientHover": "linear-gradient(90deg, #ff0080, #7928ca)",
+        "transitionDuration": "300ms",
+        "transitionTiming": "ease-out"
+      }
+    },
+    "meshGradient": {
+      "title": "Mesh Gradient Background",
+      "description": "Modern mesh gradient effect using multiple radial gradients",
+      "properties": {
+        "backgroundGradient": "radial-gradient(at 40% 20%, #ff6b6b 0px, transparent 50%), radial-gradient(at 80% 0%, #feca57 0px, transparent 50%), radial-gradient(at 0% 50%, #48dbfb 0px, transparent 50%), radial-gradient(at 80% 80%, #ff6b6b 0px, transparent 50%)"
+      }
+    },
+    "gradientWithBlend": {
+      "title": "Gradient with Blend Mode",
+      "description": "Gradient combined with blend mode for artistic effect",
+      "properties": {
+        "backgroundGradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        "backgroundBlendMode": "overlay",
+        "mixBlendMode": "multiply"
+      }
+    },
+    "duotoneEffect": {
+      "title": "Duotone Image Effect",
+      "description": "Create duotone effect using gradient overlay and blend mode",
+      "properties": {
+        "backgroundGradientOverlay": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        "backgroundBlendMode": "color",
+        "filterGrayscale": "100%"
+      }
+    },
+    "gradientBorderEffect": {
+      "title": "Gradient Card with Border Effect",
+      "description": "Card with gradient background and enhanced shadow",
+      "properties": {
+        "backgroundGradient": "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+        "boxShadow": "0 4px 6px rgba(0,0,0,0.1)",
+        "boxShadowHover": "0 10px 20px rgba(102,126,234,0.3)",
+        "transitionDuration": "300ms",
+        "transitionTiming": "ease-out"
+      }
+    },
+    "sunsetGradient": {
+      "title": "Sunset Gradient",
+      "description": "Warm sunset-inspired gradient background",
+      "properties": {
+        "backgroundGradient": "linear-gradient(180deg, #f093fb 0%, #f5576c 50%, #ff8a00 100%)"
+      }
+    },
+    "glassWithGradient": {
+      "title": "Glassmorphism with Gradient",
+      "description": "Frosted glass effect with subtle gradient background",
+      "properties": {
+        "backgroundGradient": "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
+        "filterBlur": "10px",
+        "opacity": 0.9,
+        "boxShadow": "0 8px 32px rgba(0,0,0,0.1)"
+      }
     }
+  },
+  "usageNotes": {
+    "responsive": "Properties marked as 'responsive: true' can have different values per breakpoint using breakpoint_base, breakpoint_tablet_landscape, breakpoint_tablet_portrait, breakpoint_phone_landscape, breakpoint_phone_portrait keys.",
+    "cssVariables": "Color and unit properties support CSS variables (var(--custom-property)). Use this for theme integration.",
+    "transitions": "For hover effects to animate smoothly, pair hover properties with transitionDuration and transitionTiming.",
+    "filters": "Multiple filters can be combined. Each filter type can only be used once per element.",
+    "transforms": "Multiple transform types can be combined. Order matters - transforms are applied in the order specified.",
+    "performance": "Heavy use of filters and box-shadows can impact rendering performance. Use sparingly on frequently-animated elements.",
+    "gradients": "Gradients can be specified as CSS strings or structured objects. Linear gradients use angle or direction, radial gradients use shape and position. Multiple gradients can be layered by comma-separating them. Use CSS variables in gradient color stops for theme consistency.",
+    "blendModes": "mixBlendMode controls how the element blends with content behind it. backgroundBlendMode controls how background layers (color, gradient, image) blend with each other. Common use cases: multiply for darkening, screen for lightening, overlay for contrast, color for tinting.",
+    "textGradients": "Text gradients work best on headings and display text. They use background-clip: text internally. Ensure sufficient contrast for accessibility. Gradient text may not be supported in all email clients if used in email templates.",
+    "gradientOverlays": "Use backgroundGradientOverlay for hero sections with images. A dark gradient (transparent to black) improves text readability. Colored gradients can create brand-consistent overlays."
   }
 }
