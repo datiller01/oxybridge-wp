@@ -571,6 +571,152 @@ class REST_API {
             )
         );
 
+        // =================================================================
+        // AI Agent Endpoints
+        // =================================================================
+
+        // AI context endpoint - returns everything an AI agent needs.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/context',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_ai_context' ),
+                'permission_callback' => '__return_true',
+            )
+        );
+
+        // AI tokens endpoint - returns design tokens (colors, fonts, spacing).
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/tokens',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_ai_tokens' ),
+                'permission_callback' => '__return_true',
+            )
+        );
+
+        // AI schema endpoint - returns compact element schema.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/schema',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_ai_schema' ),
+                'permission_callback' => '__return_true',
+            )
+        );
+
+        // AI components endpoint - returns available component snippets.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/components',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_ai_components' ),
+                'permission_callback' => '__return_true',
+            )
+        );
+
+        // AI single component endpoint - returns specific component snippet.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/components/(?P<name>[a-z0-9_-]+)',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_ai_component' ),
+                'permission_callback' => '__return_true',
+                'args'                => array(
+                    'name' => array(
+                        'description'       => __( 'Component name (e.g., hero_section).', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_key',
+                    ),
+                ),
+            )
+        );
+
+        // AI templates endpoint - list saved AI templates.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/templates',
+            array(
+                array(
+                    'methods'             => \WP_REST_Server::READABLE,
+                    'callback'            => array( $this, 'get_ai_templates' ),
+                    'permission_callback' => '__return_true',
+                ),
+                array(
+                    'methods'             => \WP_REST_Server::CREATABLE,
+                    'callback'            => array( $this, 'create_ai_template' ),
+                    'permission_callback' => array( $this, 'check_write_permission' ),
+                    'args'                => array(
+                        'name'        => array(
+                            'description'       => __( 'Template name.', 'oxybridge-wp' ),
+                            'type'              => 'string',
+                            'required'          => true,
+                            'sanitize_callback' => 'sanitize_key',
+                        ),
+                        'description' => array(
+                            'description'       => __( 'Template description.', 'oxybridge-wp' ),
+                            'type'              => 'string',
+                            'default'           => '',
+                            'sanitize_callback' => 'sanitize_text_field',
+                        ),
+                        'tree'        => array(
+                            'description' => __( 'The element tree structure.', 'oxybridge-wp' ),
+                            'type'        => 'object',
+                            'required'    => true,
+                        ),
+                        'tags'        => array(
+                            'description'       => __( 'Template tags for categorization.', 'oxybridge-wp' ),
+                            'type'              => 'array',
+                            'default'           => array(),
+                            'sanitize_callback' => function( $tags ) {
+                                return array_map( 'sanitize_key', (array) $tags );
+                            },
+                        ),
+                    ),
+                ),
+            )
+        );
+
+        // AI single template endpoint.
+        register_rest_route(
+            self::NAMESPACE,
+            '/ai/templates/(?P<name>[a-z0-9_-]+)',
+            array(
+                array(
+                    'methods'             => \WP_REST_Server::READABLE,
+                    'callback'            => array( $this, 'get_ai_template' ),
+                    'permission_callback' => '__return_true',
+                    'args'                => array(
+                        'name' => array(
+                            'description'       => __( 'Template name.', 'oxybridge-wp' ),
+                            'type'              => 'string',
+                            'required'          => true,
+                            'sanitize_callback' => 'sanitize_key',
+                        ),
+                    ),
+                ),
+                array(
+                    'methods'             => \WP_REST_Server::DELETABLE,
+                    'callback'            => array( $this, 'delete_ai_template' ),
+                    'permission_callback' => array( $this, 'check_write_permission' ),
+                    'args'                => array(
+                        'name' => array(
+                            'description'       => __( 'Template name.', 'oxybridge-wp' ),
+                            'type'              => 'string',
+                            'required'          => true,
+                            'sanitize_callback' => 'sanitize_key',
+                        ),
+                    ),
+                ),
+            )
+        );
+
         /**
          * Fires after Oxybridge REST routes are registered.
          *
@@ -5154,5 +5300,407 @@ class REST_API {
      */
     public function get_namespace() {
         return self::NAMESPACE;
+    }
+
+    // =================================================================
+    // AI Agent Endpoint Callbacks
+    // =================================================================
+
+    /**
+     * Get AI context endpoint callback.
+     *
+     * Returns everything an AI agent needs to generate pages:
+     * - Compact element schema
+     * - Design tokens (colors, fonts, spacing)
+     * - Available component list
+     * - API reference
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_ai_context( \WP_REST_Request $request ) {
+        $schema_file = OXYBRIDGE_PLUGIN_DIR . '/ai/schema.json';
+        $schema      = array();
+
+        if ( file_exists( $schema_file ) ) {
+            $schema_content = file_get_contents( $schema_file );
+            $schema         = json_decode( $schema_content, true );
+        }
+
+        // Get design tokens.
+        $design_tokens = new Design_Tokens();
+        $tokens        = $design_tokens->get_tokens();
+
+        // Get component list (names only for minimal context).
+        $components = $this->get_ai_component_names();
+
+        // Get template list (names only).
+        $templates = $this->get_ai_template_names();
+
+        $response = array(
+            'schema'     => array(
+                'elements'         => $schema['elements'] ?? array(),
+                'rules'            => $schema['rules'] ?? array(),
+                'breakpoints'      => $schema['breakpoints'] ?? array(),
+                'node_structure'   => $schema['node_structure'] ?? array(),
+                'property_patterns' => $schema['property_patterns'] ?? array(),
+            ),
+            'tokens'     => $tokens,
+            'components' => $components,
+            'templates'  => $templates,
+            'api'        => array(
+                'base_url'    => rest_url( self::NAMESPACE ),
+                'create_page' => array(
+                    'method' => 'POST',
+                    'path'   => '/pages',
+                    'body'   => array( 'title' => 'string', 'status' => 'publish|draft', 'tree' => 'object' ),
+                ),
+                'save_tree'   => array(
+                    'method' => 'POST',
+                    'path'   => '/documents/{id}',
+                    'body'   => array( 'tree' => 'object' ),
+                ),
+                'regenerate_css' => array(
+                    'method' => 'POST',
+                    'path'   => '/regenerate-css/{id}',
+                ),
+            ),
+            'meta'       => array(
+                'context_size' => 'optimized',
+                'version'      => OXYBRIDGE_VERSION,
+                'generated_at' => current_time( 'c' ),
+            ),
+        );
+
+        /**
+         * Filters the AI context response.
+         *
+         * @since 1.1.0
+         * @param array            $response The response data.
+         * @param \WP_REST_Request $request  The request object.
+         */
+        $response = apply_filters( 'oxybridge_ai_context', $response, $request );
+
+        return rest_ensure_response( $response );
+    }
+
+    /**
+     * Get AI tokens endpoint callback.
+     *
+     * Returns design tokens extracted from site's global styles.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_ai_tokens( \WP_REST_Request $request ) {
+        $design_tokens = new Design_Tokens();
+        $tokens        = $design_tokens->get_tokens();
+
+        return rest_ensure_response( $tokens );
+    }
+
+    /**
+     * Get AI schema endpoint callback.
+     *
+     * Returns the compact element schema for AI agents.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_ai_schema( \WP_REST_Request $request ) {
+        $schema_file = OXYBRIDGE_PLUGIN_DIR . '/ai/schema.json';
+
+        if ( ! file_exists( $schema_file ) ) {
+            return new \WP_Error(
+                'schema_not_found',
+                __( 'AI schema file not found.', 'oxybridge-wp' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        $schema_content = file_get_contents( $schema_file );
+        $schema         = json_decode( $schema_content, true );
+
+        if ( json_last_error() !== JSON_ERROR_NONE ) {
+            return new \WP_Error(
+                'schema_invalid',
+                __( 'AI schema file is invalid JSON.', 'oxybridge-wp' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        return rest_ensure_response( $schema );
+    }
+
+    /**
+     * Get AI components endpoint callback.
+     *
+     * Returns all available component snippets.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_ai_components( \WP_REST_Request $request ) {
+        $components = $this->load_ai_components();
+
+        if ( is_wp_error( $components ) ) {
+            return $components;
+        }
+
+        $response = array(
+            'components' => $components,
+            'meta'       => array(
+                'count'        => count( $components ),
+                'generated_at' => current_time( 'c' ),
+            ),
+        );
+
+        return rest_ensure_response( $response );
+    }
+
+    /**
+     * Get single AI component endpoint callback.
+     *
+     * Returns a specific component snippet by name.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response or error.
+     */
+    public function get_ai_component( \WP_REST_Request $request ) {
+        $name       = $request->get_param( 'name' );
+        $components = $this->load_ai_components();
+
+        if ( is_wp_error( $components ) ) {
+            return $components;
+        }
+
+        if ( ! isset( $components[ $name ] ) ) {
+            return new \WP_Error(
+                'component_not_found',
+                sprintf( __( 'Component "%s" not found.', 'oxybridge-wp' ), $name ),
+                array( 'status' => 404 )
+            );
+        }
+
+        return rest_ensure_response( array(
+            'name'      => $name,
+            'component' => $components[ $name ],
+        ) );
+    }
+
+    /**
+     * Get AI templates list endpoint callback.
+     *
+     * Returns all saved AI templates.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response The response object.
+     */
+    public function get_ai_templates( \WP_REST_Request $request ) {
+        $templates = get_option( 'oxybridge_ai_templates', array() );
+
+        $response = array(
+            'templates' => array(),
+            'meta'      => array(
+                'count'        => count( $templates ),
+                'generated_at' => current_time( 'c' ),
+            ),
+        );
+
+        foreach ( $templates as $name => $template ) {
+            $response['templates'][] = array(
+                'name'        => $name,
+                'description' => $template['description'] ?? '',
+                'tags'        => $template['tags'] ?? array(),
+                'created_at'  => $template['created_at'] ?? null,
+            );
+        }
+
+        return rest_ensure_response( $response );
+    }
+
+    /**
+     * Get single AI template endpoint callback.
+     *
+     * Returns a specific template by name.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response or error.
+     */
+    public function get_ai_template( \WP_REST_Request $request ) {
+        $name      = $request->get_param( 'name' );
+        $templates = get_option( 'oxybridge_ai_templates', array() );
+
+        if ( ! isset( $templates[ $name ] ) ) {
+            return new \WP_Error(
+                'template_not_found',
+                sprintf( __( 'Template "%s" not found.', 'oxybridge-wp' ), $name ),
+                array( 'status' => 404 )
+            );
+        }
+
+        return rest_ensure_response( array(
+            'name'     => $name,
+            'template' => $templates[ $name ],
+        ) );
+    }
+
+    /**
+     * Create AI template endpoint callback.
+     *
+     * Saves a new AI template.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response or error.
+     */
+    public function create_ai_template( \WP_REST_Request $request ) {
+        $name        = $request->get_param( 'name' );
+        $description = $request->get_param( 'description' );
+        $tree        = $request->get_param( 'tree' );
+        $tags        = $request->get_param( 'tags' );
+
+        $templates = get_option( 'oxybridge_ai_templates', array() );
+
+        // Check if template already exists.
+        $is_update = isset( $templates[ $name ] );
+
+        $templates[ $name ] = array(
+            'description' => $description,
+            'tree'        => $tree,
+            'tags'        => $tags,
+            'created_at'  => $is_update ? ( $templates[ $name ]['created_at'] ?? current_time( 'c' ) ) : current_time( 'c' ),
+            'updated_at'  => current_time( 'c' ),
+        );
+
+        $saved = update_option( 'oxybridge_ai_templates', $templates );
+
+        if ( ! $saved && ! $is_update ) {
+            return new \WP_Error(
+                'template_save_failed',
+                __( 'Failed to save template.', 'oxybridge-wp' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        return rest_ensure_response( array(
+            'success' => true,
+            'name'    => $name,
+            'action'  => $is_update ? 'updated' : 'created',
+        ) );
+    }
+
+    /**
+     * Delete AI template endpoint callback.
+     *
+     * Deletes an AI template by name.
+     *
+     * @since 1.1.0
+     *
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error The response or error.
+     */
+    public function delete_ai_template( \WP_REST_Request $request ) {
+        $name      = $request->get_param( 'name' );
+        $templates = get_option( 'oxybridge_ai_templates', array() );
+
+        if ( ! isset( $templates[ $name ] ) ) {
+            return new \WP_Error(
+                'template_not_found',
+                sprintf( __( 'Template "%s" not found.', 'oxybridge-wp' ), $name ),
+                array( 'status' => 404 )
+            );
+        }
+
+        unset( $templates[ $name ] );
+        update_option( 'oxybridge_ai_templates', $templates );
+
+        return rest_ensure_response( array(
+            'success' => true,
+            'name'    => $name,
+            'action'  => 'deleted',
+        ) );
+    }
+
+    /**
+     * Load AI components from file.
+     *
+     * @since 1.1.0
+     *
+     * @return array|\WP_Error Components array or error.
+     */
+    private function load_ai_components() {
+        $components_file = OXYBRIDGE_PLUGIN_DIR . '/ai/components.json';
+
+        if ( ! file_exists( $components_file ) ) {
+            // Return empty array if file doesn't exist yet.
+            return array();
+        }
+
+        $content    = file_get_contents( $components_file );
+        $components = json_decode( $content, true );
+
+        if ( json_last_error() !== JSON_ERROR_NONE ) {
+            return new \WP_Error(
+                'components_invalid',
+                __( 'AI components file is invalid JSON.', 'oxybridge-wp' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        return $components;
+    }
+
+    /**
+     * Get AI component names for minimal context.
+     *
+     * @since 1.1.0
+     *
+     * @return array Array of component names.
+     */
+    private function get_ai_component_names(): array {
+        $components = $this->load_ai_components();
+
+        if ( is_wp_error( $components ) || empty( $components ) ) {
+            return array();
+        }
+
+        return array_keys( $components );
+    }
+
+    /**
+     * Get AI template names for minimal context.
+     *
+     * @since 1.1.0
+     *
+     * @return array Array of template names with descriptions.
+     */
+    private function get_ai_template_names(): array {
+        $templates = get_option( 'oxybridge_ai_templates', array() );
+        $names     = array();
+
+        foreach ( $templates as $name => $template ) {
+            $names[] = array(
+                'name'        => $name,
+                'description' => $template['description'] ?? '',
+            );
+        }
+
+        return $names;
     }
 }

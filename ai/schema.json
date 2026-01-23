@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "oxybridge-ai-schema",
+  "version": "1.0.0",
+  "description": "Compact schema for AI-powered Breakdance page generation",
+
+  "elements": {
+    "Section": "EssentialElements\\Section",
+    "Div": "EssentialElements\\Div",
+    "Columns": "EssentialElements\\Columns",
+    "Column": "EssentialElements\\Column",
+    "Heading": "EssentialElements\\Heading",
+    "Text": "EssentialElements\\Text",
+    "RichText": "EssentialElements\\RichText",
+    "Button": "EssentialElements\\Button",
+    "Image": "EssentialElements\\Image2",
+    "Icon": "EssentialElements\\Icon",
+    "Video": "EssentialElements\\Video",
+    "Slider": "EssentialElements\\Slider",
+    "Tabs": "EssentialElements\\Tabs",
+    "Accordion": "EssentialElements\\Accordion",
+    "Form": "EssentialElements\\FormBuilder",
+    "Spacer": "EssentialElements\\Spacer"
+  },
+
+  "rules": {
+    "text_content": "All text uses content.content.text path",
+    "heading_tag": "Heading tag via content.content.tags (h1-h6)",
+    "link": "Links via content.content.link.url and link.type",
+    "image_url": "Images via content.image.url and content.image.from='url'"
+  },
+
+  "breakpoints": {
+    "desktop": "breakpoint_base",
+    "tablet_landscape": "breakpoint_tablet_landscape",
+    "tablet": "breakpoint_tablet_portrait",
+    "phone_landscape": "breakpoint_phone_landscape",
+    "phone": "breakpoint_phone_portrait"
+  },
+
+  "node_structure": {
+    "id": "unique_string",
+    "data": {
+      "type": "EssentialElements\\ElementName",
+      "properties": {}
+    },
+    "children": []
+  },
+
+  "property_patterns": {
+    "text_color": {
+      "path": "design.typography.color.breakpoint_base",
+      "example": "#333333"
+    },
+    "background_color": {
+      "path": "design.background.color",
+      "example": "#ffffff"
+    },
+    "font_size": {
+      "path": "design.typography.typography.custom.customTypography.fontSize.breakpoint_base",
+      "example": {"number": 18, "unit": "px"}
+    },
+    "font_weight": {
+      "path": "design.typography.typography.custom.customTypography.fontWeight",
+      "example": "600"
+    },
+    "padding": {
+      "path": "design.spacing.padding.[top|bottom|left|right].breakpoint_base",
+      "example": "20px"
+    },
+    "margin": {
+      "path": "design.spacing.margin_[top|bottom].breakpoint_base",
+      "example": "0px"
+    },
+    "width": {
+      "path": "design.size.width.breakpoint_base",
+      "example": "100%"
+    },
+    "max_width": {
+      "path": "design.size.maxWidth.breakpoint_base",
+      "example": {"number": 1200, "unit": "px"}
+    },
+    "border_radius": {
+      "path": "design.borders.radius.all.breakpoint_base",
+      "example": {"number": 8, "unit": "px"}
+    },
+    "flex_layout": {
+      "path": "design.layout",
+      "example": {
+        "display": {"breakpoint_base": "flex"},
+        "flexDirection": {"breakpoint_base": "column"},
+        "justifyContent": {"breakpoint_base": "center"},
+        "alignItems": {"breakpoint_base": "center"},
+        "horizontalGap": {"breakpoint_base": "20px"},
+        "verticalGap": {"breakpoint_base": "20px"}
+      }
+    },
+    "grid_layout": {
+      "path": "design.layout",
+      "example": {
+        "display": {"breakpoint_base": "grid"},
+        "gridTemplateColumns": {"breakpoint_base": "repeat(3, 1fr)"},
+        "horizontalGap": {"breakpoint_base": "30px"},
+        "verticalGap": {"breakpoint_base": "30px"}
+      }
+    }
+  },
+
+  "minimal_examples": {
+    "heading": {
+      "id": "h1",
+      "data": {
+        "type": "EssentialElements\\Heading",
+        "properties": {
+          "content": {"content": {"text": "Hello World", "tags": "h1"}},
+          "design": {"typography": {"color": {"breakpoint_base": "#000"}}}
+        }
+      },
+      "children": []
+    },
+    "text": {
+      "id": "p1",
+      "data": {
+        "type": "EssentialElements\\Text",
+        "properties": {
+          "content": {"content": {"text": "Paragraph text"}},
+          "design": {"typography": {"color": {"breakpoint_base": "#333"}}}
+        }
+      },
+      "children": []
+    },
+    "button": {
+      "id": "btn1",
+      "data": {
+        "type": "EssentialElements\\Button",
+        "properties": {
+          "content": {
+            "content": {
+              "text": "Click Me",
+              "link": {"url": "#", "type": "url"}
+            }
+          },
+          "design": {
+            "button": {
+              "background": {"breakpoint_base": "#0066cc"},
+              "typography": {"color": {"breakpoint_base": "#fff"}}
+            }
+          }
+        }
+      },
+      "children": []
+    },
+    "section": {
+      "id": "section1",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#0a1628"},
+            "spacing": {
+              "padding": {
+                "top": {"breakpoint_base": "100px"},
+                "bottom": {"breakpoint_base": "100px"}
+              }
+            }
+          }
+        }
+      },
+      "children": []
+    },
+    "div_flex": {
+      "id": "flex1",
+      "data": {
+        "type": "EssentialElements\\Div",
+        "properties": {
+          "design": {
+            "layout": {
+              "display": {"breakpoint_base": "flex"},
+              "justifyContent": {"breakpoint_base": "center"},
+              "horizontalGap": {"breakpoint_base": "20px"}
+            }
+          }
+        }
+      },
+      "children": []
+    },
+    "image": {
+      "id": "img1",
+      "data": {
+        "type": "EssentialElements\\Image2",
+        "properties": {
+          "content": {
+            "image": {
+              "from": "url",
+              "url": "https://example.com/image.jpg",
+              "alt": "Description"
+            }
+          },
+          "design": {
+            "image": {
+              "width": {"breakpoint_base": "100%"},
+              "aspect_ratio": "16/9"
+            }
+          }
+        }
+      },
+      "children": []
+    }
+  },
+
+  "api": {
+    "base_url": "/wp-json/oxybridge/v1",
+    "endpoints": {
+      "create_page": {"method": "POST", "path": "/pages", "body": {"title": "string", "status": "publish|draft", "tree": "object"}},
+      "get_document": {"method": "GET", "path": "/documents/{id}"},
+      "save_document": {"method": "POST", "path": "/documents/{id}", "body": {"tree": "object"}},
+      "regenerate_css": {"method": "POST", "path": "/regenerate-css/{id}"},
+      "get_templates": {"method": "GET", "path": "/templates"},
+      "get_colors": {"method": "GET", "path": "/colors"},
+      "get_fonts": {"method": "GET", "path": "/fonts"}
+    }
+  }
+}

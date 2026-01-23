@@ -1,0 +1,924 @@
+{
+  "hero_section": {
+    "description": "Full-width hero section with heading, text, and CTA button",
+    "tree": {
+      "id": "hero-section",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#0a1628"},
+            "spacing": {
+              "padding": {
+                "top": {"breakpoint_base": "120px"},
+                "bottom": {"breakpoint_base": "120px"}
+              }
+            }
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "hero-container",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "layout": {
+                  "display": {"breakpoint_base": "flex"},
+                  "flexDirection": {"breakpoint_base": "column"},
+                  "alignItems": {"breakpoint_base": "center"},
+                  "verticalGap": {"breakpoint_base": "24px"}
+                },
+                "size": {
+                  "maxWidth": {"breakpoint_base": {"number": 800, "unit": "px"}}
+                },
+                "spacing": {
+                  "margin_left": {"breakpoint_base": "auto"},
+                  "margin_right": {"breakpoint_base": "auto"}
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "hero-heading",
+              "data": {
+                "type": "EssentialElements\\Heading",
+                "properties": {
+                  "content": {"content": {"text": "Your Hero Headline Here", "tags": "h1"}},
+                  "design": {
+                    "typography": {
+                      "color": {"breakpoint_base": "#ffffff"},
+                      "typography": {
+                        "custom": {
+                          "customTypography": {
+                            "textAlign": {"breakpoint_base": "center"}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "children": []
+            },
+            {
+              "id": "hero-text",
+              "data": {
+                "type": "EssentialElements\\Text",
+                "properties": {
+                  "content": {"content": {"text": "A compelling subheadline that explains your value proposition and encourages visitors to take action."}},
+                  "design": {
+                    "typography": {
+                      "color": {"breakpoint_base": "#b5b5ba"},
+                      "typography": {
+                        "custom": {
+                          "customTypography": {
+                            "textAlign": {"breakpoint_base": "center"}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "children": []
+            },
+            {
+              "id": "hero-button",
+              "data": {
+                "type": "EssentialElements\\Button",
+                "properties": {
+                  "content": {
+                    "content": {
+                      "text": "Get Started",
+                      "link": {"url": "#", "type": "url"}
+                    }
+                  },
+                  "design": {
+                    "button": {
+                      "background": {"breakpoint_base": "#0066cc"},
+                      "typography": {"color": {"breakpoint_base": "#ffffff"}}
+                    }
+                  }
+                }
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "hero_split": {
+    "description": "Hero section with image on one side and content on the other",
+    "tree": {
+      "id": "hero-split",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#ffffff"},
+            "spacing": {
+              "padding": {
+                "top": {"breakpoint_base": "80px"},
+                "bottom": {"breakpoint_base": "80px"}
+              }
+            }
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "hero-split-container",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "layout": {
+                  "display": {"breakpoint_base": "grid"},
+                  "gridTemplateColumns": {"breakpoint_base": "1fr 1fr", "breakpoint_tablet_portrait": "1fr"},
+                  "horizontalGap": {"breakpoint_base": "60px"},
+                  "alignItems": {"breakpoint_base": "center"}
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "hero-split-content",
+              "data": {
+                "type": "EssentialElements\\Div",
+                "properties": {
+                  "design": {
+                    "layout": {
+                      "display": {"breakpoint_base": "flex"},
+                      "flexDirection": {"breakpoint_base": "column"},
+                      "verticalGap": {"breakpoint_base": "20px"}
+                    }
+                  }
+                }
+              },
+              "children": [
+                {
+                  "id": "hero-split-heading",
+                  "data": {
+                    "type": "EssentialElements\\Heading",
+                    "properties": {
+                      "content": {"content": {"text": "Transform Your Business", "tags": "h1"}},
+                      "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}
+                    }
+                  },
+                  "children": []
+                },
+                {
+                  "id": "hero-split-text",
+                  "data": {
+                    "type": "EssentialElements\\Text",
+                    "properties": {
+                      "content": {"content": {"text": "Discover how our solution can help you achieve your goals faster and more efficiently."}},
+                      "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}
+                    }
+                  },
+                  "children": []
+                },
+                {
+                  "id": "hero-split-button",
+                  "data": {
+                    "type": "EssentialElements\\Button",
+                    "properties": {
+                      "content": {"content": {"text": "Learn More", "link": {"url": "#", "type": "url"}}},
+                      "design": {"button": {"background": {"breakpoint_base": "#0066cc"}, "typography": {"color": {"breakpoint_base": "#ffffff"}}}}
+                    }
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "hero-split-image",
+              "data": {
+                "type": "EssentialElements\\Image2",
+                "properties": {
+                  "content": {"image": {"from": "url", "url": "https://placehold.co/600x400", "alt": "Hero image"}},
+                  "design": {"image": {"width": {"breakpoint_base": "100%"}, "aspect_ratio": "3/2"}}
+                }
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "feature_grid": {
+    "description": "3-column feature cards with icons",
+    "tree": {
+      "id": "features-section",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#f8f9fa"},
+            "spacing": {"padding": {"top": {"breakpoint_base": "80px"}, "bottom": {"breakpoint_base": "80px"}}}
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "features-heading",
+          "data": {
+            "type": "EssentialElements\\Heading",
+            "properties": {
+              "content": {"content": {"text": "Our Features", "tags": "h2"}},
+              "design": {
+                "typography": {"color": {"breakpoint_base": "#1a1a2e"}},
+                "spacing": {"margin_bottom": {"breakpoint_base": "48px"}}
+              }
+            }
+          },
+          "children": []
+        },
+        {
+          "id": "features-grid",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "layout": {
+                  "display": {"breakpoint_base": "grid"},
+                  "gridTemplateColumns": {"breakpoint_base": "repeat(3, 1fr)", "breakpoint_tablet_portrait": "1fr"},
+                  "horizontalGap": {"breakpoint_base": "30px"},
+                  "verticalGap": {"breakpoint_base": "30px"}
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "feature-1",
+              "data": {
+                "type": "EssentialElements\\Div",
+                "properties": {
+                  "design": {
+                    "background": {"color": "#ffffff"},
+                    "spacing": {"padding": {"top": {"breakpoint_base": "30px"}, "bottom": {"breakpoint_base": "30px"}, "left": {"breakpoint_base": "30px"}, "right": {"breakpoint_base": "30px"}}},
+                    "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}
+                  }
+                }
+              },
+              "children": [
+                {"id": "feature-1-title", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Feature One", "tags": "h3"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "feature-1-text", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Description of this amazing feature and why it matters to your customers."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "feature-2",
+              "data": {
+                "type": "EssentialElements\\Div",
+                "properties": {
+                  "design": {
+                    "background": {"color": "#ffffff"},
+                    "spacing": {"padding": {"top": {"breakpoint_base": "30px"}, "bottom": {"breakpoint_base": "30px"}, "left": {"breakpoint_base": "30px"}, "right": {"breakpoint_base": "30px"}}},
+                    "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}
+                  }
+                }
+              },
+              "children": [
+                {"id": "feature-2-title", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Feature Two", "tags": "h3"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "feature-2-text", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Another great feature that sets your product apart from the competition."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "feature-3",
+              "data": {
+                "type": "EssentialElements\\Div",
+                "properties": {
+                  "design": {
+                    "background": {"color": "#ffffff"},
+                    "spacing": {"padding": {"top": {"breakpoint_base": "30px"}, "bottom": {"breakpoint_base": "30px"}, "left": {"breakpoint_base": "30px"}, "right": {"breakpoint_base": "30px"}}},
+                    "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}
+                  }
+                }
+              },
+              "children": [
+                {"id": "feature-3-title", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Feature Three", "tags": "h3"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "feature-3-text", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "A third compelling feature that completes your value proposition."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "feature_list": {
+    "description": "Vertical feature list with alternating layout",
+    "tree": {
+      "id": "feature-list-section",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#ffffff"},
+            "spacing": {"padding": {"top": {"breakpoint_base": "80px"}, "bottom": {"breakpoint_base": "80px"}}}
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "feature-list-container",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "verticalGap": {"breakpoint_base": "60px"}}
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "feature-item-1",
+              "data": {
+                "type": "EssentialElements\\Div",
+                "properties": {
+                  "design": {
+                    "layout": {"display": {"breakpoint_base": "grid"}, "gridTemplateColumns": {"breakpoint_base": "1fr 1fr"}, "horizontalGap": {"breakpoint_base": "40px"}, "alignItems": {"breakpoint_base": "center"}}
+                  }
+                }
+              },
+              "children": [
+                {
+                  "id": "feature-item-1-content",
+                  "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "verticalGap": {"breakpoint_base": "16px"}}}}},
+                  "children": [
+                    {"id": "feature-item-1-title", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Powerful Feature", "tags": "h3"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                    {"id": "feature-item-1-text", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Detailed description of this feature and how it benefits the user. Include specific outcomes and advantages."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+                  ]
+                },
+                {"id": "feature-item-1-image", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/500x300", "alt": "Feature illustration"}}, "design": {"image": {"width": {"breakpoint_base": "100%"}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "cta_section": {
+    "description": "Call-to-action section with heading, text, and button",
+    "tree": {
+      "id": "cta-section",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#0066cc"},
+            "spacing": {"padding": {"top": {"breakpoint_base": "80px"}, "bottom": {"breakpoint_base": "80px"}}}
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "cta-container",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "alignItems": {"breakpoint_base": "center"}, "verticalGap": {"breakpoint_base": "24px"}},
+                "size": {"maxWidth": {"breakpoint_base": {"number": 600, "unit": "px"}}},
+                "spacing": {"margin_left": {"breakpoint_base": "auto"}, "margin_right": {"breakpoint_base": "auto"}}
+              }
+            }
+          },
+          "children": [
+            {"id": "cta-heading", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Ready to Get Started?", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}, "typography": {"custom": {"customTypography": {"textAlign": {"breakpoint_base": "center"}}}}}}}}, "children": []},
+            {"id": "cta-text", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Join thousands of satisfied customers who have transformed their business with our solution."}}, "design": {"typography": {"color": {"breakpoint_base": "#e0e7ff"}, "typography": {"custom": {"customTypography": {"textAlign": {"breakpoint_base": "center"}}}}}}}}, "children": []},
+            {"id": "cta-button", "data": {"type": "EssentialElements\\Button", "properties": {"content": {"content": {"text": "Start Free Trial", "link": {"url": "#", "type": "url"}}}, "design": {"button": {"background": {"breakpoint_base": "#ffffff"}, "typography": {"color": {"breakpoint_base": "#0066cc"}}}}}}, "children": []}
+          ]
+        }
+      ]
+    }
+  },
+
+  "cta_banner": {
+    "description": "Compact inline CTA banner",
+    "tree": {
+      "id": "cta-banner",
+      "data": {
+        "type": "EssentialElements\\Div",
+        "properties": {
+          "design": {
+            "background": {"color": "#1a1a2e"},
+            "spacing": {"padding": {"top": {"breakpoint_base": "24px"}, "bottom": {"breakpoint_base": "24px"}, "left": {"breakpoint_base": "32px"}, "right": {"breakpoint_base": "32px"}}},
+            "borders": {"radius": {"all": {"breakpoint_base": {"number": 12, "unit": "px"}}}},
+            "layout": {"display": {"breakpoint_base": "flex"}, "justifyContent": {"breakpoint_base": "space-between"}, "alignItems": {"breakpoint_base": "center"}, "flexDirection": {"breakpoint_base": "row", "breakpoint_phone_portrait": "column"}, "horizontalGap": {"breakpoint_base": "20px"}, "verticalGap": {"breakpoint_base": "16px"}}
+          }
+        }
+      },
+      "children": [
+        {"id": "cta-banner-text", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Get 20% off your first order. Limited time offer!"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+        {"id": "cta-banner-button", "data": {"type": "EssentialElements\\Button", "properties": {"content": {"content": {"text": "Claim Offer", "link": {"url": "#", "type": "url"}}}, "design": {"button": {"background": {"breakpoint_base": "#ff6b35"}, "typography": {"color": {"breakpoint_base": "#ffffff"}}}}}}, "children": []}
+      ]
+    }
+  },
+
+  "pricing_table": {
+    "description": "3-tier pricing comparison table",
+    "tree": {
+      "id": "pricing-section",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#f8f9fa"},
+            "spacing": {"padding": {"top": {"breakpoint_base": "80px"}, "bottom": {"breakpoint_base": "80px"}}}
+          }
+        }
+      },
+      "children": [
+        {"id": "pricing-heading", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Simple, Transparent Pricing", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}, "typography": {"custom": {"customTypography": {"textAlign": {"breakpoint_base": "center"}}}}}, "spacing": {"margin_bottom": {"breakpoint_base": "48px"}}}}}, "children": []},
+        {
+          "id": "pricing-grid",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "layout": {"display": {"breakpoint_base": "grid"}, "gridTemplateColumns": {"breakpoint_base": "repeat(3, 1fr)", "breakpoint_tablet_portrait": "1fr"}, "horizontalGap": {"breakpoint_base": "24px"}, "verticalGap": {"breakpoint_base": "24px"}}
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "pricing-basic",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"background": {"color": "#ffffff"}, "spacing": {"padding": {"top": {"breakpoint_base": "32px"}, "bottom": {"breakpoint_base": "32px"}, "left": {"breakpoint_base": "24px"}, "right": {"breakpoint_base": "24px"}}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 12, "unit": "px"}}}}}}},
+              "children": [
+                {"id": "pricing-basic-name", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Basic", "tags": "h3"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+                {"id": "pricing-basic-price", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "$9/mo", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "pricing-basic-features", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "5 Projects<br>10GB Storage<br>Email Support"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+                {"id": "pricing-basic-button", "data": {"type": "EssentialElements\\Button", "properties": {"content": {"content": {"text": "Get Started", "link": {"url": "#", "type": "url"}}}, "design": {"button": {"background": {"breakpoint_base": "#e5e7eb"}, "typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "pricing-pro",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"background": {"color": "#0066cc"}, "spacing": {"padding": {"top": {"breakpoint_base": "32px"}, "bottom": {"breakpoint_base": "32px"}, "left": {"breakpoint_base": "24px"}, "right": {"breakpoint_base": "24px"}}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 12, "unit": "px"}}}}}}},
+              "children": [
+                {"id": "pricing-pro-name", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Pro", "tags": "h3"}}, "design": {"typography": {"color": {"breakpoint_base": "#e0e7ff"}}}}}, "children": []},
+                {"id": "pricing-pro-price", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "$29/mo", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+                {"id": "pricing-pro-features", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Unlimited Projects<br>100GB Storage<br>Priority Support<br>Advanced Analytics"}}, "design": {"typography": {"color": {"breakpoint_base": "#e0e7ff"}}}}}, "children": []},
+                {"id": "pricing-pro-button", "data": {"type": "EssentialElements\\Button", "properties": {"content": {"content": {"text": "Get Started", "link": {"url": "#", "type": "url"}}}, "design": {"button": {"background": {"breakpoint_base": "#ffffff"}, "typography": {"color": {"breakpoint_base": "#0066cc"}}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "pricing-enterprise",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"background": {"color": "#ffffff"}, "spacing": {"padding": {"top": {"breakpoint_base": "32px"}, "bottom": {"breakpoint_base": "32px"}, "left": {"breakpoint_base": "24px"}, "right": {"breakpoint_base": "24px"}}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 12, "unit": "px"}}}}}}},
+              "children": [
+                {"id": "pricing-ent-name", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Enterprise", "tags": "h3"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+                {"id": "pricing-ent-price", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "$99/mo", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "pricing-ent-features", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Everything in Pro<br>Unlimited Storage<br>24/7 Support<br>Custom Integrations<br>SLA Guarantee"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+                {"id": "pricing-ent-button", "data": {"type": "EssentialElements\\Button", "properties": {"content": {"content": {"text": "Contact Sales", "link": {"url": "#", "type": "url"}}}, "design": {"button": {"background": {"breakpoint_base": "#e5e7eb"}, "typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "pricing_cards": {
+    "description": "Individual pricing cards layout",
+    "tree": {
+      "id": "pricing-card",
+      "data": {
+        "type": "EssentialElements\\Div",
+        "properties": {
+          "design": {
+            "background": {"color": "#ffffff"},
+            "spacing": {"padding": {"top": {"breakpoint_base": "40px"}, "bottom": {"breakpoint_base": "40px"}, "left": {"breakpoint_base": "32px"}, "right": {"breakpoint_base": "32px"}}},
+            "borders": {"radius": {"all": {"breakpoint_base": {"number": 16, "unit": "px"}}}, "border": {"all": {"width": {"breakpoint_base": {"number": 1, "unit": "px"}}, "style": "solid", "color": "#e5e7eb"}}},
+            "layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "alignItems": {"breakpoint_base": "center"}, "verticalGap": {"breakpoint_base": "16px"}}
+          }
+        }
+      },
+      "children": [
+        {"id": "card-plan-name", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Professional", "tags": "h3"}}, "design": {"typography": {"color": {"breakpoint_base": "#0066cc"}}}}}, "children": []},
+        {"id": "card-price", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "$49", "tags": "h1"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+        {"id": "card-period", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "per month, billed annually"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+        {"id": "card-button", "data": {"type": "EssentialElements\\Button", "properties": {"content": {"content": {"text": "Start Free Trial", "link": {"url": "#", "type": "url"}}}, "design": {"button": {"background": {"breakpoint_base": "#0066cc"}, "typography": {"color": {"breakpoint_base": "#ffffff"}}}}}}, "children": []}
+      ]
+    }
+  },
+
+  "testimonial_single": {
+    "description": "Single large testimonial quote",
+    "tree": {
+      "id": "testimonial-section",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#f8f9fa"},
+            "spacing": {"padding": {"top": {"breakpoint_base": "80px"}, "bottom": {"breakpoint_base": "80px"}}}
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "testimonial-container",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "size": {"maxWidth": {"breakpoint_base": {"number": 700, "unit": "px"}}},
+                "spacing": {"margin_left": {"breakpoint_base": "auto"}, "margin_right": {"breakpoint_base": "auto"}},
+                "layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "alignItems": {"breakpoint_base": "center"}, "verticalGap": {"breakpoint_base": "24px"}}
+              }
+            }
+          },
+          "children": [
+            {"id": "testimonial-quote", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "\"This product has completely transformed how we work. The results speak for themselves - 40% increase in productivity within the first month.\""}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}, "typography": {"custom": {"customTypography": {"fontSize": {"breakpoint_base": {"number": 24, "unit": "px"}}, "textAlign": {"breakpoint_base": "center"}}}}}}}}, "children": []},
+            {"id": "testimonial-author", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "— Sarah Johnson, CEO at TechCorp"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+          ]
+        }
+      ]
+    }
+  },
+
+  "testimonial_grid": {
+    "description": "Grid of testimonial cards",
+    "tree": {
+      "id": "testimonials-grid-section",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#ffffff"},
+            "spacing": {"padding": {"top": {"breakpoint_base": "80px"}, "bottom": {"breakpoint_base": "80px"}}}
+          }
+        }
+      },
+      "children": [
+        {"id": "testimonials-heading", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "What Our Customers Say", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}, "typography": {"custom": {"customTypography": {"textAlign": {"breakpoint_base": "center"}}}}}, "spacing": {"margin_bottom": {"breakpoint_base": "48px"}}}}}, "children": []},
+        {
+          "id": "testimonials-grid",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "grid"}, "gridTemplateColumns": {"breakpoint_base": "repeat(3, 1fr)", "breakpoint_tablet_portrait": "1fr"}, "horizontalGap": {"breakpoint_base": "24px"}, "verticalGap": {"breakpoint_base": "24px"}}}}},
+          "children": [
+            {
+              "id": "testimonial-card-1",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"background": {"color": "#f8f9fa"}, "spacing": {"padding": {"top": {"breakpoint_base": "24px"}, "bottom": {"breakpoint_base": "24px"}, "left": {"breakpoint_base": "24px"}, "right": {"breakpoint_base": "24px"}}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}},
+              "children": [
+                {"id": "tc1-quote", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "\"Excellent service and support. Highly recommend!\""}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "tc1-author", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "— John D."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "testimonial-card-2",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"background": {"color": "#f8f9fa"}, "spacing": {"padding": {"top": {"breakpoint_base": "24px"}, "bottom": {"breakpoint_base": "24px"}, "left": {"breakpoint_base": "24px"}, "right": {"breakpoint_base": "24px"}}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}},
+              "children": [
+                {"id": "tc2-quote", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "\"Game changer for our business operations.\""}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "tc2-author", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "— Maria S."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "testimonial-card-3",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"background": {"color": "#f8f9fa"}, "spacing": {"padding": {"top": {"breakpoint_base": "24px"}, "bottom": {"breakpoint_base": "24px"}, "left": {"breakpoint_base": "24px"}, "right": {"breakpoint_base": "24px"}}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}},
+              "children": [
+                {"id": "tc3-quote", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "\"Best investment we've made this year.\""}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "tc3-author", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "— Alex K."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "team_grid": {
+    "description": "Team member cards with photos",
+    "tree": {
+      "id": "team-section",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#ffffff"}, "spacing": {"padding": {"top": {"breakpoint_base": "80px"}, "bottom": {"breakpoint_base": "80px"}}}}}},
+      "children": [
+        {"id": "team-heading", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Meet Our Team", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}, "typography": {"custom": {"customTypography": {"textAlign": {"breakpoint_base": "center"}}}}}, "spacing": {"margin_bottom": {"breakpoint_base": "48px"}}}}}, "children": []},
+        {
+          "id": "team-grid",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "grid"}, "gridTemplateColumns": {"breakpoint_base": "repeat(4, 1fr)", "breakpoint_tablet_portrait": "repeat(2, 1fr)", "breakpoint_phone_portrait": "1fr"}, "horizontalGap": {"breakpoint_base": "24px"}, "verticalGap": {"breakpoint_base": "24px"}}}}},
+          "children": [
+            {
+              "id": "team-member-1",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "alignItems": {"breakpoint_base": "center"}, "verticalGap": {"breakpoint_base": "12px"}}}}},
+              "children": [
+                {"id": "tm1-photo", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/150x150", "alt": "Team member"}}, "design": {"image": {"width": {"breakpoint_base": "150px"}, "aspect_ratio": "1/1"}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 75, "unit": "px"}}}}}}}, "children": []},
+                {"id": "tm1-name", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Jane Smith", "tags": "h4"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "tm1-role", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "CEO & Founder"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "faq_accordion": {
+    "description": "Expandable FAQ sections (visual representation)",
+    "tree": {
+      "id": "faq-section",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#f8f9fa"}, "spacing": {"padding": {"top": {"breakpoint_base": "80px"}, "bottom": {"breakpoint_base": "80px"}}}}}},
+      "children": [
+        {"id": "faq-heading", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Frequently Asked Questions", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}, "typography": {"custom": {"customTypography": {"textAlign": {"breakpoint_base": "center"}}}}}, "spacing": {"margin_bottom": {"breakpoint_base": "48px"}}}}}, "children": []},
+        {
+          "id": "faq-container",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"size": {"maxWidth": {"breakpoint_base": {"number": 800, "unit": "px"}}}, "spacing": {"margin_left": {"breakpoint_base": "auto"}, "margin_right": {"breakpoint_base": "auto"}}, "layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "verticalGap": {"breakpoint_base": "16px"}}}}},
+          "children": [
+            {
+              "id": "faq-item-1",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"background": {"color": "#ffffff"}, "spacing": {"padding": {"top": {"breakpoint_base": "20px"}, "bottom": {"breakpoint_base": "20px"}, "left": {"breakpoint_base": "24px"}, "right": {"breakpoint_base": "24px"}}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}},
+              "children": [
+                {"id": "faq1-question", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "How do I get started?", "tags": "h4"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "faq1-answer", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Getting started is easy! Simply sign up for a free account, and you'll be guided through our onboarding process step by step."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "faq-item-2",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"background": {"color": "#ffffff"}, "spacing": {"padding": {"top": {"breakpoint_base": "20px"}, "bottom": {"breakpoint_base": "20px"}, "left": {"breakpoint_base": "24px"}, "right": {"breakpoint_base": "24px"}}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}},
+              "children": [
+                {"id": "faq2-question", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "What payment methods do you accept?", "tags": "h4"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "faq2-answer", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "We accept all major credit cards, PayPal, and bank transfers for annual plans."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "gallery_grid": {
+    "description": "Image gallery grid",
+    "tree": {
+      "id": "gallery-section",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#ffffff"}, "spacing": {"padding": {"top": {"breakpoint_base": "60px"}, "bottom": {"breakpoint_base": "60px"}}}}}},
+      "children": [
+        {
+          "id": "gallery-grid",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "grid"}, "gridTemplateColumns": {"breakpoint_base": "repeat(4, 1fr)", "breakpoint_tablet_portrait": "repeat(2, 1fr)"}, "horizontalGap": {"breakpoint_base": "16px"}, "verticalGap": {"breakpoint_base": "16px"}}}}},
+          "children": [
+            {"id": "gallery-img-1", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/400x300", "alt": "Gallery image 1"}}, "design": {"image": {"width": {"breakpoint_base": "100%"}, "aspect_ratio": "4/3"}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}}, "children": []},
+            {"id": "gallery-img-2", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/400x300", "alt": "Gallery image 2"}}, "design": {"image": {"width": {"breakpoint_base": "100%"}, "aspect_ratio": "4/3"}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}}, "children": []},
+            {"id": "gallery-img-3", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/400x300", "alt": "Gallery image 3"}}, "design": {"image": {"width": {"breakpoint_base": "100%"}, "aspect_ratio": "4/3"}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}}, "children": []},
+            {"id": "gallery-img-4", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/400x300", "alt": "Gallery image 4"}}, "design": {"image": {"width": {"breakpoint_base": "100%"}, "aspect_ratio": "4/3"}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}}, "children": []}
+          ]
+        }
+      ]
+    }
+  },
+
+  "stats_counter": {
+    "description": "Animated statistics display",
+    "tree": {
+      "id": "stats-section",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#0066cc"}, "spacing": {"padding": {"top": {"breakpoint_base": "60px"}, "bottom": {"breakpoint_base": "60px"}}}}}},
+      "children": [
+        {
+          "id": "stats-grid",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "grid"}, "gridTemplateColumns": {"breakpoint_base": "repeat(4, 1fr)", "breakpoint_tablet_portrait": "repeat(2, 1fr)"}, "horizontalGap": {"breakpoint_base": "40px"}, "verticalGap": {"breakpoint_base": "40px"}}}}},
+          "children": [
+            {
+              "id": "stat-1",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "alignItems": {"breakpoint_base": "center"}}}}},
+              "children": [
+                {"id": "stat-1-number", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "10K+", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+                {"id": "stat-1-label", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Happy Customers"}}, "design": {"typography": {"color": {"breakpoint_base": "#e0e7ff"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "stat-2",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "alignItems": {"breakpoint_base": "center"}}}}},
+              "children": [
+                {"id": "stat-2-number", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "500+", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+                {"id": "stat-2-label", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Projects Completed"}}, "design": {"typography": {"color": {"breakpoint_base": "#e0e7ff"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "stat-3",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "alignItems": {"breakpoint_base": "center"}}}}},
+              "children": [
+                {"id": "stat-3-number", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "99%", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+                {"id": "stat-3-label", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Satisfaction Rate"}}, "design": {"typography": {"color": {"breakpoint_base": "#e0e7ff"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "stat-4",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "alignItems": {"breakpoint_base": "center"}}}}},
+              "children": [
+                {"id": "stat-4-number", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "24/7", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+                {"id": "stat-4-label", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Support Available"}}, "design": {"typography": {"color": {"breakpoint_base": "#e0e7ff"}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "logo_cloud": {
+    "description": "Client/partner logo display",
+    "tree": {
+      "id": "logos-section",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#f8f9fa"}, "spacing": {"padding": {"top": {"breakpoint_base": "60px"}, "bottom": {"breakpoint_base": "60px"}}}}}},
+      "children": [
+        {"id": "logos-heading", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Trusted by leading companies"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}, "typography": {"custom": {"customTypography": {"textAlign": {"breakpoint_base": "center"}}}}}, "spacing": {"margin_bottom": {"breakpoint_base": "32px"}}}}}, "children": []},
+        {
+          "id": "logos-grid",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "justifyContent": {"breakpoint_base": "center"}, "alignItems": {"breakpoint_base": "center"}, "flexWrap": {"breakpoint_base": "wrap"}, "horizontalGap": {"breakpoint_base": "48px"}, "verticalGap": {"breakpoint_base": "24px"}}}}},
+          "children": [
+            {"id": "logo-1", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/120x40?text=Logo", "alt": "Partner logo"}}, "design": {"image": {"width": {"breakpoint_base": "120px"}}}}}, "children": []},
+            {"id": "logo-2", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/120x40?text=Logo", "alt": "Partner logo"}}, "design": {"image": {"width": {"breakpoint_base": "120px"}}}}}, "children": []},
+            {"id": "logo-3", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/120x40?text=Logo", "alt": "Partner logo"}}, "design": {"image": {"width": {"breakpoint_base": "120px"}}}}}, "children": []},
+            {"id": "logo-4", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/120x40?text=Logo", "alt": "Partner logo"}}, "design": {"image": {"width": {"breakpoint_base": "120px"}}}}}, "children": []},
+            {"id": "logo-5", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/120x40?text=Logo", "alt": "Partner logo"}}, "design": {"image": {"width": {"breakpoint_base": "120px"}}}}}, "children": []}
+          ]
+        }
+      ]
+    }
+  },
+
+  "newsletter_signup": {
+    "description": "Email signup form section",
+    "tree": {
+      "id": "newsletter-section",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#1a1a2e"}, "spacing": {"padding": {"top": {"breakpoint_base": "60px"}, "bottom": {"breakpoint_base": "60px"}}}}}},
+      "children": [
+        {
+          "id": "newsletter-container",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"size": {"maxWidth": {"breakpoint_base": {"number": 500, "unit": "px"}}}, "spacing": {"margin_left": {"breakpoint_base": "auto"}, "margin_right": {"breakpoint_base": "auto"}}, "layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "alignItems": {"breakpoint_base": "center"}, "verticalGap": {"breakpoint_base": "20px"}}}}},
+          "children": [
+            {"id": "newsletter-heading", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Stay Updated", "tags": "h3"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+            {"id": "newsletter-text", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Subscribe to our newsletter for the latest updates and offers."}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}, "typography": {"custom": {"customTypography": {"textAlign": {"breakpoint_base": "center"}}}}}}}}, "children": []},
+            {
+              "id": "newsletter-form",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "horizontalGap": {"breakpoint_base": "12px"}, "flexDirection": {"breakpoint_base": "row", "breakpoint_phone_portrait": "column"}, "verticalGap": {"breakpoint_base": "12px"}}}}},
+              "children": [
+                {"id": "newsletter-button", "data": {"type": "EssentialElements\\Button", "properties": {"content": {"content": {"text": "Subscribe", "link": {"url": "#", "type": "url"}}}, "design": {"button": {"background": {"breakpoint_base": "#0066cc"}, "typography": {"color": {"breakpoint_base": "#ffffff"}}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "footer_simple": {
+    "description": "Basic footer with links",
+    "tree": {
+      "id": "footer-simple",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#1a1a2e"}, "spacing": {"padding": {"top": {"breakpoint_base": "40px"}, "bottom": {"breakpoint_base": "40px"}}}}}},
+      "children": [
+        {
+          "id": "footer-content",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "justifyContent": {"breakpoint_base": "space-between"}, "alignItems": {"breakpoint_base": "center"}, "flexDirection": {"breakpoint_base": "row", "breakpoint_phone_portrait": "column"}, "verticalGap": {"breakpoint_base": "16px"}}}}},
+          "children": [
+            {"id": "footer-copyright", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "2024 Your Company. All rights reserved."}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []},
+            {
+              "id": "footer-links",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "horizontalGap": {"breakpoint_base": "24px"}}}}},
+              "children": [
+                {"id": "footer-link-privacy", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Privacy Policy"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []},
+                {"id": "footer-link-terms", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Terms of Service"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "footer_complex": {
+    "description": "Multi-column footer with widgets",
+    "tree": {
+      "id": "footer-complex",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#0a1628"}, "spacing": {"padding": {"top": {"breakpoint_base": "60px"}, "bottom": {"breakpoint_base": "40px"}}}}}},
+      "children": [
+        {
+          "id": "footer-columns",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "grid"}, "gridTemplateColumns": {"breakpoint_base": "2fr 1fr 1fr 1fr", "breakpoint_tablet_portrait": "1fr 1fr", "breakpoint_phone_portrait": "1fr"}, "horizontalGap": {"breakpoint_base": "40px"}, "verticalGap": {"breakpoint_base": "32px"}}, "spacing": {"margin_bottom": {"breakpoint_base": "40px"}}}}},
+          "children": [
+            {
+              "id": "footer-about",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "verticalGap": {"breakpoint_base": "16px"}}}}},
+              "children": [
+                {"id": "footer-logo-text", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "YourBrand", "tags": "h4"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+                {"id": "footer-about-text", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Building amazing products that help businesses grow and succeed in the digital world."}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "footer-col-product",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "verticalGap": {"breakpoint_base": "12px"}}}}},
+              "children": [
+                {"id": "footer-product-title", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Product", "tags": "h5"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+                {"id": "footer-product-link1", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Features"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []},
+                {"id": "footer-product-link2", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Pricing"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []},
+                {"id": "footer-product-link3", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Integrations"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "footer-col-company",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "verticalGap": {"breakpoint_base": "12px"}}}}},
+              "children": [
+                {"id": "footer-company-title", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Company", "tags": "h5"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+                {"id": "footer-company-link1", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "About"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []},
+                {"id": "footer-company-link2", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Blog"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []},
+                {"id": "footer-company-link3", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Careers"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "footer-col-support",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "verticalGap": {"breakpoint_base": "12px"}}}}},
+              "children": [
+                {"id": "footer-support-title", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Support", "tags": "h5"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+                {"id": "footer-support-link1", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Help Center"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []},
+                {"id": "footer-support-link2", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Contact"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []},
+                {"id": "footer-support-link3", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Status"}}, "design": {"typography": {"color": {"breakpoint_base": "#b5b5ba"}}}}}, "children": []}
+              ]
+            }
+          ]
+        },
+        {
+          "id": "footer-bottom",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"borders": {"border": {"top": {"width": {"breakpoint_base": {"number": 1, "unit": "px"}}, "style": "solid", "color": "#1d293d"}}}, "spacing": {"padding": {"top": {"breakpoint_base": "24px"}}}, "layout": {"display": {"breakpoint_base": "flex"}, "justifyContent": {"breakpoint_base": "center"}}}}},
+          "children": [
+            {"id": "footer-bottom-text", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "2024 YourBrand. All rights reserved."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+          ]
+        }
+      ]
+    }
+  },
+
+  "contact_form": {
+    "description": "Contact form section (visual layout)",
+    "tree": {
+      "id": "contact-section",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#ffffff"}, "spacing": {"padding": {"top": {"breakpoint_base": "80px"}, "bottom": {"breakpoint_base": "80px"}}}}}},
+      "children": [
+        {
+          "id": "contact-container",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"size": {"maxWidth": {"breakpoint_base": {"number": 600, "unit": "px"}}}, "spacing": {"margin_left": {"breakpoint_base": "auto"}, "margin_right": {"breakpoint_base": "auto"}}, "layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "verticalGap": {"breakpoint_base": "24px"}}}}},
+          "children": [
+            {"id": "contact-heading", "data": {"type": "EssentialElements\\Heading", "properties": {"content": {"content": {"text": "Get in Touch", "tags": "h2"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}, "typography": {"custom": {"customTypography": {"textAlign": {"breakpoint_base": "center"}}}}}}}}, "children": []},
+            {"id": "contact-text", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible."}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}, "typography": {"custom": {"customTypography": {"textAlign": {"breakpoint_base": "center"}}}}}}}}, "children": []},
+            {"id": "contact-button", "data": {"type": "EssentialElements\\Button", "properties": {"content": {"content": {"text": "Contact Us", "link": {"url": "mailto:hello@example.com", "type": "url"}}}, "design": {"button": {"background": {"breakpoint_base": "#0066cc"}, "typography": {"color": {"breakpoint_base": "#ffffff"}}}}}}, "children": []}
+          ]
+        }
+      ]
+    }
+  },
+
+  "gallery_masonry": {
+    "description": "Masonry-style image layout",
+    "tree": {
+      "id": "masonry-section",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#f8f9fa"}, "spacing": {"padding": {"top": {"breakpoint_base": "60px"}, "bottom": {"breakpoint_base": "60px"}}}}}},
+      "children": [
+        {
+          "id": "masonry-grid",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "grid"}, "gridTemplateColumns": {"breakpoint_base": "repeat(3, 1fr)", "breakpoint_tablet_portrait": "repeat(2, 1fr)"}, "horizontalGap": {"breakpoint_base": "16px"}, "verticalGap": {"breakpoint_base": "16px"}}}}},
+          "children": [
+            {"id": "masonry-img-1", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/400x600", "alt": "Gallery image"}}, "design": {"image": {"width": {"breakpoint_base": "100%"}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}}, "children": []},
+            {"id": "masonry-img-2", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/400x300", "alt": "Gallery image"}}, "design": {"image": {"width": {"breakpoint_base": "100%"}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}}, "children": []},
+            {"id": "masonry-img-3", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/400x400", "alt": "Gallery image"}}, "design": {"image": {"width": {"breakpoint_base": "100%"}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}}, "children": []},
+            {"id": "masonry-img-4", "data": {"type": "EssentialElements\\Image2", "properties": {"content": {"image": {"from": "url", "url": "https://placehold.co/400x500", "alt": "Gallery image"}}, "design": {"image": {"width": {"breakpoint_base": "100%"}}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 8, "unit": "px"}}}}}}}, "children": []}
+          ]
+        }
+      ]
+    }
+  },
+
+  "testimonial_slider": {
+    "description": "Carousel testimonials (static representation)",
+    "tree": {
+      "id": "testimonial-slider-section",
+      "data": {"type": "EssentialElements\\Section", "properties": {"design": {"background": {"color": "#0066cc"}, "spacing": {"padding": {"top": {"breakpoint_base": "80px"}, "bottom": {"breakpoint_base": "80px"}}}}}},
+      "children": [
+        {
+          "id": "slider-container",
+          "data": {"type": "EssentialElements\\Div", "properties": {"design": {"size": {"maxWidth": {"breakpoint_base": {"number": 800, "unit": "px"}}}, "spacing": {"margin_left": {"breakpoint_base": "auto"}, "margin_right": {"breakpoint_base": "auto"}}, "layout": {"display": {"breakpoint_base": "flex"}, "flexDirection": {"breakpoint_base": "column"}, "alignItems": {"breakpoint_base": "center"}, "verticalGap": {"breakpoint_base": "24px"}}}}},
+          "children": [
+            {"id": "slider-quote", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "\"This solution has revolutionized how we approach our daily operations. The team support is exceptional and the product just works.\""}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}, "typography": {"custom": {"customTypography": {"fontSize": {"breakpoint_base": {"number": 20, "unit": "px"}}, "textAlign": {"breakpoint_base": "center"}}}}}}}}, "children": []},
+            {"id": "slider-author", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Michael Chen, CTO at StartupXYZ"}}, "design": {"typography": {"color": {"breakpoint_base": "#e0e7ff"}}}}}, "children": []},
+            {
+              "id": "slider-dots",
+              "data": {"type": "EssentialElements\\Div", "properties": {"design": {"layout": {"display": {"breakpoint_base": "flex"}, "horizontalGap": {"breakpoint_base": "8px"}, "justifyContent": {"breakpoint_base": "center"}}}}},
+              "children": [
+                {"id": "dot-1", "data": {"type": "EssentialElements\\Div", "properties": {"design": {"size": {"width": {"breakpoint_base": "10px"}, "height": {"breakpoint_base": "10px"}}, "background": {"color": "#ffffff"}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 5, "unit": "px"}}}}}}}, "children": []},
+                {"id": "dot-2", "data": {"type": "EssentialElements\\Div", "properties": {"design": {"size": {"width": {"breakpoint_base": "10px"}, "height": {"breakpoint_base": "10px"}}, "background": {"color": "rgba(255,255,255,0.3)"}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 5, "unit": "px"}}}}}}}, "children": []},
+                {"id": "dot-3", "data": {"type": "EssentialElements\\Div", "properties": {"design": {"size": {"width": {"breakpoint_base": "10px"}, "height": {"breakpoint_base": "10px"}}, "background": {"color": "rgba(255,255,255,0.3)"}, "borders": {"radius": {"all": {"breakpoint_base": {"number": 5, "unit": "px"}}}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
