@@ -228,9 +228,11 @@ class JSON_Builder {
         $properties = array_merge(
             array(
                 'content' => array(
-                    'text' => $text,
+                    'content' => array(
+                        'text' => $text,
+                        'tags' => 'h' . $level,
+                    ),
                 ),
-                'tag'     => 'h' . $level,
             ),
             $properties
         );
@@ -254,7 +256,9 @@ class JSON_Builder {
         $properties = array_merge(
             array(
                 'content' => array(
-                    'text' => $text,
+                    'content' => array(
+                        'text' => $text,
+                    ),
                 ),
             ),
             $properties
@@ -279,7 +283,9 @@ class JSON_Builder {
         $properties = array_merge(
             array(
                 'content' => array(
-                    'html' => $html,
+                    'content' => array(
+                        'text' => $html,
+                    ),
                 ),
             ),
             $properties
@@ -358,19 +364,23 @@ class JSON_Builder {
      * @return self For method chaining.
      */
     public function add_button( string $text, string $link = '', array $properties = array(), array $styles = array() ): self {
-        $button_props = array(
-            'content' => array(
-                'text' => $text,
-            ),
+        $button_content = array(
+            'text' => $text,
         );
 
         if ( ! empty( $link ) ) {
-            $button_props['link'] = array(
-                'url'      => $link,
-                'target'   => '_self',
-                'nofollow' => false,
+            $button_content['link'] = array(
+                'url'    => $link,
+                'type'   => 'url',
+                'target' => '_self',
             );
         }
+
+        $button_props = array(
+            'content' => array(
+                'content' => $button_content,
+            ),
+        );
 
         $properties = array_merge( $button_props, $properties );
 
