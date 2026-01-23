@@ -1122,6 +1122,133 @@ curl -u "username:app-password" \
             </div>
 
             <div class="oxybridge-card">
+                <h2><?php esc_html_e( 'Property Transformer Architecture', 'oxybridge-wp' ); ?></h2>
+                <p><?php esc_html_e( 'The simplified format works through a transformation layer that converts flat AI-friendly properties to Breakdance\'s complex nested structure.', 'oxybridge-wp' ); ?></p>
+
+                <h3><?php esc_html_e( 'How It Works', 'oxybridge-wp' ); ?></h3>
+                <pre><code>AI Input (simplified) → Property Transformer → Breakdance Format → CSS Generation</code></pre>
+
+                <h3><?php esc_html_e( 'Property Mapping', 'oxybridge-wp' ); ?></h3>
+                <table class="widefat striped">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Simplified', 'oxybridge-wp' ); ?></th>
+                            <th><?php esc_html_e( 'Breakdance Path', 'oxybridge-wp' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>color</code></td><td><code>design.typography.color.{breakpoint}</code></td></tr>
+                        <tr><td><code>fontSize</code></td><td><code>design.typography.typography.custom.customTypography.fontSize.{breakpoint}</code></td></tr>
+                        <tr><td><code>fontWeight</code></td><td><code>design.typography.typography.custom.customTypography.fontWeight</code></td></tr>
+                        <tr><td><code>textAlign</code></td><td><code>design.typography.typography.custom.customTypography.textAlign.{breakpoint}</code></td></tr>
+                        <tr><td><code>padding</code> (Section)</td><td><code>design.spacing.padding.{top|right|bottom|left}.{breakpoint}</code></td></tr>
+                        <tr><td><code>padding</code> (Div)</td><td><code>design.container.padding.padding.{top|right|bottom|left}.{breakpoint}</code></td></tr>
+                        <tr><td><code>gap</code></td><td><code>design.layout.horizontalGap.{breakpoint}</code> + <code>verticalGap.{breakpoint}</code></td></tr>
+                        <tr><td><code>background</code></td><td><code>design.background.color</code></td></tr>
+                        <tr><td><code>gridColumns</code></td><td><code>design.layout.gridTemplateColumns.{breakpoint}</code></td></tr>
+                    </tbody>
+                </table>
+
+                <h3><?php esc_html_e( 'Unit Values', 'oxybridge-wp' ); ?></h3>
+                <p><?php esc_html_e( 'Unit values (fontSize, padding, gap, etc.) are converted to objects with number, unit, and style properties:', 'oxybridge-wp' ); ?></p>
+                <pre><code>"48px" → { "number": 48, "unit": "px", "style": "48px" }</code></pre>
+                <p><?php esc_html_e( 'The style property is critical - Breakdance\'s CSS templates access values via this property.', 'oxybridge-wp' ); ?></p>
+            </div>
+
+            <div class="oxybridge-card">
+                <h2><?php esc_html_e( 'Comprehensive Example', 'oxybridge-wp' ); ?></h2>
+                <p><?php esc_html_e( 'Complete page with hero, features grid, CTA, and footer:', 'oxybridge-wp' ); ?></p>
+                <pre><code>POST /wp-json/oxybridge/v1/pages
+{
+  "title": "Company Landing Page",
+  "status": "publish",
+  "use_simplified": true,
+  "tree": {
+    "root": {
+      "children": [
+        {
+          "type": "Section",
+          "background": "#1a1a1a",
+          "padding": "120px 30px",
+          "display": "flex",
+          "flexDirection": "column",
+          "alignItems": "center",
+          "gap": "30px",
+          "textAlign": "center",
+          "children": [
+            {
+              "type": "Heading",
+              "text": "Build Better Products",
+              "tag": "h1",
+              "color": "#ffffff",
+              "fontSize": "64px",
+              "fontWeight": "700",
+              "responsive": {
+                "tablet": { "fontSize": "48px" },
+                "phone": { "fontSize": "32px" }
+              }
+            },
+            {
+              "type": "Text",
+              "text": "AI-powered tools to accelerate your development workflow.",
+              "color": "#999999",
+              "fontSize": "18px"
+            }
+          ]
+        },
+        {
+          "type": "Section",
+          "background": "#ffffff",
+          "padding": "100px 30px",
+          "children": [
+            {
+              "type": "Div",
+              "display": "grid",
+              "gridColumns": "repeat(4, minmax(0, 1fr))",
+              "gap": "40px",
+              "responsive": {
+                "tablet": { "gridColumns": "repeat(2, minmax(0, 1fr))" },
+                "phone": { "gridColumns": "1fr" }
+              },
+              "children": [
+                {
+                  "type": "Div",
+                  "padding": "30px",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "alignItems": "center",
+                  "gap": "15px",
+                  "textAlign": "center",
+                  "children": [
+                    { "type": "Heading", "text": "Feature 1", "tag": "h3", "color": "#1a1a1a", "fontSize": "20px", "fontWeight": "600" },
+                    { "type": "Text", "text": "Description of this feature.", "color": "#666666", "fontSize": "14px" }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Section",
+          "background": "#c9a961",
+          "padding": "80px 30px",
+          "display": "flex",
+          "flexDirection": "column",
+          "alignItems": "center",
+          "gap": "25px",
+          "textAlign": "center",
+          "children": [
+            { "type": "Heading", "text": "Ready to Get Started?", "tag": "h2", "color": "#1a1a1a", "fontSize": "32px", "fontWeight": "600" },
+            { "type": "Text", "text": "Join thousands of developers building with our platform.", "color": "#333333", "fontSize": "16px" }
+          ]
+        }
+      ]
+    }
+  }
+}</code></pre>
+            </div>
+
+            <div class="oxybridge-card">
                 <h2><?php esc_html_e( 'Design Tokens', 'oxybridge-wp' ); ?></h2>
                 <p><?php esc_html_e( 'The /ai/tokens endpoint returns the site design tokens extracted from global styles:', 'oxybridge-wp' ); ?></p>
 
