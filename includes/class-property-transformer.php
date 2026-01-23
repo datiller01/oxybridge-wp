@@ -3074,4 +3074,590 @@ class Property_Transformer {
         self::$element_property_support[ $element_type ] = $categories;
         return $this;
     }
+
+    // =========================================================================
+    // TREE TRANSFORMATION METHODS
+    // =========================================================================
+
+    /**
+     * Element type mapping from simplified names to Breakdance class names.
+     *
+     * @var array
+     */
+    private static array $element_type_map = array(
+        'Section'   => 'EssentialElements\\Section',
+        'Div'       => 'EssentialElements\\Div',
+        'Heading'   => 'EssentialElements\\Heading',
+        'Text'      => 'EssentialElements\\Text',
+        'Button'    => 'EssentialElements\\ButtonV2',
+        'Image'     => 'EssentialElements\\Image2',
+        'Icon'      => 'EssentialElements\\Icon',
+        'Columns'   => 'EssentialElements\\Columns',
+        'Column'    => 'EssentialElements\\Column',
+        'Container' => 'EssentialElements\\Container',
+        'Spacer'    => 'EssentialElements\\Spacer',
+        'Divider'   => 'EssentialElements\\Divider',
+        'Video'     => 'EssentialElements\\Video',
+        'HtmlCode'  => 'OxygenElements\\HtmlCode',
+        'CssCode'   => 'OxygenElements\\CssCode',
+        'PhpCode'   => 'OxygenElements\\PhpCode',
+    );
+
+    /**
+     * Transform a simplified tree to Breakdance format.
+     *
+     * This is the main entry point for tree transformation. Takes a simplified
+     * tree structure with flat properties and converts it to the nested
+     * Breakdance format with proper element IDs.
+     *
+     * @since 1.0.0
+     *
+     * @param array $simplified_tree Simplified tree structure.
+     * @return array Breakdance-compatible tree.
+     */
+    public function transform_tree( array $simplified_tree ): array {
+        // Handle case where root is not explicitly defined.
+        if ( ! isset( $simplified_tree['root'] ) ) {
+            $simplified_tree = array(
+                'root' => array(
+                    'id'       => 'root',
+                    'data'     => array( 'type' => 'root' ),
+                    'children' => $simplified_tree['children'] ?? array( $simplified_tree ),
+                ),
+            );
+        }
+
+        return array(
+            'root' => $this->transform_node( $simplified_tree['root'], true ),
+        );
+    }
+
+    /**
+     * Transform a single node from simplified to Breakdance format.
+     *
+     * Recursively processes a node and its children, converting simplified
+     * properties to the full Breakdance property structure.
+     *
+     * @since 1.0.0
+     *
+     * @param array $node    Simplified node.
+     * @param bool  $is_root Whether this is the root node.
+     * @return array Breakdance-compatible node.
+     */
+    public function transform_node( array $node, bool $is_root = false ): array {
+        // Handle root node specially.
+        if ( $is_root ) {
+            $children = array();
+            if ( isset( $node['children'] ) ) {
+                foreach ( $node['children'] as $child ) {
+                    $children[] = $this->transform_node( $child );
+                }
+            }
+
+            return array(
+                'id'       => $node['id'] ?? 'root',
+                'data'     => array( 'type' => 'root' ),
+                'children' => $children,
+            );
+        }
+
+        // Get element type.
+        $type = $node['type'] ?? 'Div';
+        $breakdance_type = self::$element_type_map[ $type ] ?? 'EssentialElements\\Div';
+
+        // Generate unique ID.
+        $id = $node['id'] ?? $this->generate_element_id( $type );
+
+        // Build properties based on element type.
+        $properties = $this->build_node_properties( $type, $node );
+
+        // Process children recursively.
+        $children = array();
+        if ( isset( $node['children'] ) ) {
+            foreach ( $node['children'] as $child ) {
+                $children[] = $this->transform_node( $child );
+            }
+        }
+
+        return array(
+            'id'       => $id,
+            'data'     => array(
+                'type'       => $breakdance_type,
+                'properties' => $properties,
+            ),
+            'children' => $children,
+        );
+    }
+
+    /**
+     * Build complete node properties for an element type.
+     *
+     * @param string $type Element type (Section, Div, Heading, etc.).
+     * @param array  $node Simplified node properties.
+     * @return array Complete Breakdance properties structure.
+     */
+    private function build_node_properties( string $type, array $node ): array {
+        $properties = array();
+
+        // Build content properties.
+        $content = $this->build_content_properties( $type, $node );
+        if ( ! empty( $content ) ) {
+            $properties['content'] = $content;
+        }
+
+        // Build design properties.
+        $design = $this->build_full_design_properties( $type, $node );
+        if ( ! empty( $design ) ) {
+            $properties['design'] = $design;
+        }
+
+        return $properties;
+    }
+
+    /**
+     * Build content properties based on element type.
+     *
+     * @param string $type Element type.
+     * @param array  $node Simplified node.
+     * @return array Content properties.
+     */
+    private function build_content_properties( string $type, array $node ): array {
+        $content = array();
+
+        switch ( $type ) {
+            case 'Heading':
+            case 'Text':
+                if ( isset( $node['text'] ) ) {
+                    $content['content'] = array(
+                        'text' => $node['text'],
+                    );
+                    if ( isset( $node['tag'] ) ) {
+                        $content['content']['tags'] = $node['tag'];
+                    }
+                }
+                break;
+
+            case 'Button':
+                if ( isset( $node['text'] ) ) {
+                    $content['content'] = array(
+                        'text' => $node['text'],
+                    );
+                }
+                if ( isset( $node['url'] ) || isset( $node['link'] ) ) {
+                    $content['content']['link'] = array(
+                        'url' => $node['url'] ?? $node['link'] ?? '#',
+                    );
+                }
+                break;
+
+            case 'Image':
+                if ( isset( $node['src'] ) || isset( $node['url'] ) ) {
+                    $content['content'] = array(
+                        'image' => array(
+                            'url' => $node['src'] ?? $node['url'],
+                        ),
+                    );
+                    if ( isset( $node['alt'] ) ) {
+                        $content['content']['image']['alt'] = $node['alt'];
+                    }
+                }
+                break;
+
+            case 'HtmlCode':
+                if ( isset( $node['html'] ) ) {
+                    $content['content'] = array(
+                        'html_code' => $node['html'],
+                    );
+                }
+                break;
+
+            case 'CssCode':
+                if ( isset( $node['css'] ) ) {
+                    $content['content'] = array(
+                        'css_code' => $node['css'],
+                    );
+                }
+                break;
+
+            case 'PhpCode':
+                if ( isset( $node['php'] ) ) {
+                    $content['content'] = array(
+                        'php_code' => $node['php'],
+                    );
+                }
+                break;
+        }
+
+        return $content;
+    }
+
+    /**
+     * Build full design properties for an element.
+     *
+     * Includes typography, layout, spacing, background, borders, and effects.
+     *
+     * @param string $type Element type.
+     * @param array  $node Simplified node.
+     * @return array Design properties.
+     */
+    private function build_full_design_properties( string $type, array $node ): array {
+        $design = array();
+        $breakpoint = 'breakpoint_base';
+
+        // Build typography properties.
+        $typography = $this->build_typography_properties( $node, $breakpoint );
+        if ( ! empty( $typography ) ) {
+            $design['typography'] = $typography;
+        }
+
+        // Build layout properties.
+        $layout = $this->build_layout_properties( $type, $node, $breakpoint );
+        if ( ! empty( $layout ) ) {
+            if ( $type === 'Section' ) {
+                $design['layout'] = $layout;
+            } elseif ( $type === 'Div' ) {
+                $design['container'] = array( 'layout' => $layout );
+                // Div padding goes in container.padding.padding
+                $padding = $this->build_padding_properties( $node, $breakpoint );
+                if ( ! empty( $padding ) ) {
+                    $design['container']['padding'] = array( 'padding' => $padding );
+                }
+            } else {
+                $design['layout'] = $layout;
+            }
+        }
+
+        // Build spacing/padding properties (Section).
+        if ( $type === 'Section' ) {
+            $padding = $this->build_padding_properties( $node, $breakpoint );
+            if ( ! empty( $padding ) ) {
+                $design['spacing'] = array( 'padding' => $padding );
+            }
+        }
+
+        // Build background properties.
+        $background = $this->extract_basic_background_props( $node, $breakpoint );
+        if ( ! empty( $background ) ) {
+            $design['background'] = $background;
+        }
+
+        // Build effects (advanced properties from subtask).
+        $effects = $this->build_element_design( $type, $node, $breakpoint );
+        if ( ! empty( $effects ) ) {
+            $design = $this->merge_deep( $design, $effects );
+        }
+
+        // Handle responsive breakpoints.
+        if ( isset( $node['responsive'] ) ) {
+            foreach ( $node['responsive'] as $bp_name => $bp_props ) {
+                $bp_key = $this->get_breakpoint_key( $bp_name );
+                $this->apply_responsive_overrides( $design, $type, $bp_props, $bp_key );
+            }
+        }
+
+        return $design;
+    }
+
+    /**
+     * Build typography properties.
+     *
+     * @param array  $node       Simplified node.
+     * @param string $breakpoint Target breakpoint.
+     * @return array Typography properties.
+     */
+    private function build_typography_properties( array $node, string $breakpoint ): array {
+        $typography = array();
+
+        // Color.
+        if ( isset( $node['color'] ) ) {
+            $typography['color'] = array(
+                $breakpoint => $node['color'],
+            );
+        }
+
+        // Font properties go in custom typography.
+        $custom = array();
+
+        if ( isset( $node['fontSize'] ) ) {
+            $custom['fontSize'] = array(
+                $breakpoint => $this->to_unit_object( $node['fontSize'] ),
+            );
+        }
+
+        if ( isset( $node['fontWeight'] ) ) {
+            $custom['fontWeight'] = $node['fontWeight'];
+        }
+
+        if ( isset( $node['lineHeight'] ) ) {
+            $custom['lineHeight'] = array(
+                $breakpoint => $this->to_unit_object( $node['lineHeight'] ),
+            );
+        }
+
+        if ( isset( $node['textAlign'] ) ) {
+            $custom['textAlign'] = array(
+                $breakpoint => $node['textAlign'],
+            );
+        }
+
+        if ( isset( $node['fontFamily'] ) ) {
+            $custom['fontFamily'] = $node['fontFamily'];
+        }
+
+        if ( isset( $node['textTransform'] ) ) {
+            $custom['textTransform'] = $node['textTransform'];
+        }
+
+        if ( isset( $node['letterSpacing'] ) ) {
+            $custom['letterSpacing'] = array(
+                $breakpoint => $this->to_unit_object( $node['letterSpacing'] ),
+            );
+        }
+
+        if ( ! empty( $custom ) ) {
+            $typography['typography'] = array(
+                'custom' => array(
+                    'customTypography' => $custom,
+                ),
+            );
+        }
+
+        return $typography;
+    }
+
+    /**
+     * Build layout properties based on element type.
+     *
+     * @param string $type       Element type.
+     * @param array  $node       Simplified node.
+     * @param string $breakpoint Target breakpoint.
+     * @return array Layout properties.
+     */
+    private function build_layout_properties( string $type, array $node, string $breakpoint ): array {
+        $layout = array();
+
+        // Determine layout type from display/flexDirection.
+        $display = $node['display'] ?? null;
+        $flex_dir = $node['flexDirection'] ?? null;
+
+        if ( $display === 'grid' || isset( $node['gridColumns'] ) ) {
+            $layout['layout'] = 'grid';
+            if ( isset( $node['gridColumns'] ) ) {
+                $layout['gridTemplateColumns'] = array(
+                    $breakpoint => $node['gridColumns'],
+                );
+            }
+        } elseif ( $display === 'flex' || $flex_dir ) {
+            if ( $flex_dir === 'column' ) {
+                $layout['layout'] = 'vertical';
+            } else {
+                $layout['layout'] = 'horizontal';
+            }
+        }
+
+        // Gap.
+        if ( isset( $node['gap'] ) ) {
+            $gap_obj = $this->to_unit_object( $node['gap'] );
+            $layout['horizontalGap'] = array( $breakpoint => $gap_obj );
+            $layout['verticalGap'] = array( $breakpoint => $gap_obj );
+        }
+
+        // Alignment.
+        if ( isset( $node['alignItems'] ) ) {
+            $layout['alignItems'] = array( $breakpoint => $node['alignItems'] );
+        }
+
+        if ( isset( $node['justifyContent'] ) ) {
+            $layout['justifyContent'] = array( $breakpoint => $node['justifyContent'] );
+        }
+
+        // Text alignment for sections/containers.
+        if ( isset( $node['textAlign'] ) && in_array( $type, array( 'Section', 'Div', 'Container' ), true ) ) {
+            $layout['textAlign'] = array( $breakpoint => $node['textAlign'] );
+        }
+
+        return $layout;
+    }
+
+    /**
+     * Build padding properties.
+     *
+     * @param array  $node       Simplified node.
+     * @param string $breakpoint Target breakpoint.
+     * @return array Padding properties.
+     */
+    private function build_padding_properties( array $node, string $breakpoint ): array {
+        $padding = array();
+
+        if ( isset( $node['padding'] ) ) {
+            $parsed = $this->parse_spacing_shorthand( $node['padding'] );
+            foreach ( $parsed as $side => $value ) {
+                $padding[ $side ] = array(
+                    $breakpoint => $this->to_unit_object( $value ),
+                );
+            }
+        }
+
+        return $padding;
+    }
+
+    /**
+     * Apply responsive overrides to design properties.
+     *
+     * @param array  $design   Design properties (modified by reference).
+     * @param string $type     Element type.
+     * @param array  $bp_props Properties for the breakpoint.
+     * @param string $bp_key   Breakpoint key.
+     */
+    private function apply_responsive_overrides( array &$design, string $type, array $bp_props, string $bp_key ): void {
+        // Typography overrides.
+        if ( isset( $bp_props['fontSize'] ) ) {
+            $design['typography']['typography']['custom']['customTypography']['fontSize'][ $bp_key ] = $this->to_unit_object( $bp_props['fontSize'] );
+        }
+
+        if ( isset( $bp_props['color'] ) ) {
+            $design['typography']['color'][ $bp_key ] = $bp_props['color'];
+        }
+
+        if ( isset( $bp_props['textAlign'] ) ) {
+            $design['typography']['typography']['custom']['customTypography']['textAlign'][ $bp_key ] = $bp_props['textAlign'];
+        }
+
+        // Layout overrides.
+        if ( isset( $bp_props['gridColumns'] ) ) {
+            $layout_path = ( $type === 'Div' ) ? 'container' : 'layout';
+            if ( $type === 'Div' ) {
+                $design['container']['layout']['gridTemplateColumns'][ $bp_key ] = $bp_props['gridColumns'];
+            } else {
+                $design['layout']['gridTemplateColumns'][ $bp_key ] = $bp_props['gridColumns'];
+            }
+        }
+
+        if ( isset( $bp_props['gap'] ) ) {
+            $gap_obj = $this->to_unit_object( $bp_props['gap'] );
+            $layout_ref = ( $type === 'Div' ) ? $design['container']['layout'] : $design['layout'];
+            $layout_ref['horizontalGap'][ $bp_key ] = $gap_obj;
+            $layout_ref['verticalGap'][ $bp_key ] = $gap_obj;
+            if ( $type === 'Div' ) {
+                $design['container']['layout'] = $layout_ref;
+            } else {
+                $design['layout'] = $layout_ref;
+            }
+        }
+
+        // Padding overrides.
+        if ( isset( $bp_props['padding'] ) ) {
+            $parsed = $this->parse_spacing_shorthand( $bp_props['padding'] );
+            $padding_path = ( $type === 'Div' ) ? 'container.padding.padding' : 'spacing.padding';
+            foreach ( $parsed as $side => $value ) {
+                if ( $type === 'Div' ) {
+                    $design['container']['padding']['padding'][ $side ][ $bp_key ] = $this->to_unit_object( $value );
+                } else {
+                    $design['spacing']['padding'][ $side ][ $bp_key ] = $this->to_unit_object( $value );
+                }
+            }
+        }
+    }
+
+    /**
+     * Convert a CSS value to a unit object.
+     *
+     * @param mixed $value CSS value (e.g., "48px", "1.5rem").
+     * @return array Unit object with number, unit, and style.
+     */
+    private function to_unit_object( $value ): array {
+        if ( is_array( $value ) ) {
+            return $value;
+        }
+
+        $value = trim( (string) $value );
+
+        if ( preg_match( '/^(-?[\d.]+)(px|em|rem|%|vw|vh|vmin|vmax|ch|ex)?$/i', $value, $matches ) ) {
+            $number = (float) $matches[1];
+            $unit = isset( $matches[2] ) ? strtolower( $matches[2] ) : 'px';
+            return array(
+                'number' => $number,
+                'unit'   => $unit,
+                'style'  => $number . $unit,
+            );
+        }
+
+        return array( 'style' => $value );
+    }
+
+    /**
+     * Parse CSS spacing shorthand to individual sides.
+     *
+     * @param string $value Spacing shorthand (e.g., "20px 40px", "10px 20px 30px 40px").
+     * @return array Array with top, right, bottom, left values.
+     */
+    private function parse_spacing_shorthand( string $value ): array {
+        $parts = preg_split( '/\s+/', trim( $value ) );
+
+        switch ( count( $parts ) ) {
+            case 1:
+                return array(
+                    'top'    => $parts[0],
+                    'right'  => $parts[0],
+                    'bottom' => $parts[0],
+                    'left'   => $parts[0],
+                );
+            case 2:
+                return array(
+                    'top'    => $parts[0],
+                    'right'  => $parts[1],
+                    'bottom' => $parts[0],
+                    'left'   => $parts[1],
+                );
+            case 3:
+                return array(
+                    'top'    => $parts[0],
+                    'right'  => $parts[1],
+                    'bottom' => $parts[2],
+                    'left'   => $parts[1],
+                );
+            case 4:
+            default:
+                return array(
+                    'top'    => $parts[0],
+                    'right'  => $parts[1] ?? $parts[0],
+                    'bottom' => $parts[2] ?? $parts[0],
+                    'left'   => $parts[3] ?? $parts[1] ?? $parts[0],
+                );
+        }
+    }
+
+    /**
+     * Get breakpoint key from friendly name.
+     *
+     * @param string $name Friendly name (desktop, tablet, phone).
+     * @return string Breakpoint key.
+     */
+    private function get_breakpoint_key( string $name ): string {
+        $map = array(
+            'desktop' => 'breakpoint_base',
+            'tablet'  => 'breakpoint_tablet_portrait',
+            'phone'   => 'breakpoint_phone_portrait',
+            'mobile'  => 'breakpoint_phone_portrait',
+        );
+        return $map[ strtolower( $name ) ] ?? 'breakpoint_base';
+    }
+
+    /**
+     * ID counter for generating unique element IDs.
+     *
+     * @var int
+     */
+    private static int $id_counter = 1;
+
+    /**
+     * Generate a unique element ID.
+     *
+     * @param string $type Element type.
+     * @return string Unique ID.
+     */
+    private function generate_element_id( string $type ): string {
+        $prefix = strtolower( $type );
+        return $prefix . '-' . ( self::$id_counter++ );
+    }
 }

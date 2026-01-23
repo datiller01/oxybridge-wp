@@ -2094,4 +2094,175 @@ class Property_Schema {
 
         return $side;
     }
+
+    // =========================================================================
+    // ELEMENT MAPPING AND SCHEMA METHODS
+    // =========================================================================
+
+    /**
+     * Element type mapping from simplified names to Breakdance class names.
+     *
+     * @var array
+     */
+    private static array $element_type_map = array(
+        'Section'   => 'EssentialElements\\Section',
+        'Div'       => 'EssentialElements\\Div',
+        'Heading'   => 'EssentialElements\\Heading',
+        'Text'      => 'EssentialElements\\Text',
+        'Button'    => 'EssentialElements\\ButtonV2',
+        'Image'     => 'EssentialElements\\Image2',
+        'Icon'      => 'EssentialElements\\Icon',
+        'Columns'   => 'EssentialElements\\Columns',
+        'Column'    => 'EssentialElements\\Column',
+        'Container' => 'EssentialElements\\Container',
+        'Spacer'    => 'EssentialElements\\Spacer',
+        'Divider'   => 'EssentialElements\\Divider',
+        'Video'     => 'EssentialElements\\Video',
+        'HtmlCode'  => 'OxygenElements\\HtmlCode',
+        'CssCode'   => 'OxygenElements\\CssCode',
+        'PhpCode'   => 'OxygenElements\\PhpCode',
+    );
+
+    /**
+     * Simplified properties schema for each element type.
+     *
+     * @var array
+     */
+    private static array $element_schemas = array(
+        'Section' => array(
+            'properties' => array(
+                'background' => array( 'type' => 'color', 'description' => 'Background color' ),
+                'padding'    => array( 'type' => 'spacing', 'description' => 'Padding (shorthand)' ),
+                'display'    => array( 'type' => 'enum', 'values' => array( 'flex', 'grid', 'block' ) ),
+                'flexDirection' => array( 'type' => 'enum', 'values' => array( 'row', 'column' ) ),
+                'alignItems' => array( 'type' => 'enum', 'values' => array( 'flex-start', 'center', 'flex-end', 'stretch' ) ),
+                'justifyContent' => array( 'type' => 'enum', 'values' => array( 'flex-start', 'center', 'flex-end', 'space-between', 'space-around' ) ),
+                'gap'        => array( 'type' => 'unit', 'description' => 'Gap between children' ),
+                'textAlign'  => array( 'type' => 'enum', 'values' => array( 'left', 'center', 'right' ) ),
+            ),
+        ),
+        'Div' => array(
+            'properties' => array(
+                'background' => array( 'type' => 'color', 'description' => 'Background color' ),
+                'padding'    => array( 'type' => 'spacing', 'description' => 'Padding (shorthand)' ),
+                'display'    => array( 'type' => 'enum', 'values' => array( 'flex', 'grid', 'block' ) ),
+                'flexDirection' => array( 'type' => 'enum', 'values' => array( 'row', 'column' ) ),
+                'alignItems' => array( 'type' => 'enum', 'values' => array( 'flex-start', 'center', 'flex-end', 'stretch' ) ),
+                'justifyContent' => array( 'type' => 'enum', 'values' => array( 'flex-start', 'center', 'flex-end', 'space-between', 'space-around' ) ),
+                'gap'        => array( 'type' => 'unit', 'description' => 'Gap between children' ),
+                'gridColumns' => array( 'type' => 'string', 'description' => 'Grid template columns' ),
+                'textAlign'  => array( 'type' => 'enum', 'values' => array( 'left', 'center', 'right' ) ),
+                'borderRadius' => array( 'type' => 'unit', 'description' => 'Border radius' ),
+            ),
+        ),
+        'Heading' => array(
+            'properties' => array(
+                'text'       => array( 'type' => 'string', 'required' => true, 'description' => 'Heading text' ),
+                'tag'        => array( 'type' => 'enum', 'values' => array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ), 'default' => 'h2' ),
+                'color'      => array( 'type' => 'color', 'description' => 'Text color' ),
+                'fontSize'   => array( 'type' => 'unit', 'description' => 'Font size', 'responsive' => true ),
+                'fontWeight' => array( 'type' => 'enum', 'values' => array( '100', '200', '300', '400', '500', '600', '700', '800', '900' ) ),
+                'lineHeight' => array( 'type' => 'unit', 'description' => 'Line height' ),
+                'textAlign'  => array( 'type' => 'enum', 'values' => array( 'left', 'center', 'right' ), 'responsive' => true ),
+            ),
+        ),
+        'Text' => array(
+            'properties' => array(
+                'text'       => array( 'type' => 'string', 'required' => true, 'description' => 'Text content' ),
+                'color'      => array( 'type' => 'color', 'description' => 'Text color' ),
+                'fontSize'   => array( 'type' => 'unit', 'description' => 'Font size', 'responsive' => true ),
+                'fontWeight' => array( 'type' => 'enum', 'values' => array( '400', '500', '600', '700' ) ),
+                'lineHeight' => array( 'type' => 'unit', 'description' => 'Line height' ),
+                'textAlign'  => array( 'type' => 'enum', 'values' => array( 'left', 'center', 'right' ), 'responsive' => true ),
+                'maxWidth'   => array( 'type' => 'unit', 'description' => 'Maximum width' ),
+            ),
+        ),
+        'Button' => array(
+            'properties' => array(
+                'text'       => array( 'type' => 'string', 'required' => true, 'description' => 'Button text' ),
+                'url'        => array( 'type' => 'string', 'description' => 'Button link URL' ),
+                'background' => array( 'type' => 'color', 'description' => 'Background color' ),
+                'color'      => array( 'type' => 'color', 'description' => 'Text color' ),
+                'fontSize'   => array( 'type' => 'unit', 'description' => 'Font size' ),
+                'padding'    => array( 'type' => 'spacing', 'description' => 'Padding' ),
+                'borderRadius' => array( 'type' => 'unit', 'description' => 'Border radius' ),
+            ),
+        ),
+        'Image' => array(
+            'properties' => array(
+                'src'        => array( 'type' => 'string', 'required' => true, 'description' => 'Image URL' ),
+                'alt'        => array( 'type' => 'string', 'description' => 'Alt text' ),
+                'width'      => array( 'type' => 'unit', 'description' => 'Image width' ),
+                'maxWidth'   => array( 'type' => 'unit', 'description' => 'Maximum width' ),
+                'borderRadius' => array( 'type' => 'unit', 'description' => 'Border radius' ),
+            ),
+        ),
+        'HtmlCode' => array(
+            'properties' => array(
+                'html'  => array( 'type' => 'code', 'language' => 'html', 'required' => true, 'description' => 'HTML code' ),
+                'label' => array( 'type' => 'string', 'description' => 'Builder label' ),
+            ),
+        ),
+        'CssCode' => array(
+            'properties' => array(
+                'css'   => array( 'type' => 'code', 'language' => 'css', 'required' => true, 'description' => 'CSS code' ),
+                'label' => array( 'type' => 'string', 'description' => 'Builder label' ),
+            ),
+        ),
+        'PhpCode' => array(
+            'properties'  => array(
+                'php'   => array( 'type' => 'code', 'language' => 'php', 'required' => true, 'description' => 'PHP code' ),
+                'label' => array( 'type' => 'string', 'description' => 'Builder label' ),
+            ),
+            'permissions' => array( 'unfiltered_html' ),
+        ),
+    );
+
+    /**
+     * Get the element type mapping.
+     *
+     * Returns a mapping of simplified element names to their Breakdance class names.
+     *
+     * @since 1.0.0
+     *
+     * @return array Element name => Breakdance class name mapping.
+     */
+    public function get_element_map(): array {
+        return self::$element_type_map;
+    }
+
+    /**
+     * Get the simplified schema for an element type.
+     *
+     * @since 1.0.0
+     *
+     * @param string $element_name The simplified element name (e.g., 'Heading').
+     * @return array The element schema with properties and permissions.
+     */
+    public function get_element_simplified_schema( string $element_name ): array {
+        return self::$element_schemas[ $element_name ] ?? array( 'properties' => array() );
+    }
+
+    /**
+     * Get all element simplified schemas.
+     *
+     * @since 1.0.0
+     *
+     * @return array All element schemas.
+     */
+    public function get_all_element_schemas(): array {
+        return self::$element_schemas;
+    }
+
+    /**
+     * Get the Breakdance class name for an element type.
+     *
+     * @since 1.0.0
+     *
+     * @param string $element_name The simplified element name.
+     * @return string|null The Breakdance class name or null if not found.
+     */
+    public function get_breakdance_type( string $element_name ): ?string {
+        return self::$element_type_map[ $element_name ] ?? null;
+    }
 }
