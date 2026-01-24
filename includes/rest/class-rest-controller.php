@@ -328,6 +328,17 @@ abstract class REST_Controller {
     /**
      * Ensure tree has all required properties for Oxygen Builder compatibility.
      *
+     * Based on analysis of working Oxygen documents, the tree only needs:
+     * - root.id: unique string identifier
+     * - root.data.type: "root" (lowercase, no namespace)
+     * - root.data.properties: null (not empty array or object)
+     * - root.children: array of child elements
+     *
+     * NOTE: _nextNodeId and exportedLookupTable are NOT required - Oxygen's
+     * is_valid_tree() only checks for root structure. Adding these fields
+     * can cause io-ts validation errors due to PHP's json_decode converting
+     * {} to [] (empty array instead of object).
+     *
      * @since 1.1.0
      * @param array $tree The document tree.
      * @return array The tree with required properties ensured.
@@ -338,14 +349,34 @@ abstract class REST_Controller {
             return $tree;
         }
 
-        // Ensure _nextNodeId exists.
-        if ( ! isset( $tree['_nextNodeId'] ) ) {
-            $tree['_nextNodeId'] = $this->calculate_next_node_id( $tree );
+        // Ensure root has correct structure for Oxygen Builder io-ts validation.
+        if ( isset( $tree['root']['data'] ) ) {
+            // Root type must be lowercase "root", not "EssentialElements\\Root".
+            if ( isset( $tree['root']['data']['type'] ) &&
+                 ( $tree['root']['data']['type'] === 'EssentialElements\\Root' ||
+                   $tree['root']['data']['type'] === 'EssentialElements\Root' ) ) {
+                $tree['root']['data']['type'] = 'root';
+            }
+
+            // Root properties must be null, not empty array or object.
+            if ( ! isset( $tree['root']['data']['properties'] ) ||
+                 $tree['root']['data']['properties'] === array() ||
+                 $tree['root']['data']['properties'] === new \stdClass() ) {
+                $tree['root']['data']['properties'] = null;
+            }
         }
 
-        // Ensure exportedLookupTable exists.
-        if ( ! isset( $tree['exportedLookupTable'] ) ) {
-            $tree['exportedLookupTable'] = new \stdClass();
+        // IMPORTANT: Do NOT add _nextNodeId or exportedLookupTable automatically.
+        // Working Oxygen documents don't have these fields at the tree level.
+        // Adding them can cause io-ts validation errors because PHP's json_decode
+        // converts JSON {} to PHP [] (array), which then encodes back to JSON []
+        // instead of {}, failing TypeScript io-ts object validation.
+        unset( $tree['_nextNodeId'] );
+        unset( $tree['exportedLookupTable'] );
+
+        // Ensure status is set - Oxygen uses "exported" for valid documents.
+        if ( ! isset( $tree['status'] ) ) {
+            $tree['status'] = 'exported';
         }
 
         return $tree;
@@ -433,7 +464,12 @@ abstract class REST_Controller {
     }
 
     /**
-     * Save document tree to post meta.
+     * Save document tree to post meta using Oxygen's native save mechanism.
+     *
+     * This method mirrors Oxygen's save_document() function to ensure compatibility:
+     * 1. Save tree using Oxygen's set_meta() or fallback to direct meta update
+     * 2. Update post to trigger revisions
+     * 3. Regenerate CSS cache
      *
      * @since 1.1.0
      * @param int   $post_id The post ID.
@@ -448,20 +484,45 @@ abstract class REST_Controller {
         // Ensure tree integrity before saving.
         $tree = $this->ensure_tree_integrity( $tree );
 
+        // Convert tree to JSON string (Oxygen stores tree_json_string as a string, not array).
         $tree_json = wp_json_encode( $tree );
         if ( $tree_json === false ) {
             return false;
         }
 
         $meta_prefix = $this->get_meta_prefix();
-        $data = array( 'tree_json_string' => $tree_json );
-        $encoded_data = wp_json_encode( $data );
+        $meta_key = $meta_prefix . 'data';
 
-        if ( $encoded_data === false ) {
-            return false;
+        // Try to use Oxygen's native set_meta function for proper encoding.
+        if ( function_exists( 'Breakdance\Data\set_meta' ) ) {
+            \Breakdance\Data\set_meta(
+                $post_id,
+                $meta_key,
+                array( 'tree_json_string' => $tree_json )
+            );
+            $result = true;
+        } else {
+            // Fallback: Manual save with proper encoding (matching Oxygen's format).
+            $data = array( 'tree_json_string' => $tree_json );
+            $encoded_data = wp_json_encode( $data );
+
+            if ( $encoded_data === false ) {
+                return false;
+            }
+
+            $result = update_post_meta( $post_id, $meta_key, wp_slash( $encoded_data ) );
         }
 
-        $result = update_post_meta( $post_id, $meta_prefix . 'data', wp_slash( $encoded_data ) );
+        // Update post to trigger revisions (like Oxygen does).
+        wp_update_post( array( 'ID' => $post_id ) );
+
+        // Regenerate CSS cache immediately.
+        $this->regenerate_post_css( $post_id );
+
+        // Fire Oxygen's after save action if available.
+        if ( function_exists( 'bdox_run_action' ) ) {
+            bdox_run_action( 'breakdance_after_save_document', $post_id );
+        }
 
         /**
          * Fires after document tree has been saved.
@@ -503,21 +564,29 @@ abstract class REST_Controller {
     /**
      * Create an empty tree structure.
      *
+     * Creates a valid Oxygen Builder tree matching the structure of
+     * working Oxygen-created documents:
+     * - root.id: unique identifier
+     * - root.data.type: "root" (lowercase)
+     * - root.data.properties: null
+     * - root.children: empty array
+     *
+     * NOTE: Does NOT include _nextNodeId or exportedLookupTable as these
+     * are not present in working Oxygen documents and can cause io-ts errors.
+     *
      * @since 1.1.0
      * @return array Empty tree structure.
      */
     protected function create_empty_tree(): array {
         return array(
             'root' => array(
-                'id'       => $this->generate_element_id(),
+                'id'       => 'el-root',
                 'data'     => array(
-                    'type'       => 'EssentialElements\\Root',
-                    'properties' => array(),
+                    'type'       => 'root',
+                    'properties' => null,
                 ),
                 'children' => array(),
             ),
-            '_nextNodeId'         => 1,
-            'exportedLookupTable' => new \stdClass(),
         );
     }
 
@@ -529,6 +598,32 @@ abstract class REST_Controller {
      */
     protected function generate_element_id(): string {
         return 'el-' . substr( md5( uniqid( (string) wp_rand(), true ) ), 0, 8 );
+    }
+
+    /**
+     * Regenerate CSS cache for a post using Oxygen's native function.
+     *
+     * This should be called after any document tree save to ensure
+     * CSS is updated on the frontend.
+     *
+     * @since 1.1.0
+     * @param int $post_id The post ID.
+     * @return bool True if regeneration was successful.
+     */
+    protected function regenerate_post_css( int $post_id ): bool {
+        // Try Breakdance/Oxygen 6 cache regeneration (primary method).
+        if ( function_exists( 'Breakdance\Render\generateCacheForPost' ) ) {
+            \Breakdance\Render\generateCacheForPost( $post_id );
+            return true;
+        }
+
+        // Try classic Oxygen cache regeneration.
+        if ( function_exists( 'oxygen_vsb_cache_page_css' ) ) {
+            oxygen_vsb_cache_page_css( $post_id );
+            return true;
+        }
+
+        return false;
     }
 
     /**

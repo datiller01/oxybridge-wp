@@ -355,26 +355,5 @@ class REST_Documents extends REST_Controller {
         return array_values( array_unique( $types ) );
     }
 
-    /**
-     * Regenerate CSS cache for a post.
-     *
-     * @since 1.1.0
-     * @param int $post_id The post ID.
-     * @return bool True if regeneration was attempted.
-     */
-    private function regenerate_post_css( int $post_id ): bool {
-        // Try Breakdance/Oxygen 6 cache regeneration.
-        if ( function_exists( 'Breakdance\Render\generateCacheForPost' ) ) {
-            \Breakdance\Render\generateCacheForPost( $post_id );
-            return true;
-        }
-
-        // Try classic Oxygen cache regeneration.
-        if ( function_exists( 'oxygen_vsb_cache_page_css' ) ) {
-            oxygen_vsb_cache_page_css( $post_id );
-            return true;
-        }
-
-        return false;
-    }
+    // regenerate_post_css() is inherited from REST_Controller
 }

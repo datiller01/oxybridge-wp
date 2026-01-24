@@ -381,11 +381,19 @@ class REST_AI extends REST_Controller {
             }
         }
 
-        // Validate _nextNodeId if present.
-        if ( isset( $tree['_nextNodeId'] ) && ! is_int( $tree['_nextNodeId'] ) ) {
+        // Warn if _nextNodeId or exportedLookupTable are present.
+        // These fields should NOT be included - they can cause io-ts validation errors.
+        if ( isset( $tree['_nextNodeId'] ) ) {
             $warnings[] = array(
-                'code'    => 'invalid_next_node_id',
-                'message' => '_nextNodeId should be an integer.',
+                'code'    => 'unnecessary_next_node_id',
+                'message' => '_nextNodeId should NOT be included in the tree. It will be removed automatically. Working Oxygen documents do not have this field.',
+            );
+        }
+
+        if ( isset( $tree['exportedLookupTable'] ) ) {
+            $warnings[] = array(
+                'code'    => 'unnecessary_exported_lookup_table',
+                'message' => 'exportedLookupTable should NOT be included in the tree. It will be removed automatically. Working Oxygen documents do not have this field.',
             );
         }
 
@@ -1249,47 +1257,51 @@ class REST_AI extends REST_Controller {
     private function get_data_structure_docs(): array {
         return array(
             'document_tree' => array(
-                'description' => 'The main structure for storing page/template content. All properties are REQUIRED for Oxygen Builder compatibility.',
+                'description' => 'The main structure for storing page/template content. Based on analysis of working Oxygen documents.',
                 'required_properties' => array(
-                    'root'                => 'REQUIRED - Root container element object',
-                    'root.id'             => 'REQUIRED - Unique string identifier for root',
-                    'root.data'           => 'REQUIRED - Element data object',
-                    'root.data.type'      => 'REQUIRED - Must be "EssentialElements\\\\Root"',
-                    'root.data.properties' => 'REQUIRED - Properties object (can be empty {})',
-                    'root.children'       => 'REQUIRED - Array of child elements',
-                    '_nextNodeId'         => 'REQUIRED - Integer, next available ID for new elements. Must be higher than any existing numeric ID.',
-                    'exportedLookupTable' => 'REQUIRED - Object for class lookups. Use empty object {} if none.',
+                    'root'                 => 'REQUIRED - Root container element object',
+                    'root.id'              => 'REQUIRED - Integer ID (typically 1)',
+                    'root.data'            => 'REQUIRED - Element data object',
+                    'root.data.type'       => 'REQUIRED - Must be lowercase "root"',
+                    'root.data.properties' => 'REQUIRED - Must be null',
+                    'root.children'        => 'REQUIRED - Array of child elements',
+                    'status'               => 'REQUIRED - Must be "exported"',
+                ),
+                'optional_properties' => array(
+                    '_nextNodeId'          => 'Do NOT include - causes io-ts errors',
+                    'exportedLookupTable'  => 'Do NOT include - causes io-ts errors',
                 ),
                 'structure'   => array(
                     'root' => array(
-                        'id'       => 'string (unique element ID, e.g., "root" or "el-abc123")',
+                        'id'       => 'integer (typically 1)',
                         'data'     => array(
-                            'type'       => 'string (must be "EssentialElements\\\\Root" for root)',
-                            'properties' => 'object (root properties, usually empty {})',
+                            'type'       => '"root" (lowercase string)',
+                            'properties' => 'null',
                         ),
-                        'children' => 'array (child elements)',
+                        'children' => 'array (child elements with _parentId)',
                     ),
-                    '_nextNodeId'         => 'integer (REQUIRED - next available ID, typically max(existing_ids) + 1)',
-                    'exportedLookupTable' => 'object (REQUIRED - class lookups, use {} if empty)',
+                    'status' => '"exported"',
                 ),
-                'validation_note' => 'Oxygen Builder uses io-ts for runtime validation. Missing required properties will cause "IO-TS validation failed" errors.',
+                'validation_note' => 'Oxygen Builder uses io-ts for runtime validation. IDs must be integers. Children must have _parentId. Tree must have status: "exported".',
             ),
             'element' => array(
-                'description' => 'Individual element within the tree. All elements must have id, data, and children properties.',
+                'description' => 'Individual element within the tree. All elements must have id, data, children, and _parentId.',
                 'required_properties' => array(
-                    'id'              => 'REQUIRED - Unique string identifier',
+                    'id'              => 'REQUIRED - Integer ID (e.g., 100, 101, 102)',
                     'data'            => 'REQUIRED - Element data object',
                     'data.type'       => 'REQUIRED - Element type string with namespace',
-                    'data.properties' => 'REQUIRED - Properties object (can be empty {})',
+                    'data.properties' => 'REQUIRED - Properties object or null if no properties',
                     'children'        => 'REQUIRED - Array of child elements (empty [] for leaf nodes)',
+                    '_parentId'       => 'REQUIRED - Integer ID of parent element',
                 ),
                 'structure'   => array(
-                    'id'       => 'string (unique, e.g., "el-a1b2c3d4")',
-                    'data'     => array(
-                        'type'       => 'string (e.g., "EssentialElements\\\\Heading")',
-                        'properties' => 'object (element-specific properties)',
+                    'id'        => 'integer (e.g., 100)',
+                    'data'      => array(
+                        'type'       => 'string (e.g., "OxygenElements\\\\Container" or "EssentialElements\\\\Heading")',
+                        'properties' => 'object or null',
                     ),
-                    'children' => 'array (child elements, use empty [] for leaf nodes)',
+                    'children'  => 'array (child elements, use empty [] for leaf nodes)',
+                    '_parentId' => 'integer (parent element ID)',
                 ),
             ),
             'element_properties' => array(
@@ -1340,36 +1352,25 @@ class REST_AI extends REST_Controller {
     private function get_example_docs(): array {
         return array(
             'minimal_tree' => array(
-                'description' => 'Minimal valid document tree with a section and heading.',
+                'description' => 'Minimal valid document tree. IDs are integers, children have _parentId, tree has status: "exported".',
                 'tree'        => array(
-                    'root' => array(
-                        'id'       => 'root',
+                    'root'   => array(
+                        'id'       => 1,
                         'data'     => array(
-                            'type'       => 'EssentialElements\\Root',
-                            'properties' => array(),
+                            'type'       => 'root',
+                            'properties' => null,
                         ),
                         'children' => array(
                             array(
-                                'id'       => 'el-section1',
-                                'data'     => array(
-                                    'type'       => 'EssentialElements\\Section',
-                                    'properties' => array(
-                                        'design' => array(
-                                            'spacing' => array(
-                                                'padding' => array(
-                                                    'breakpoint_base' => array(
-                                                        'top'    => array( 'number' => 40, 'unit' => 'px', 'style' => '' ),
-                                                        'bottom' => array( 'number' => 40, 'unit' => 'px', 'style' => '' ),
-                                                    ),
-                                                ),
-                                            ),
-                                        ),
-                                    ),
+                                'id'        => 100,
+                                'data'      => array(
+                                    'type'       => 'OxygenElements\\Container',
+                                    'properties' => null,
                                 ),
-                                'children' => array(
+                                'children'  => array(
                                     array(
-                                        'id'       => 'el-heading1',
-                                        'data'     => array(
+                                        'id'        => 101,
+                                        'data'      => array(
                                             'type'       => 'EssentialElements\\Heading',
                                             'properties' => array(
                                                 'content' => array(
@@ -1379,14 +1380,15 @@ class REST_AI extends REST_Controller {
                                                 ),
                                             ),
                                         ),
-                                        'children' => array(),
+                                        'children'  => array(),
+                                        '_parentId' => 100,
                                     ),
                                 ),
+                                '_parentId' => 1,
                             ),
                         ),
                     ),
-                    '_nextNodeId'         => 3,
-                    'exportedLookupTable' => new \stdClass(),
+                    'status' => 'exported',
                 ),
             ),
             'create_page_request' => array(
@@ -1420,18 +1422,20 @@ class REST_AI extends REST_Controller {
      */
     private function get_usage_notes(): array {
         return array(
-            'critical_structure'  => 'CRITICAL: Every document tree MUST have: root (with id, data, children), _nextNodeId (integer), and exportedLookupTable (object, use {} if empty). Missing any of these causes validation errors.',
-            'root_element'        => 'The root element MUST have: id (string), data.type ("EssentialElements\\\\Root"), data.properties (object), and children (array).',
-            'element_structure'   => 'Every element MUST have: id (unique string), data.type (string), data.properties (object), and children (array, use [] for leaf nodes).',
-            'element_types'       => 'All element types use the EssentialElements\\\\ prefix (e.g., EssentialElements\\\\Heading, EssentialElements\\\\Section)',
+            'critical_structure'  => 'CRITICAL: Document tree MUST have: root (with integer id, data, children), status: "exported". Children MUST have _parentId referencing parent integer ID.',
+            'root_element'        => 'The ROOT element: id MUST be integer (typically 1), data.type MUST be lowercase "root", data.properties MUST be null.',
+            'element_structure'   => 'Every CHILD element MUST have: id (integer), data.type (string with namespace), data.properties (object or null), children (array), and _parentId (parent integer ID).',
+            'element_types'       => 'Use OxygenElements\\\\ for containers: OxygenElements\\\\Container, OxygenElements\\\\ContainerLink. Use EssentialElements\\\\ for content: EssentialElements\\\\Heading, EssentialElements\\\\Div, EssentialElements\\\\WpMenu, EssentialElements\\\\Button.',
             'text_content'        => 'Text content uses double-nested path: content.content.text',
             'unit_values'         => 'Numeric values with units must be objects: {"number": 20, "unit": "px", "style": ""}',
             'breakpoints'         => 'Use breakpoint_base for desktop, breakpoint_tablet_portrait for tablet, breakpoint_phone_portrait for mobile',
-            'next_node_id'        => '_nextNodeId must be an integer greater than the highest numeric ID in the tree. Calculate as max(all_numeric_ids) + 1.',
-            'element_ids'         => 'Element IDs should be unique strings, typically "el-" followed by random characters (e.g., "el-a1b2c3d4")',
+            'element_ids'         => 'Element IDs MUST be integers. Root is typically 1, children use sequential numbers like 100, 101, 102.',
+            'parent_ids'          => 'Every child element MUST have _parentId set to its parent integer ID. Direct children of root have _parentId: 1.',
             'empty_children'      => 'Leaf elements MUST have children: [] - do not omit the property',
-            'empty_properties'    => 'Elements with no custom properties MUST still have data.properties: {} - do not omit',
-            'css_regeneration'    => 'After updating document trees, CSS should be regenerated for changes to appear on frontend',
+            'empty_properties'    => 'Elements with no custom properties should use properties: null (not {} or omitted).',
+            'status_field'        => 'Tree MUST have status: "exported" at the top level alongside root.',
+            'no_extra_fields'     => 'Do NOT add _nextNodeId or exportedLookupTable to the tree.',
+            'css_regeneration'    => 'CSS is automatically regenerated after saving via the API. Changes appear on frontend immediately.',
             'authentication'      => 'Write operations require authentication; most read operations are public',
             'workflow'            => 'Typical workflow: 1) GET /pages to find page, 2) GET /documents/{id} to read tree, 3) POST /documents/{id} to update, 4) Changes appear on frontend',
         );
