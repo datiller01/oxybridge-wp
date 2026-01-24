@@ -574,9 +574,7 @@ abstract class REST_Controller {
      * - root.data.type: "root" (lowercase)
      * - root.data.properties: null
      * - root.children: empty array
-     *
-     * NOTE: Does NOT include _nextNodeId or exportedLookupTable as these
-     * are not present in working Oxygen documents and can cause io-ts errors.
+     * - _nextNodeId: integer for next element ID (REQUIRED for IO-TS validation)
      *
      * @since 1.1.0
      * @return array Empty tree structure.
@@ -591,6 +589,7 @@ abstract class REST_Controller {
                 ),
                 'children' => array(),
             ),
+            '_nextNodeId' => 1,
         );
     }
 
