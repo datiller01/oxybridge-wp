@@ -118,6 +118,8 @@ class REST_Documents extends REST_Controller {
             );
         }
 
+        // get_document_tree() applies ensure_tree_integrity() which adds required
+        // IO-TS properties (_nextNodeId, exportedLookupTable) for Breakdance builder.
         $tree = $this->get_document_tree( $post_id );
 
         if ( $tree === false ) {
@@ -128,6 +130,7 @@ class REST_Documents extends REST_Controller {
             );
         }
 
+        // Tree includes _nextNodeId (required) and exportedLookupTable for IO-TS validation.
         $response_data = array(
             'post_id' => $post_id,
             'tree'    => $tree,
@@ -197,7 +200,7 @@ class REST_Documents extends REST_Controller {
             $this->regenerate_post_css( $post_id );
         }
 
-        // Return updated document.
+        // Return updated document with IO-TS compliant tree (_nextNodeId included).
         $updated_tree = $this->get_document_tree( $post_id );
 
         return $this->format_response(
