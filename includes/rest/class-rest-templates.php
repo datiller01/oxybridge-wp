@@ -237,7 +237,16 @@ class REST_Templates extends REST_Controller {
         }
 
         $template = $this->format_template( $post );
-        $template['tree'] = $this->get_document_tree( $template_id );
+        $tree = $this->get_document_tree( $template_id );
+
+        // Ensure tree is always a valid structure with required IO-TS properties.
+        // get_document_tree() already applies ensure_tree_integrity() which adds _nextNodeId.
+        // If no tree found, create empty tree and apply ensure_tree_integrity() for _nextNodeId.
+        if ( $tree === false ) {
+            $tree = $this->ensure_tree_integrity( $this->create_empty_tree() );
+        }
+
+        $template['tree'] = $tree;
 
         return $this->format_response( $template );
     }
