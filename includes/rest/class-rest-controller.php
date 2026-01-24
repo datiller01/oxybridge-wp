@@ -520,8 +520,25 @@ abstract class REST_Controller {
         // Update post to trigger revisions (like Oxygen does).
         wp_update_post( array( 'ID' => $post_id ) );
 
+        // Clear all WordPress caches to ensure fresh settings (OxyMade pattern).
+        wp_cache_flush();
+
         // Regenerate CSS cache immediately.
         $this->regenerate_post_css( $post_id );
+
+        // Regenerate global settings cache if available.
+        if ( function_exists( 'Breakdance\Render\generateCacheForGlobalSettings' ) ) {
+            \Breakdance\Render\generateCacheForGlobalSettings();
+        }
+
+        // Force cache regeneration with delay (OxyMade pattern for reliability).
+        usleep( 500000 ); // 500ms delay.
+        $this->regenerate_post_css( $post_id );
+
+        // Double regeneration for global settings too.
+        if ( function_exists( 'Breakdance\Render\generateCacheForGlobalSettings' ) ) {
+            \Breakdance\Render\generateCacheForGlobalSettings();
+        }
 
         // Fire Oxygen's after save action if available.
         if ( function_exists( 'bdox_run_action' ) ) {
