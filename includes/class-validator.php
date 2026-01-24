@@ -634,4 +634,363 @@ class Validator {
             }
         }
     }
+
+    /**
+     * Validate an API response matches IO-TS type expectations.
+     *
+     * Validates that a response conforms to either ErrorResponse or DocumentResponse
+     * type unions as expected by Breakdance/Oxygen Builder's IO-TS validation.
+     *
+     * @since 1.0.0
+     *
+     * @param mixed $response The API response to validate.
+     * @return array {
+     *     Validation result.
+     *
+     *     @type bool   $valid         Whether the response is valid.
+     *     @type string $response_type Detected response type: 'error', 'document', or 'invalid'.
+     *     @type array  $errors        Array of validation errors.
+     *     @type array  $warnings      Array of validation warnings.
+     * }
+     */
+    public function validate_iots_response( $response ): array {
+        $this->errors   = array();
+        $this->warnings = array();
+
+        // Basic type validation.
+        if ( ! is_array( $response ) ) {
+            $this->add_error(
+                'invalid_response_type',
+                __( 'Response must be an array or object.', 'oxybridge-wp' )
+            );
+            return $this->build_iots_result( 'invalid' );
+        }
+
+        // Check if this is an ErrorResponse type.
+        if ( $this->is_error_response( $response ) ) {
+            $this->validate_error_response( $response );
+            return $this->build_iots_result( 'error' );
+        }
+
+        // Check if this is a DocumentResponse type.
+        if ( $this->is_document_response( $response ) ) {
+            $this->validate_document_response( $response );
+            return $this->build_iots_result( 'document' );
+        }
+
+        // Response doesn't match either expected type.
+        $this->add_error(
+            'invalid_response_structure',
+            __( 'Response does not match ErrorResponse or DocumentResponse type. Must have either (errorType + backToAdminUrl) or (document.tree with root and _nextNodeId).', 'oxybridge-wp' )
+        );
+
+        return $this->build_iots_result( 'invalid' );
+    }
+
+    /**
+     * Validate that a tree structure includes _nextNodeId.
+     *
+     * This is a required property for IO-TS validation in Breakdance/Oxygen Builder.
+     *
+     * @since 1.0.0
+     *
+     * @param mixed $tree The tree structure to validate.
+     * @return array {
+     *     Validation result.
+     *
+     *     @type bool   $valid    Whether the tree has _nextNodeId.
+     *     @type array  $errors   Array of validation errors.
+     *     @type array  $warnings Array of validation warnings.
+     * }
+     */
+    public function validate_tree_has_next_node_id( $tree ): array {
+        $this->errors   = array();
+        $this->warnings = array();
+
+        if ( ! is_array( $tree ) ) {
+            $this->add_error(
+                'invalid_tree_type',
+                __( 'Tree must be an array.', 'oxybridge-wp' )
+            );
+            return array(
+                'valid'    => false,
+                'errors'   => $this->errors,
+                'warnings' => $this->warnings,
+            );
+        }
+
+        // Check for _nextNodeId.
+        if ( ! array_key_exists( '_nextNodeId', $tree ) ) {
+            $this->add_error(
+                'missing_next_node_id',
+                __( 'Tree is missing required "_nextNodeId" property. This is required for IO-TS validation in Breakdance/Oxygen Builder.', 'oxybridge-wp' )
+            );
+        } elseif ( ! is_int( $tree['_nextNodeId'] ) && ! is_float( $tree['_nextNodeId'] ) ) {
+            $this->add_error(
+                'invalid_next_node_id_type',
+                __( 'Tree "_nextNodeId" must be a number.', 'oxybridge-wp' )
+            );
+        } elseif ( $tree['_nextNodeId'] < 1 ) {
+            $this->add_warning(
+                'low_next_node_id',
+                __( 'Tree "_nextNodeId" should be at least 1.', 'oxybridge-wp' )
+            );
+        }
+
+        return array(
+            'valid'    => empty( $this->errors ),
+            'errors'   => $this->errors,
+            'warnings' => $this->warnings,
+        );
+    }
+
+    /**
+     * Check if response looks like an ErrorResponse type.
+     *
+     * @since 1.0.0
+     *
+     * @param array $response The response to check.
+     * @return bool True if response has error type indicators.
+     */
+    private function is_error_response( array $response ): bool {
+        return isset( $response['errorType'] ) || isset( $response['backToAdminUrl'] );
+    }
+
+    /**
+     * Check if response looks like a DocumentResponse type.
+     *
+     * @since 1.0.0
+     *
+     * @param array $response The response to check.
+     * @return bool True if response has document type indicators.
+     */
+    private function is_document_response( array $response ): bool {
+        return isset( $response['document'] ) || isset( $response['tree'] );
+    }
+
+    /**
+     * Validate an ErrorResponse structure.
+     *
+     * Expected structure:
+     * {
+     *     errorType: "post_does_not_exist" | "access_denied" | "invalid_data",
+     *     backToAdminUrl: string
+     * }
+     *
+     * @since 1.0.0
+     *
+     * @param array $response The error response to validate.
+     * @return void
+     */
+    private function validate_error_response( array $response ): void {
+        $valid_error_types = array(
+            'post_does_not_exist',
+            'access_denied',
+            'invalid_data',
+        );
+
+        // Check errorType.
+        if ( ! isset( $response['errorType'] ) ) {
+            $this->add_error(
+                'missing_error_type',
+                __( 'ErrorResponse is missing required "errorType" property.', 'oxybridge-wp' )
+            );
+        } elseif ( ! is_string( $response['errorType'] ) ) {
+            $this->add_error(
+                'invalid_error_type',
+                __( 'ErrorResponse "errorType" must be a string.', 'oxybridge-wp' )
+            );
+        } elseif ( ! in_array( $response['errorType'], $valid_error_types, true ) ) {
+            $this->add_warning(
+                'unknown_error_type',
+                sprintf(
+                    /* translators: 1: error type, 2: valid types */
+                    __( 'ErrorResponse "errorType" value "%1$s" is not a standard type. Expected one of: %2$s', 'oxybridge-wp' ),
+                    $response['errorType'],
+                    implode( ', ', $valid_error_types )
+                )
+            );
+        }
+
+        // Check backToAdminUrl.
+        if ( ! isset( $response['backToAdminUrl'] ) ) {
+            $this->add_error(
+                'missing_back_to_admin_url',
+                __( 'ErrorResponse is missing required "backToAdminUrl" property.', 'oxybridge-wp' )
+            );
+        } elseif ( ! is_string( $response['backToAdminUrl'] ) ) {
+            $this->add_error(
+                'invalid_back_to_admin_url',
+                __( 'ErrorResponse "backToAdminUrl" must be a string.', 'oxybridge-wp' )
+            );
+        }
+    }
+
+    /**
+     * Validate a DocumentResponse structure.
+     *
+     * Expected structure:
+     * {
+     *     document: {
+     *         tree: {
+     *             root: TreeNode,
+     *             _nextNodeId: number,
+     *             exportedLookupTable?: object
+     *         }
+     *     }
+     * }
+     *
+     * @since 1.0.0
+     *
+     * @param array $response The document response to validate.
+     * @return void
+     */
+    private function validate_document_response( array $response ): void {
+        // Handle direct tree response (without document wrapper).
+        if ( isset( $response['tree'] ) && ! isset( $response['document'] ) ) {
+            $this->add_warning(
+                'direct_tree_response',
+                __( 'Response contains "tree" directly. Standard format wraps tree in "document" object.', 'oxybridge-wp' )
+            );
+            $tree = $response['tree'];
+        } elseif ( isset( $response['document'] ) ) {
+            // Check document structure.
+            if ( ! is_array( $response['document'] ) ) {
+                $this->add_error(
+                    'invalid_document',
+                    __( 'DocumentResponse "document" must be an object.', 'oxybridge-wp' )
+                );
+                return;
+            }
+
+            // Check for tree in document.
+            if ( ! isset( $response['document']['tree'] ) ) {
+                $this->add_error(
+                    'missing_tree',
+                    __( 'DocumentResponse "document" is missing required "tree" property.', 'oxybridge-wp' )
+                );
+                return;
+            }
+
+            $tree = $response['document']['tree'];
+        } else {
+            $this->add_error(
+                'missing_document_or_tree',
+                __( 'DocumentResponse must have either "document.tree" or "tree" property.', 'oxybridge-wp' )
+            );
+            return;
+        }
+
+        // Validate tree is array.
+        if ( ! is_array( $tree ) ) {
+            $this->add_error(
+                'invalid_tree',
+                __( 'Tree must be an object/array.', 'oxybridge-wp' )
+            );
+            return;
+        }
+
+        // Validate tree has root.
+        if ( ! isset( $tree['root'] ) ) {
+            $this->add_error(
+                'missing_root',
+                __( 'Tree is missing required "root" property.', 'oxybridge-wp' )
+            );
+        } elseif ( ! is_array( $tree['root'] ) ) {
+            $this->add_error(
+                'invalid_root',
+                __( 'Tree "root" must be an object.', 'oxybridge-wp' )
+            );
+        } else {
+            // Validate root structure.
+            $this->validate_root_node( $tree['root'] );
+        }
+
+        // Validate _nextNodeId (REQUIRED for IO-TS validation).
+        if ( ! array_key_exists( '_nextNodeId', $tree ) ) {
+            $this->add_error(
+                'missing_next_node_id',
+                __( 'Tree is missing required "_nextNodeId" property. This is REQUIRED for IO-TS validation in Breakdance/Oxygen Builder.', 'oxybridge-wp' )
+            );
+        } elseif ( ! is_int( $tree['_nextNodeId'] ) && ! is_float( $tree['_nextNodeId'] ) ) {
+            $this->add_error(
+                'invalid_next_node_id',
+                __( 'Tree "_nextNodeId" must be a number.', 'oxybridge-wp' )
+            );
+        }
+
+        // Check exportedLookupTable (optional but should be object if present).
+        if ( isset( $tree['exportedLookupTable'] ) && ! is_array( $tree['exportedLookupTable'] ) && ! is_object( $tree['exportedLookupTable'] ) ) {
+            $this->add_warning(
+                'invalid_exported_lookup_table',
+                __( 'Tree "exportedLookupTable" should be an object.', 'oxybridge-wp' )
+            );
+        }
+    }
+
+    /**
+     * Validate a root TreeNode structure.
+     *
+     * @since 1.0.0
+     *
+     * @param array $root The root node to validate.
+     * @return void
+     */
+    private function validate_root_node( array $root ): void {
+        // Check required properties.
+        if ( ! isset( $root['id'] ) ) {
+            $this->add_error(
+                'missing_root_id',
+                __( 'Root node is missing required "id" property.', 'oxybridge-wp' )
+            );
+        }
+
+        if ( ! isset( $root['data'] ) ) {
+            $this->add_error(
+                'missing_root_data',
+                __( 'Root node is missing required "data" property.', 'oxybridge-wp' )
+            );
+        } elseif ( is_array( $root['data'] ) ) {
+            // Validate root data.type should be 'root'.
+            if ( isset( $root['data']['type'] ) && $root['data']['type'] !== 'root' ) {
+                $this->add_warning(
+                    'unexpected_root_type',
+                    sprintf(
+                        /* translators: %s: type value */
+                        __( 'Root data.type should be "root", got "%s".', 'oxybridge-wp' ),
+                        $root['data']['type']
+                    )
+                );
+            }
+        }
+
+        if ( ! array_key_exists( 'children', $root ) ) {
+            $this->add_error(
+                'missing_root_children',
+                __( 'Root node is missing required "children" property.', 'oxybridge-wp' )
+            );
+        } elseif ( ! is_array( $root['children'] ) ) {
+            $this->add_error(
+                'invalid_root_children',
+                __( 'Root node "children" must be an array.', 'oxybridge-wp' )
+            );
+        }
+    }
+
+    /**
+     * Build the IO-TS validation result array.
+     *
+     * @since 1.0.0
+     *
+     * @param string $response_type The detected response type.
+     * @return array Validation result.
+     */
+    private function build_iots_result( string $response_type ): array {
+        return array(
+            'valid'         => empty( $this->errors ),
+            'response_type' => $response_type,
+            'errors'        => $this->errors,
+            'warnings'      => $this->warnings,
+        );
+    }
 }
