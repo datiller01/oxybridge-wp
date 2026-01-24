@@ -328,16 +328,16 @@ abstract class REST_Controller {
     /**
      * Ensure tree has all required properties for Oxygen Builder compatibility.
      *
-     * Based on analysis of working Oxygen documents, the tree only needs:
+     * Based on IO-TS validation requirements, the tree needs:
      * - root.id: unique string identifier
      * - root.data.type: "root" (lowercase, no namespace)
      * - root.data.properties: null (not empty array or object)
      * - root.children: array of child elements
+     * - _nextNodeId: integer for next element ID (REQUIRED for IO-TS validation)
+     * - exportedLookupTable: empty object (stdClass to prevent PHP [] vs {} issue)
      *
-     * NOTE: _nextNodeId and exportedLookupTable are NOT required - Oxygen's
-     * is_valid_tree() only checks for root structure. Adding these fields
-     * can cause io-ts validation errors due to PHP's json_decode converting
-     * {} to [] (empty array instead of object).
+     * NOTE: Uses stdClass for exportedLookupTable to ensure json_encode produces
+     * {} instead of [] which would fail TypeScript io-ts object validation.
      *
      * @since 1.1.0
      * @param array $tree The document tree.
@@ -366,13 +366,17 @@ abstract class REST_Controller {
             }
         }
 
-        // IMPORTANT: Do NOT add _nextNodeId or exportedLookupTable automatically.
-        // Working Oxygen documents don't have these fields at the tree level.
-        // Adding them can cause io-ts validation errors because PHP's json_decode
-        // converts JSON {} to PHP [] (array), which then encodes back to JSON []
-        // instead of {}, failing TypeScript io-ts object validation.
-        unset( $tree['_nextNodeId'] );
-        unset( $tree['exportedLookupTable'] );
+        // Add _nextNodeId - REQUIRED for IO-TS validation in Breakdance/Oxygen Builder.
+        // Calculate from max existing element ID + 1.
+        if ( ! isset( $tree['_nextNodeId'] ) ) {
+            $tree['_nextNodeId'] = $this->calculate_next_node_id( $tree );
+        }
+
+        // Add exportedLookupTable as empty object (stdClass prevents PHP [] vs {} issue).
+        // Using stdClass ensures json_encode produces {} not [].
+        if ( ! isset( $tree['exportedLookupTable'] ) ) {
+            $tree['exportedLookupTable'] = new \stdClass();
+        }
 
         // Ensure status is set - Oxygen uses "exported" for valid documents.
         if ( ! isset( $tree['status'] ) ) {
@@ -516,8 +520,25 @@ abstract class REST_Controller {
         // Update post to trigger revisions (like Oxygen does).
         wp_update_post( array( 'ID' => $post_id ) );
 
+        // Clear all WordPress caches to ensure fresh settings (OxyMade pattern).
+        wp_cache_flush();
+
         // Regenerate CSS cache immediately.
         $this->regenerate_post_css( $post_id );
+
+        // Regenerate global settings cache if available.
+        if ( function_exists( 'Breakdance\Render\generateCacheForGlobalSettings' ) ) {
+            \Breakdance\Render\generateCacheForGlobalSettings();
+        }
+
+        // Force cache regeneration with delay (OxyMade pattern for reliability).
+        usleep( 500000 ); // 500ms delay.
+        $this->regenerate_post_css( $post_id );
+
+        // Double regeneration for global settings too.
+        if ( function_exists( 'Breakdance\Render\generateCacheForGlobalSettings' ) ) {
+            \Breakdance\Render\generateCacheForGlobalSettings();
+        }
 
         // Fire Oxygen's after save action if available.
         if ( function_exists( 'bdox_run_action' ) ) {
@@ -570,9 +591,7 @@ abstract class REST_Controller {
      * - root.data.type: "root" (lowercase)
      * - root.data.properties: null
      * - root.children: empty array
-     *
-     * NOTE: Does NOT include _nextNodeId or exportedLookupTable as these
-     * are not present in working Oxygen documents and can cause io-ts errors.
+     * - _nextNodeId: integer for next element ID (REQUIRED for IO-TS validation)
      *
      * @since 1.1.0
      * @return array Empty tree structure.
@@ -587,6 +606,7 @@ abstract class REST_Controller {
                 ),
                 'children' => array(),
             ),
+            '_nextNodeId' => 1,
         );
     }
 
