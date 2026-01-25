@@ -1298,6 +1298,98 @@ class REST_AI extends REST_Controller {
                     'message' => 'string',
                 ),
             ),
+            array(
+                'endpoint'    => 'GET /documents/{id}/classes',
+                'description' => 'Get all CSS classes used by elements in a document.',
+                'auth'        => true,
+                'parameters'  => array(
+                    'id' => array(
+                        'type'        => 'integer',
+                        'required'    => true,
+                        'description' => 'WordPress post ID',
+                    ),
+                    'element_id' => array(
+                        'type'        => 'string',
+                        'required'    => false,
+                        'description' => 'Filter by specific element ID',
+                    ),
+                ),
+                'response'    => array(
+                    'success'  => 'boolean',
+                    'post_id'  => 'integer',
+                    'classes'  => 'array of {element_id, classes: string[]}',
+                    'total'    => 'integer (total class assignments)',
+                ),
+            ),
+            array(
+                'endpoint'    => 'PUT /documents/{id}/elements/{element_id}/classes',
+                'description' => 'Update CSS classes on a specific element.',
+                'auth'        => true,
+                'parameters'  => array(
+                    'id' => array(
+                        'type'        => 'integer',
+                        'required'    => true,
+                        'description' => 'WordPress post ID',
+                    ),
+                    'element_id' => array(
+                        'type'        => 'string',
+                        'required'    => true,
+                        'description' => 'Element ID within the document',
+                    ),
+                    'classes' => array(
+                        'type'        => 'array',
+                        'required'    => true,
+                        'description' => 'Array of CSS class names to set',
+                    ),
+                    'regenerate_css' => array(
+                        'type'        => 'boolean',
+                        'required'    => false,
+                        'default'     => true,
+                        'description' => 'Regenerate CSS cache after save',
+                    ),
+                ),
+                'response'    => array(
+                    'success'    => 'boolean',
+                    'post_id'    => 'integer',
+                    'element_id' => 'string',
+                    'classes'    => 'array of strings',
+                ),
+            ),
+            array(
+                'endpoint'    => 'DELETE /documents/{id}/elements/{element_id}/classes/{class_name}',
+                'description' => 'Remove a specific CSS class from an element.',
+                'auth'        => true,
+                'parameters'  => array(
+                    'id' => array(
+                        'type'        => 'integer',
+                        'required'    => true,
+                        'description' => 'WordPress post ID',
+                    ),
+                    'element_id' => array(
+                        'type'        => 'string',
+                        'required'    => true,
+                        'description' => 'Element ID within the document',
+                    ),
+                    'class_name' => array(
+                        'type'        => 'string',
+                        'required'    => true,
+                        'description' => 'CSS class name to remove',
+                    ),
+                    'regenerate_css' => array(
+                        'type'        => 'boolean',
+                        'required'    => false,
+                        'default'     => true,
+                        'description' => 'Regenerate CSS cache after save',
+                    ),
+                ),
+                'response'    => array(
+                    'success'       => 'boolean',
+                    'post_id'       => 'integer',
+                    'element_id'    => 'string',
+                    'removed_class' => 'string',
+                    'classes'       => 'array of remaining classes',
+                ),
+            ),
         );
     }
 
