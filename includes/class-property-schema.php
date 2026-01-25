@@ -2265,4 +2265,107 @@ class Property_Schema {
     public function get_breakdance_type( string $element_name ): ?string {
         return self::$element_type_map[ $element_name ] ?? null;
     }
+
+    // =========================================================================
+    // CSS CLASS VALIDATION METHODS
+    // =========================================================================
+
+    /**
+     * Validate a CSS class name.
+     *
+     * Validates that a class name follows CSS class naming conventions:
+     * - Must start with a letter (a-z, A-Z), underscore (_), or hyphen (-)
+     * - Can contain letters, digits (0-9), underscores, and hyphens
+     * - Cannot be empty
+     *
+     * @since 1.0.0
+     *
+     * @param string $class_name The class name to validate.
+     * @return bool True if valid CSS class name, false otherwise.
+     */
+    public static function validate_class_name( string $class_name ): bool {
+        // Empty class names are invalid.
+        if ( empty( $class_name ) ) {
+            return false;
+        }
+
+        // CSS class names must match: start with letter, underscore, or hyphen,
+        // followed by any combination of letters, digits, underscores, or hyphens.
+        // Pattern: ^[a-zA-Z_-][a-zA-Z0-9_-]*$
+        return (bool) preg_match( '/^[a-zA-Z_\-][a-zA-Z0-9_\-]*$/', $class_name );
+    }
+
+    /**
+     * Validate multiple CSS class names.
+     *
+     * @since 1.0.0
+     *
+     * @param array $class_names Array of class names to validate.
+     * @return bool True if all class names are valid, false otherwise.
+     */
+    public static function validate_class_names( array $class_names ): bool {
+        foreach ( $class_names as $class_name ) {
+            if ( ! self::validate_class_name( $class_name ) ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Sanitize a CSS class name.
+     *
+     * Removes invalid characters and ensures the class name is valid.
+     * If the result would be empty or start with a digit, prepends 'class-'.
+     *
+     * @since 1.0.0
+     *
+     * @param string $class_name The class name to sanitize.
+     * @return string The sanitized class name.
+     */
+    public static function sanitize_class_name( string $class_name ): string {
+        // Remove any characters that aren't allowed.
+        $sanitized = preg_replace( '/[^a-zA-Z0-9_\-]/', '', $class_name );
+
+        // If empty after sanitization, return a default.
+        if ( empty( $sanitized ) ) {
+            return 'custom-class';
+        }
+
+        // If starts with a digit, prepend 'class-'.
+        if ( preg_match( '/^[0-9]/', $sanitized ) ) {
+            $sanitized = 'class-' . $sanitized;
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * Check if a class name is a built-in Breakdance/Oxygen class.
+     *
+     * Built-in classes typically have prefixes like 'bde-', 'breakdance-',
+     * 'ee-', or 'oxy-'.
+     *
+     * @since 1.0.0
+     *
+     * @param string $class_name The class name to check.
+     * @return bool True if built-in class, false otherwise.
+     */
+    public static function is_builtin_class( string $class_name ): bool {
+        $builtin_prefixes = array(
+            'bde-',
+            'breakdance-',
+            'ee-',
+            'oxy-',
+            'ct-',
+        );
+
+        foreach ( $builtin_prefixes as $prefix ) {
+            if ( strpos( $class_name, $prefix ) === 0 ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

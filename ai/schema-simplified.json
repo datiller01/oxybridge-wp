@@ -1,952 +1,328 @@
 {
-  "version": "1.0.0",
-  "description": "Simplified AI-friendly schema for OxyBridge styling properties. Use this to construct valid design JSON for Oxygen Builder elements.",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oxybridge.dev/ai/schema-simplified.json",
+  "title": "OxyBridge AI Simplified Schema",
+  "description": "Simplified schema for AI-driven page generation with OxyBridge REST API, including class management and common patterns",
+  "version": "1.1.0",
+  "type": "object",
 
-  "valueTypes": {
-    "number": {
-      "description": "Plain numeric value without units",
-      "examples": [0.5, 1, 1.5, 100]
-    },
-    "unit": {
-      "description": "Value with CSS unit as string",
-      "examples": ["10px", "1.5rem", "50%", "100vh", "45deg", "300ms"]
-    },
-    "color": {
-      "description": "CSS color value",
-      "examples": ["#ff0000", "#333", "rgba(0,0,0,0.5)", "var(--primary-color)"]
-    },
-    "cssVariable": {
-      "description": "CSS custom property reference",
-      "pattern": "var(--property-name)",
-      "examples": ["var(--primary-color)", "var(--shadow-lg)"]
-    },
-    "responsive": {
-      "description": "Value that can vary by breakpoint. Use simple value for base, or object for per-breakpoint.",
-      "simpleExample": "10px",
-      "responsiveExample": {
-        "breakpoint_base": "10px",
-        "breakpoint_tablet_portrait": "8px",
-        "breakpoint_phone_portrait": "6px"
-      }
-    }
-  },
+  "classManagement": {
+    "title": "CSS Class Management",
+    "description": "Documentation for managing CSS classes on elements through the OxyBridge REST API",
 
-  "breakpoints": {
-    "breakpoint_base": { "description": "Desktop (default)", "minWidth": "1120px" },
-    "breakpoint_tablet_landscape": { "description": "Tablet Landscape", "width": "1024px" },
-    "breakpoint_tablet_portrait": { "description": "Tablet Portrait", "width": "768px" },
-    "breakpoint_phone_landscape": { "description": "Phone Landscape", "width": "480px" },
-    "breakpoint_phone_portrait": { "description": "Phone Portrait", "width": "320px" }
-  },
-
-  "elementTypes": {
-    "essentialElements": [
-      { "type": "EssentialElements\\Section", "description": "Page section container (full-width)" },
-      { "type": "EssentialElements\\Container", "description": "Generic container" },
-      { "type": "EssentialElements\\Div", "description": "Flexible div element (most common)" },
-      { "type": "EssentialElements\\Heading", "description": "H1-H6 headings" },
-      { "type": "EssentialElements\\Text", "description": "Paragraph/text content" },
-      { "type": "EssentialElements\\Button", "description": "Button with link" },
-      { "type": "EssentialElements\\Image2", "description": "Image element" },
-      { "type": "EssentialElements\\Icon", "description": "SVG icons" },
-      { "type": "EssentialElements\\Link", "description": "Anchor links" },
-      { "type": "EssentialElements\\WpMenu", "description": "WordPress menu" }
-    ],
-    "oxygenElements": [
-      { "type": "OxygenElements\\Container", "description": "Structural container" },
-      { "type": "OxygenElements\\ContainerLink", "description": "Linkable container" }
-    ]
-  },
-
-  "properties": {
-    "effects": {
-      "description": "Visual effects including opacity, shadows, filters, and transitions",
-      "properties": {
-        "opacity": {
-          "type": "number",
-          "range": "0-1",
-          "default": 1,
-          "description": "Element transparency (0 = invisible, 1 = fully visible)",
-          "hoverVariant": "opacityHover",
-          "responsive": true,
-          "path": "design.effects.opacity",
-          "examples": [0.5, 0.8, 1]
-        },
-        "boxShadow": {
-          "type": "string",
-          "description": "CSS box-shadow value for drop shadows",
-          "hoverVariant": "boxShadowHover",
-          "responsive": true,
-          "path": "design.effects.box_shadow",
-          "examples": [
-            "0 2px 4px rgba(0,0,0,0.1)",
-            "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)",
-            "0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)",
-            "inset 0 2px 4px rgba(0,0,0,0.06)",
-            "var(--shadow-lg)"
-          ]
-        },
-        "mixBlendMode": {
-          "type": "enum",
-          "values": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"],
-          "default": "normal",
-          "description": "How element blends with content behind it",
-          "hoverVariant": "mixBlendModeHover",
-          "responsive": true,
-          "path": "design.effects.mix_blend_mode"
-        },
-        "filterBlur": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Gaussian blur amount",
-          "hoverVariant": "filterBlurHover",
-          "responsive": true,
-          "path": "design.effects.filter[].type=blur",
-          "examples": ["2px", "5px", "10px", "20px"]
-        },
-        "filterBrightness": {
-          "type": "unit",
-          "unit": "%",
-          "default": "100%",
-          "description": "Brightness adjustment (100% = normal)",
-          "hoverVariant": "filterBrightnessHover",
-          "responsive": true,
-          "path": "design.effects.filter[].type=brightness",
-          "examples": ["80%", "100%", "120%", "150%"]
-        },
-        "filterContrast": {
-          "type": "unit",
-          "unit": "%",
-          "default": "100%",
-          "description": "Contrast adjustment (100% = normal)",
-          "hoverVariant": "filterContrastHover",
-          "responsive": true,
-          "path": "design.effects.filter[].type=contrast",
-          "examples": ["75%", "100%", "125%", "200%"]
-        },
-        "filterGrayscale": {
-          "type": "unit",
-          "unit": "%",
-          "default": "0%",
-          "description": "Grayscale conversion (0% = color, 100% = grayscale)",
-          "hoverVariant": "filterGrayscaleHover",
-          "responsive": true,
-          "path": "design.effects.filter[].type=grayscale",
-          "examples": ["0%", "50%", "100%"]
-        },
-        "filterHueRotate": {
-          "type": "unit",
-          "unit": "deg",
-          "default": "0deg",
-          "description": "Color hue rotation (0-360deg)",
-          "hoverVariant": "filterHueRotateHover",
-          "responsive": true,
-          "path": "design.effects.filter[].type=hue-rotate",
-          "examples": ["0deg", "30deg", "180deg", "360deg"]
-        },
-        "filterInvert": {
-          "type": "unit",
-          "unit": "%",
-          "default": "0%",
-          "description": "Color inversion (0% = normal, 100% = inverted)",
-          "hoverVariant": "filterInvertHover",
-          "responsive": true,
-          "path": "design.effects.filter[].type=invert",
-          "examples": ["0%", "50%", "100%"]
-        },
-        "filterSaturate": {
-          "type": "unit",
-          "unit": "%",
-          "default": "100%",
-          "description": "Color saturation (100% = normal)",
-          "hoverVariant": "filterSaturateHover",
-          "responsive": true,
-          "path": "design.effects.filter[].type=saturate",
-          "examples": ["50%", "100%", "150%", "200%"]
-        },
-        "filterSepia": {
-          "type": "unit",
-          "unit": "%",
-          "default": "0%",
-          "description": "Sepia tone effect (0% = none, 100% = full sepia)",
-          "hoverVariant": "filterSepiaHover",
-          "responsive": true,
-          "path": "design.effects.filter[].type=sepia",
-          "examples": ["0%", "30%", "75%", "100%"]
-        },
-        "transitionDuration": {
-          "type": "unit",
-          "unit": "ms|s",
-          "default": "300ms",
-          "description": "Duration of hover/state transitions",
-          "responsive": true,
-          "path": "design.effects.transition[].duration",
-          "examples": ["150ms", "300ms", "500ms", "1s"]
-        },
-        "transitionTiming": {
-          "type": "enum",
-          "values": ["ease-in-out", "ease-in", "ease-out", "ease", "linear"],
-          "default": "ease-in-out",
-          "description": "Easing function for transitions",
-          "responsive": true,
-          "path": "design.effects.transition[].timing_function"
-        },
-        "transitionProperty": {
-          "type": "enum",
-          "values": ["all", "custom"],
-          "default": "all",
-          "description": "Which CSS properties to animate (use 'custom' with transitionCustomProperty)",
-          "responsive": true,
-          "path": "design.effects.transition[].property"
-        },
-        "transitionCustomProperty": {
-          "type": "string",
-          "description": "Specific CSS property to animate when transitionProperty is 'custom'",
-          "responsive": true,
-          "path": "design.effects.transition[].custom_property",
-          "examples": ["opacity", "transform", "background-color", "box-shadow"]
-        },
-        "transitionDelay": {
-          "type": "unit",
-          "unit": "ms|s",
-          "default": "0ms",
-          "description": "Delay before transition starts",
-          "responsive": true,
-          "path": "design.effects.transition[].delay",
-          "examples": ["0ms", "100ms", "200ms"]
-        }
-      }
-    },
-
-    "transform": {
-      "description": "2D and 3D transformation properties",
-      "properties": {
-        "rotateX": {
-          "type": "unit",
-          "unit": "deg",
-          "description": "Rotation around X axis (tilt forward/back)",
-          "hoverVariant": "rotateXHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].rotate_x",
-          "examples": ["15deg", "-15deg", "45deg"]
-        },
-        "rotateY": {
-          "type": "unit",
-          "unit": "deg",
-          "description": "Rotation around Y axis (turn left/right)",
-          "hoverVariant": "rotateYHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].rotate_y",
-          "examples": ["10deg", "-10deg", "180deg"]
-        },
-        "rotateZ": {
-          "type": "unit",
-          "unit": "deg",
-          "description": "Rotation around Z axis (standard 2D rotation)",
-          "hoverVariant": "rotateZHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].rotate_z",
-          "examples": ["45deg", "-90deg", "360deg"]
-        },
-        "scale": {
-          "type": "number",
-          "range": "0-4",
-          "default": 1,
-          "description": "Uniform scaling factor (1 = normal size)",
-          "hoverVariant": "scaleHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].scale",
-          "examples": [0.5, 1, 1.05, 1.1, 1.5, 2]
-        },
-        "scaleX": {
-          "type": "number",
-          "range": "0-4",
-          "description": "Horizontal scaling factor",
-          "hoverVariant": "scaleXHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].scale_x",
-          "examples": [0.8, 1, 1.2, -1]
-        },
-        "scaleY": {
-          "type": "number",
-          "range": "0-4",
-          "description": "Vertical scaling factor",
-          "hoverVariant": "scaleYHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].scale_y",
-          "examples": [0.8, 1, 1.2, -1]
-        },
-        "scaleZ": {
-          "type": "number",
-          "range": "0-4",
-          "description": "Z-axis scaling for 3D transforms",
-          "hoverVariant": "scaleZHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].scale_z",
-          "examples": [0.5, 1, 2]
-        },
-        "skewX": {
-          "type": "unit",
-          "unit": "deg",
-          "description": "Horizontal skew angle",
-          "hoverVariant": "skewXHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].skew_x",
-          "examples": ["5deg", "15deg", "-10deg"]
-        },
-        "skewY": {
-          "type": "unit",
-          "unit": "deg",
-          "description": "Vertical skew angle",
-          "hoverVariant": "skewYHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].skew_y",
-          "examples": ["5deg", "-15deg"]
-        },
-        "translateX": {
-          "type": "unit",
-          "unit": "px|em|rem|%",
-          "description": "Horizontal translation distance",
-          "hoverVariant": "translateXHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].translate_x",
-          "examples": ["20px", "-50%", "10px"]
-        },
-        "translateY": {
-          "type": "unit",
-          "unit": "px|em|rem|%",
-          "description": "Vertical translation distance",
-          "hoverVariant": "translateYHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].translate_y",
-          "examples": ["20px", "-5px", "-10px"]
-        },
-        "translateZ": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Z-axis translation for 3D depth",
-          "hoverVariant": "translateZHover",
-          "responsive": true,
-          "path": "design.effects.transform.transforms[].translate_z",
-          "examples": ["50px", "-100px", "30px"]
-        },
-        "perspective": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Distance from viewer for 3D transforms (lower = more dramatic)",
-          "hoverVariant": "perspectiveHover",
-          "responsive": true,
-          "path": "design.effects.transform.perspective",
-          "examples": ["500px", "1000px", "2000px"]
-        },
-        "transformOrigin": {
-          "type": "enum",
-          "values": ["top left", "top center", "top right", "center left", "center", "center right", "bottom left", "bottom center", "bottom right", "custom"],
-          "default": "center",
-          "description": "Point around which transforms are applied",
-          "hoverVariant": "transformOriginHover",
-          "responsive": true,
-          "path": "design.effects.transform.origin"
-        },
-        "transformOriginX": {
-          "type": "unit",
-          "unit": "px|%",
-          "description": "Custom X position for transform origin",
-          "responsive": true,
-          "path": "design.effects.transform.origin_position.x",
-          "examples": ["0%", "50%", "100px"]
-        },
-        "transformOriginY": {
-          "type": "unit",
-          "unit": "px|%",
-          "description": "Custom Y position for transform origin",
-          "responsive": true,
-          "path": "design.effects.transform.origin_position.y",
-          "examples": ["0%", "50%", "50px"]
-        },
-        "transformStyle": {
-          "type": "enum",
-          "values": ["flat", "preserve-3d"],
-          "default": "flat",
-          "description": "How child elements are positioned in 3D space",
-          "hoverVariant": "transformStyleHover",
-          "responsive": true,
-          "path": "design.effects.transform.transform_style"
-        },
-        "perspectiveOriginX": {
-          "type": "unit",
-          "unit": "px|%",
-          "description": "X position of the vanishing point",
-          "responsive": true,
-          "path": "design.effects.transform.perspective_origin.x",
-          "examples": ["0%", "50%", "100%"]
-        },
-        "perspectiveOriginY": {
-          "type": "unit",
-          "unit": "px|%",
-          "description": "Y position of the vanishing point",
-          "responsive": true,
-          "path": "design.effects.transform.perspective_origin.y",
-          "examples": ["0%", "50%", "100%"]
-        }
-      }
-    },
-
-    "gradient": {
-      "description": "Gradient and background blend properties",
-      "properties": {
-        "backgroundGradient": {
-          "type": "string",
-          "description": "CSS gradient background (linear, radial, or conic)",
-          "hoverVariant": "backgroundGradientHover",
-          "responsive": true,
-          "path": "design.background.gradient",
-          "examples": [
-            "linear-gradient(90deg, #667eea, #764ba2)",
-            "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%)",
-            "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-            "radial-gradient(circle at center, #ffffff 0%, #000000 100%)",
-            "conic-gradient(from 0deg, #ff6b6b, #feca57, #48dbfb, #ff6b6b)",
-            "var(--gradient-primary)"
-          ]
-        },
-        "backgroundGradientOverlay": {
-          "type": "string",
-          "description": "Gradient overlay on top of background image (great for hero sections)",
-          "responsive": true,
-          "path": "design.background.overlay.gradient",
-          "examples": [
-            "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%)",
-            "linear-gradient(135deg, rgba(102,126,234,0.8) 0%, rgba(118,75,162,0.8) 100%)",
-            "radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%)"
-          ]
-        },
-        "backgroundBlendMode": {
-          "type": "enum",
-          "values": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"],
-          "default": "normal",
-          "description": "How background layers blend together",
-          "hoverVariant": "backgroundBlendModeHover",
-          "responsive": true,
-          "path": "design.background.blend_mode"
-        },
-        "textGradient": {
-          "type": "string",
-          "description": "Gradient fill for text (great for headings)",
-          "hoverVariant": "textGradientHover",
-          "responsive": true,
-          "path": "design.typography.text_gradient",
-          "examples": [
-            "linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb)",
-            "linear-gradient(90deg, #667eea, #764ba2)",
-            "linear-gradient(180deg, #bf953f, #fcf6ba, #b38728)"
-          ]
-        }
-      }
-    },
-
-    "border": {
-      "description": "Border radius, style, width, and color properties",
-      "properties": {
-        "borderRadiusAll": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Uniform border radius for all corners",
-          "hoverVariant": "borderRadiusAllHover",
-          "responsive": true,
-          "path": "design.borders.radius.all",
-          "examples": ["4px", "8px", "12px", "16px", "9999px"]
-        },
-        "radiusTopLeft": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Top-left corner radius",
-          "hoverVariant": "radiusTopLeftHover",
-          "responsive": true,
-          "path": "design.borders.radius.top_left"
-        },
-        "radiusTopRight": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Top-right corner radius",
-          "hoverVariant": "radiusTopRightHover",
-          "responsive": true,
-          "path": "design.borders.radius.top_right"
-        },
-        "radiusBottomLeft": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Bottom-left corner radius",
-          "hoverVariant": "radiusBottomLeftHover",
-          "responsive": true,
-          "path": "design.borders.radius.bottom_left"
-        },
-        "radiusBottomRight": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Bottom-right corner radius",
-          "hoverVariant": "radiusBottomRightHover",
-          "responsive": true,
-          "path": "design.borders.radius.bottom_right"
-        },
-        "borderAllStyle": {
-          "type": "enum",
-          "values": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
-          "default": "none",
-          "description": "Border style for all sides",
-          "hoverVariant": "borderAllStyleHover",
-          "responsive": true,
-          "path": "design.borders.border.all.style"
-        },
-        "borderAllWidth": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Border width for all sides",
-          "hoverVariant": "borderAllWidthHover",
-          "responsive": true,
-          "path": "design.borders.border.all.width",
-          "examples": ["1px", "2px", "4px"]
-        },
-        "borderAllColor": {
-          "type": "color",
-          "description": "Border color for all sides",
-          "hoverVariant": "borderAllColorHover",
-          "responsive": true,
-          "path": "design.borders.border.all.color",
-          "examples": ["#e0e0e0", "#3b82f6", "rgba(0,0,0,0.1)", "var(--border-color)"]
-        },
-        "borderTopStyle": { "type": "enum", "values": ["none", "solid", "dashed", "dotted", "double"], "description": "Top border style", "hoverVariant": "borderTopStyleHover", "responsive": true, "path": "design.borders.border.top.style" },
-        "borderTopWidth": { "type": "unit", "unit": "px", "description": "Top border width", "hoverVariant": "borderTopWidthHover", "responsive": true, "path": "design.borders.border.top.width" },
-        "borderTopColor": { "type": "color", "description": "Top border color", "hoverVariant": "borderTopColorHover", "responsive": true, "path": "design.borders.border.top.color" },
-        "borderRightStyle": { "type": "enum", "values": ["none", "solid", "dashed", "dotted", "double"], "description": "Right border style", "hoverVariant": "borderRightStyleHover", "responsive": true, "path": "design.borders.border.right.style" },
-        "borderRightWidth": { "type": "unit", "unit": "px", "description": "Right border width", "hoverVariant": "borderRightWidthHover", "responsive": true, "path": "design.borders.border.right.width" },
-        "borderRightColor": { "type": "color", "description": "Right border color", "hoverVariant": "borderRightColorHover", "responsive": true, "path": "design.borders.border.right.color" },
-        "borderBottomStyle": { "type": "enum", "values": ["none", "solid", "dashed", "dotted", "double"], "description": "Bottom border style", "hoverVariant": "borderBottomStyleHover", "responsive": true, "path": "design.borders.border.bottom.style" },
-        "borderBottomWidth": { "type": "unit", "unit": "px", "description": "Bottom border width", "hoverVariant": "borderBottomWidthHover", "responsive": true, "path": "design.borders.border.bottom.width" },
-        "borderBottomColor": { "type": "color", "description": "Bottom border color", "hoverVariant": "borderBottomColorHover", "responsive": true, "path": "design.borders.border.bottom.color" },
-        "borderLeftStyle": { "type": "enum", "values": ["none", "solid", "dashed", "dotted", "double"], "description": "Left border style", "hoverVariant": "borderLeftStyleHover", "responsive": true, "path": "design.borders.border.left.style" },
-        "borderLeftWidth": { "type": "unit", "unit": "px", "description": "Left border width", "hoverVariant": "borderLeftWidthHover", "responsive": true, "path": "design.borders.border.left.width" },
-        "borderLeftColor": { "type": "color", "description": "Left border color", "hoverVariant": "borderLeftColorHover", "responsive": true, "path": "design.borders.border.left.color" }
-      }
-    },
-
-    "background": {
-      "description": "Background color and image properties",
-      "properties": {
-        "backgroundColor": {
-          "type": "color",
-          "description": "Solid background color",
-          "hoverVariant": "backgroundColorHover",
-          "responsive": true,
-          "path": "design.background.color",
-          "examples": ["#ffffff", "#1a1a2e", "rgba(0,0,0,0.5)", "var(--bg-primary)"]
-        },
-        "backgroundImage": {
-          "type": "string",
-          "description": "Background image URL",
-          "responsive": true,
-          "path": "design.background.image",
-          "examples": ["https://example.com/image.jpg"]
-        },
-        "backgroundPosition": {
-          "type": "enum",
-          "values": ["top left", "top center", "top right", "center left", "center", "center right", "bottom left", "bottom center", "bottom right", "custom"],
-          "default": "center",
-          "description": "Background image position",
-          "responsive": true,
-          "path": "design.background.position"
-        },
-        "backgroundSize": {
-          "type": "enum",
-          "values": ["auto", "cover", "contain", "custom"],
-          "default": "cover",
-          "description": "Background image size",
-          "responsive": true,
-          "path": "design.background.size"
-        },
-        "backgroundRepeat": {
-          "type": "enum",
-          "values": ["repeat", "repeat-x", "repeat-y", "no-repeat", "space", "round"],
-          "default": "no-repeat",
-          "description": "Background image repeat behavior",
-          "responsive": true,
-          "path": "design.background.repeat"
-        },
-        "backgroundAttachment": {
-          "type": "enum",
-          "values": ["scroll", "fixed", "local"],
-          "default": "scroll",
-          "description": "Background scroll behavior",
-          "responsive": true,
-          "path": "design.background.attachment"
-        }
-      }
-    },
-
-    "layout": {
-      "description": "Flexbox and Grid layout properties",
-      "properties": {
-        "display": {
-          "type": "enum",
-          "values": ["block", "flex", "grid", "inline", "inline-block", "inline-flex", "inline-grid", "none"],
-          "default": "block",
-          "description": "Display mode",
-          "responsive": true,
-          "path": "design.layout.display"
-        },
-        "flexDirection": {
-          "type": "enum",
-          "values": ["row", "row-reverse", "column", "column-reverse"],
-          "default": "row",
-          "description": "Direction of flex items",
-          "responsive": true,
-          "path": "design.layout.flexDirection"
-        },
-        "justifyContent": {
-          "type": "enum",
-          "values": ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"],
-          "default": "flex-start",
-          "description": "Alignment along main axis",
-          "responsive": true,
-          "path": "design.layout.justifyContent"
-        },
-        "alignItems": {
-          "type": "enum",
-          "values": ["flex-start", "flex-end", "center", "baseline", "stretch"],
-          "default": "stretch",
-          "description": "Alignment along cross axis",
-          "responsive": true,
-          "path": "design.layout.alignItems"
-        },
-        "flexWrap": {
-          "type": "enum",
-          "values": ["nowrap", "wrap", "wrap-reverse"],
-          "default": "nowrap",
-          "description": "Whether flex items wrap",
-          "responsive": true,
-          "path": "design.layout.flexWrap"
-        },
-        "horizontalGap": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Gap between items horizontally",
-          "responsive": true,
-          "path": "design.layout.horizontalGap",
-          "examples": ["10px", "20px", "30px", "40px"]
-        },
-        "verticalGap": {
-          "type": "unit",
-          "unit": "px",
-          "description": "Gap between items vertically",
-          "responsive": true,
-          "path": "design.layout.verticalGap",
-          "examples": ["10px", "20px", "30px", "40px"]
-        },
-        "gridTemplateColumns": {
-          "type": "string",
-          "description": "Grid column template",
-          "responsive": true,
-          "path": "design.layout.gridTemplateColumns",
-          "examples": ["1fr 1fr", "repeat(3, 1fr)", "repeat(4, 1fr)", "2fr 1fr 1fr 1fr", "200px auto 1fr"]
-        },
-        "gridTemplateRows": {
-          "type": "string",
-          "description": "Grid row template",
-          "responsive": true,
-          "path": "design.layout.gridTemplateRows",
-          "examples": ["auto", "1fr 1fr", "repeat(3, 1fr)"]
-        }
-      }
-    },
-
-    "spacing": {
-      "description": "Padding and margin properties",
-      "properties": {
-        "paddingTop": { "type": "unit", "unit": "px", "description": "Top padding", "responsive": true, "path": "design.spacing.padding.top" },
-        "paddingBottom": { "type": "unit", "unit": "px", "description": "Bottom padding", "responsive": true, "path": "design.spacing.padding.bottom" },
-        "paddingLeft": { "type": "unit", "unit": "px", "description": "Left padding", "responsive": true, "path": "design.spacing.padding.left" },
-        "paddingRight": { "type": "unit", "unit": "px", "description": "Right padding", "responsive": true, "path": "design.spacing.padding.right" },
-        "marginTop": { "type": "unit", "unit": "px", "description": "Top margin", "responsive": true, "path": "design.spacing.margin_top" },
-        "marginBottom": { "type": "unit", "unit": "px", "description": "Bottom margin", "responsive": true, "path": "design.spacing.margin_bottom" },
-        "marginLeft": { "type": "unit", "unit": "px|auto", "description": "Left margin", "responsive": true, "path": "design.spacing.margin_left" },
-        "marginRight": { "type": "unit", "unit": "px|auto", "description": "Right margin", "responsive": true, "path": "design.spacing.margin_right" }
-      }
-    },
-
-    "size": {
-      "description": "Width and height properties",
-      "properties": {
-        "width": { "type": "unit", "unit": "px|%|vw|auto", "description": "Element width", "responsive": true, "path": "design.size.width" },
-        "height": { "type": "unit", "unit": "px|%|vh|auto", "description": "Element height", "responsive": true, "path": "design.size.height" },
-        "minWidth": { "type": "unit", "unit": "px|%", "description": "Minimum width", "responsive": true, "path": "design.size.minWidth" },
-        "maxWidth": { "type": "unit", "unit": "px|%", "description": "Maximum width", "responsive": true, "path": "design.size.maxWidth" },
-        "minHeight": { "type": "unit", "unit": "px|%", "description": "Minimum height", "responsive": true, "path": "design.size.minHeight" },
-        "maxHeight": { "type": "unit", "unit": "px|%", "description": "Maximum height", "responsive": true, "path": "design.size.maxHeight" }
-      }
-    },
-
-    "typography": {
-      "description": "Text styling properties",
-      "properties": {
-        "color": { "type": "color", "description": "Text color", "hoverVariant": "colorHover", "responsive": true, "path": "design.typography.color" },
-        "fontSize": { "type": "unit", "unit": "px|rem|em", "description": "Font size", "responsive": true, "path": "design.typography.typography.custom.customTypography.fontSize" },
-        "fontWeight": { "type": "enum", "values": ["100", "200", "300", "400", "500", "600", "700", "800", "900"], "description": "Font weight", "responsive": true, "path": "design.typography.typography.custom.customTypography.fontWeight" },
-        "lineHeight": { "type": "unit", "unit": "number|px|em", "description": "Line height", "responsive": true, "path": "design.typography.typography.custom.customTypography.lineHeight" },
-        "textAlign": { "type": "enum", "values": ["left", "center", "right", "justify"], "description": "Text alignment", "responsive": true, "path": "design.typography.typography.custom.customTypography.textAlign" },
-        "letterSpacing": { "type": "unit", "unit": "px|em", "description": "Letter spacing", "responsive": true, "path": "design.typography.typography.custom.customTypography.letterSpacing" },
-        "textTransform": { "type": "enum", "values": ["none", "uppercase", "lowercase", "capitalize"], "description": "Text transform", "responsive": true, "path": "design.typography.typography.custom.customTypography.textTransform" },
-        "textDecoration": { "type": "enum", "values": ["none", "underline", "overline", "line-through"], "description": "Text decoration", "hoverVariant": "textDecorationHover", "responsive": true, "path": "design.typography.typography.custom.customTypography.textDecoration" }
-      }
-    }
-  },
-
-  "recipes": {
-    "description": "Common styling patterns ready to use",
-
-    "fadeOnHover": {
-      "description": "Element fades to 70% opacity on hover with smooth transition",
-      "properties": {
-        "opacity": 1,
-        "opacityHover": 0.7,
-        "transitionDuration": "300ms",
-        "transitionTiming": "ease-in-out"
-      }
-    },
-
-    "cardWithShadow": {
-      "description": "Card element with subtle shadow that elevates on hover",
-      "properties": {
-        "boxShadow": "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
-        "boxShadowHover": "0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)",
-        "transitionDuration": "300ms",
-        "transitionTiming": "ease-in-out"
-      }
-    },
-
-    "grayscaleToColor": {
-      "description": "Image starts grayscale and reveals color on hover",
-      "properties": {
-        "filterGrayscale": "100%",
-        "filterGrayscaleHover": "0%",
-        "transitionDuration": "400ms",
-        "transitionTiming": "ease-out"
-      }
-    },
-
-    "frostedGlass": {
-      "description": "Semi-transparent element with blur backdrop (glassmorphism)",
-      "properties": {
-        "backgroundColor": "rgba(255,255,255,0.1)",
-        "filterBlur": "10px",
-        "opacity": 0.9,
-        "borderAllWidth": "1px",
-        "borderAllStyle": "solid",
-        "borderAllColor": "rgba(255,255,255,0.2)",
-        "borderRadiusAll": "16px"
-      }
-    },
-
-    "scaleOnHover": {
-      "description": "Element grows slightly on hover",
-      "properties": {
-        "scale": 1,
-        "scaleHover": 1.05,
-        "transitionDuration": "200ms",
-        "transitionTiming": "ease-out"
-      }
-    },
-
-    "floatOnHover": {
-      "description": "Element appears to float up with enhanced shadow on hover",
-      "properties": {
-        "translateY": "0px",
-        "translateYHover": "-5px",
-        "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
-        "boxShadowHover": "0 8px 16px rgba(0,0,0,0.15)",
-        "transitionDuration": "300ms",
-        "transitionTiming": "ease-out"
-      }
-    },
-
-    "pressButton": {
-      "description": "Button appears to press down when hovered",
-      "properties": {
-        "scale": 1,
-        "scaleHover": 0.95,
-        "translateY": "0px",
-        "translateYHover": "2px",
-        "boxShadow": "0 4px 6px rgba(0,0,0,0.2)",
-        "boxShadowHover": "0 2px 3px rgba(0,0,0,0.2)",
-        "transitionDuration": "150ms",
-        "transitionTiming": "ease-out"
-      }
-    },
-
-    "flipCard3D": {
-      "description": "Card that flips 180 degrees on hover (for card flip effect)",
-      "properties": {
-        "rotateY": "0deg",
-        "rotateYHover": "180deg",
-        "transformStyle": "preserve-3d",
-        "perspective": "1000px",
-        "transitionDuration": "600ms",
-        "transitionTiming": "ease-in-out"
-      }
-    },
-
-    "spinIcon": {
-      "description": "Icon rotates 360 degrees on hover",
-      "properties": {
-        "rotateZ": "0deg",
-        "rotateZHover": "360deg",
-        "transitionDuration": "500ms",
-        "transitionTiming": "ease-in-out"
-      }
-    },
-
-    "tiltCard3D": {
-      "description": "Card tilts slightly in 3D space on hover for depth effect",
-      "properties": {
-        "rotateX": "0deg",
-        "rotateY": "0deg",
-        "rotateXHover": "-5deg",
-        "rotateYHover": "10deg",
-        "perspective": "1000px",
-        "transformOrigin": "center",
-        "transitionDuration": "300ms",
-        "transitionTiming": "ease-out"
-      }
-    },
-
-    "vintagePhoto": {
-      "description": "Apply sepia and reduced saturation for vintage look",
-      "properties": {
-        "filterSepia": "40%",
-        "filterSaturate": "80%",
-        "filterContrast": "90%"
-      }
-    },
-
-    "gradientBackground": {
-      "description": "Element with vibrant gradient background",
-      "properties": {
-        "backgroundGradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-      }
-    },
-
-    "heroOverlay": {
-      "description": "Dark gradient overlay for text readability over images",
-      "properties": {
-        "backgroundGradientOverlay": "linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%)"
-      }
-    },
-
-    "gradientText": {
-      "description": "Eye-catching gradient text for headings",
-      "properties": {
-        "textGradient": "linear-gradient(90deg, #667eea, #764ba2)"
-      }
-    },
-
-    "simpleBorder": {
-      "description": "Simple solid border with rounded corners",
-      "properties": {
-        "borderAllWidth": "1px",
-        "borderAllStyle": "solid",
-        "borderAllColor": "#e0e0e0",
-        "borderRadiusAll": "8px"
-      }
-    },
-
-    "bottomAccent": {
-      "description": "Bottom border accent line",
-      "properties": {
-        "borderBottomWidth": "2px",
-        "borderBottomStyle": "solid",
-        "borderBottomColor": "#3b82f6"
-      }
-    },
-
-    "pillShape": {
-      "description": "Fully rounded pill shape",
-      "properties": {
-        "borderRadiusAll": "9999px"
-      }
-    }
-  },
-
-  "treeStructure": {
-    "description": "Required tree structure for API requests",
-    "notes": [
-      "Root id must be integer (typically 1)",
-      "Root type must be lowercase 'root'",
-      "Root properties MUST be null",
-      "Tree MUST have status: 'exported'",
-      "Element IDs must be integers (start from 100 for non-root)",
-      "Children must have _parentId referencing parent integer ID",
-      "Element types use escaped namespace: 'EssentialElements\\\\Heading'",
-      "Text content uses double-nested path: content.content.text"
-    ],
-    "template": {
-      "root": {
-        "id": 1,
-        "data": {
-          "type": "root",
-          "properties": null
-        },
-        "children": []
+    "classProperties": {
+      "className": {
+        "title": "Element className",
+        "description": "The className property specifies custom CSS classes applied to an element. Multiple classes are space-separated. Stored at properties.attributes.className in the element tree.",
+        "type": "string",
+        "pattern": "^[a-zA-Z_-][a-zA-Z0-9_- ]*$",
+        "examples": [
+          "my-custom-class",
+          "hero-section highlighted",
+          "btn btn-primary btn-lg"
+        ],
+        "storagePaths": [
+          "data.properties.attributes.className",
+          "data.properties.className",
+          "data.properties.settings.attributes.customCssClass"
+        ]
       },
-      "status": "exported"
+      "additionalClasses": {
+        "title": "Element additionalClasses",
+        "description": "Built-in classes defined by the element type. These are read-only and automatically added by the element. Common prefixes: bde-, breakdance-, ee-, oxy-",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The CSS class name"
+            },
+            "template": {
+              "type": "string",
+              "description": "Template condition for class application (e.g., 'yes' for always)"
+            }
+          }
+        },
+        "examples": [
+          [{"name": "breakdance-link", "template": "yes"}],
+          [{"name": "bde-button", "template": "yes"}]
+        ]
+      }
     },
-    "elementTemplate": {
-      "id": 100,
-      "data": {
-        "type": "EssentialElements\\Div",
-        "properties": {
-          "design": {
-            "background": { "color": "#ffffff" },
-            "spacing": {
-              "padding": {
-                "top": { "breakpoint_base": "20px" },
-                "bottom": { "breakpoint_base": "20px" }
+
+    "builtInClassPrefixes": {
+      "description": "CSS class prefixes used by built-in elements (read-only)",
+      "prefixes": {
+        "bde-": "Breakdance element classes (e.g., bde-button, bde-heading)",
+        "breakdance-": "Breakdance utility classes (e.g., breakdance-link)",
+        "ee-": "Essential Elements classes",
+        "oxy-": "Oxygen Builder classes",
+        "ct-": "Core template classes"
+      }
+    },
+
+    "endpoints": {
+      "getClasses": {
+        "method": "GET",
+        "path": "/oxybridge/v1/documents/{id}/classes",
+        "description": "Get all CSS classes from elements in a document",
+        "parameters": {
+          "id": {
+            "type": "integer",
+            "required": true,
+            "description": "Post/document ID"
+          },
+          "element_id": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by specific element ID"
+          }
+        },
+        "response": {
+          "type": "object",
+          "properties": {
+            "post_id": "integer",
+            "elements": {
+              "type": "array",
+              "items": {
+                "id": "string - Element ID",
+                "type": "string - Element type (e.g., EssentialElements\\Button)",
+                "classes": "array - All classes (custom + built-in)",
+                "custom_classes": "array - User-defined classes only",
+                "builtin_classes": "array - Element's built-in classes"
               }
+            },
+            "summary": {
+              "total_elements": "integer",
+              "unique_classes": "array",
+              "total_class_count": "integer"
+            }
+          }
+        },
+        "example": {
+          "request": "GET /oxybridge/v1/documents/280/classes",
+          "response": {
+            "post_id": 280,
+            "elements": [
+              {
+                "id": "hero-button",
+                "type": "EssentialElements\\Button",
+                "classes": ["bde-button", "btn-primary", "animated"],
+                "custom_classes": ["btn-primary", "animated"],
+                "builtin_classes": ["bde-button"]
+              }
+            ],
+            "summary": {
+              "total_elements": 1,
+              "unique_classes": ["bde-button", "btn-primary", "animated"],
+              "total_class_count": 3
             }
           }
         }
       },
-      "children": [],
-      "_parentId": 1
+
+      "updateClasses": {
+        "method": "PUT",
+        "path": "/oxybridge/v1/documents/{id}/elements/{element_id}/classes",
+        "description": "Set/update CSS classes on a specific element",
+        "parameters": {
+          "id": {
+            "type": "integer",
+            "required": true,
+            "description": "Post/document ID"
+          },
+          "element_id": {
+            "type": "string",
+            "required": true,
+            "description": "Element ID within the document"
+          },
+          "classes": {
+            "type": "array",
+            "required": true,
+            "description": "Array of CSS class names to set",
+            "validation": "Must match pattern: ^[a-zA-Z_-][a-zA-Z0-9_-]*$"
+          },
+          "regenerate_css": {
+            "type": "boolean",
+            "default": true,
+            "description": "Regenerate CSS cache after save"
+          }
+        },
+        "example": {
+          "request": {
+            "method": "PUT",
+            "url": "/oxybridge/v1/documents/280/elements/hero-button/classes",
+            "body": {
+              "classes": ["btn-primary", "btn-lg", "animated"]
+            }
+          },
+          "response": {
+            "success": true,
+            "post_id": 280,
+            "element_id": "hero-button",
+            "classes": ["btn-primary", "btn-lg", "animated"],
+            "element": {
+              "id": "hero-button",
+              "type": "EssentialElements\\Button"
+            }
+          }
+        }
+      },
+
+      "deleteClass": {
+        "method": "DELETE",
+        "path": "/oxybridge/v1/documents/{id}/elements/{element_id}/classes/{class_name}",
+        "description": "Remove a specific CSS class from an element",
+        "parameters": {
+          "id": {
+            "type": "integer",
+            "required": true,
+            "description": "Post/document ID"
+          },
+          "element_id": {
+            "type": "string",
+            "required": true,
+            "description": "Element ID within the document"
+          },
+          "class_name": {
+            "type": "string",
+            "required": true,
+            "description": "CSS class name to remove"
+          },
+          "regenerate_css": {
+            "type": "boolean",
+            "default": true,
+            "description": "Regenerate CSS cache after save"
+          }
+        },
+        "example": {
+          "request": "DELETE /oxybridge/v1/documents/280/elements/hero-button/classes/animated",
+          "response": {
+            "success": true,
+            "post_id": 280,
+            "element_id": "hero-button",
+            "removed_class": "animated",
+            "classes": ["btn-primary", "btn-lg"]
+          }
+        },
+        "notes": [
+          "Cannot remove built-in classes (bde-, breakdance-, ee-, oxy- prefixed)",
+          "Returns 404 if class not found on element"
+        ]
+      }
+    },
+
+    "classValidation": {
+      "description": "Rules for valid CSS class names",
+      "pattern": "^[a-zA-Z_-][a-zA-Z0-9_-]*$",
+      "rules": [
+        "Must start with a letter, underscore, or hyphen",
+        "Can contain letters, numbers, underscores, and hyphens",
+        "Cannot start with a digit",
+        "Cannot contain spaces (use separate array items)",
+        "Case-sensitive"
+      ],
+      "validExamples": [
+        "my-class",
+        "MyClass",
+        "_private",
+        "-modifier",
+        "btn-primary-lg"
+      ],
+      "invalidExamples": [
+        "123class",
+        "my class",
+        "class.name",
+        "class@special"
+      ]
     }
   },
 
-  "commonPaths": {
-    "description": "Quick reference for common property paths in element JSON",
-    "paths": {
-      "textContent": "content.content.text",
-      "headingTag": "content.content.tags",
-      "backgroundColor": "design.background.color",
-      "typography": "design.typography",
-      "typographyColor": "design.typography.color",
-      "paddingTop": "design.spacing.padding.top",
-      "paddingBottom": "design.spacing.padding.bottom",
-      "paddingLeft": "design.spacing.padding.left",
-      "paddingRight": "design.spacing.padding.right",
-      "marginTop": "design.spacing.margin_top",
-      "marginBottom": "design.spacing.margin_bottom",
-      "marginLeft": "design.spacing.margin_left",
-      "marginRight": "design.spacing.margin_right",
-      "borderRadius": "design.borders.radius.all",
-      "layout": "design.layout",
-      "display": "design.layout.display",
-      "flexDirection": "design.layout.flexDirection",
-      "effects": "design.effects",
-      "opacity": "design.effects.opacity",
-      "boxShadow": "design.effects.box_shadow",
-      "buttonBackground": "design.button.background",
-      "buttonTextColor": "design.button.typography.color",
-      "imageUrl": "content.image.url",
-      "imageAlt": "content.image.alt",
-      "linkUrl": "content.content.link.url"
+  "elementTypes": {
+    "title": "Common Element Types",
+    "description": "Reference for element types and their built-in classes",
+    "elements": {
+      "EssentialElements\\Section": {
+        "className": "bde-section",
+        "description": "Page section container"
+      },
+      "EssentialElements\\Div": {
+        "className": "bde-div",
+        "description": "Generic div container"
+      },
+      "EssentialElements\\Heading": {
+        "className": "bde-heading",
+        "description": "Heading element (h1-h6)"
+      },
+      "EssentialElements\\Text": {
+        "className": "bde-text",
+        "description": "Text/paragraph element"
+      },
+      "EssentialElements\\Button": {
+        "className": "bde-button",
+        "description": "Button element"
+      },
+      "EssentialElements\\TextLink": {
+        "className": "breakdance-link",
+        "description": "Text link element",
+        "additionalClasses": [{"name": "breakdance-link", "template": "yes"}]
+      },
+      "EssentialElements\\Link": {
+        "className": "breakdance-link",
+        "description": "Link element (alias for TextLink)",
+        "additionalClasses": [{"name": "breakdance-link", "template": "yes"}]
+      },
+      "EssentialElements\\Image2": {
+        "className": "bde-image",
+        "description": "Image element"
+      },
+      "EssentialElements\\Container": {
+        "className": "bde-container",
+        "description": "Container element"
+      },
+      "EssentialElements\\Columns": {
+        "className": "bde-columns",
+        "description": "Column layout container"
+      },
+      "EssentialElements\\Column": {
+        "className": "bde-column",
+        "description": "Individual column"
+      }
+    }
+  },
+
+  "usagePatterns": {
+    "addClassToElement": {
+      "title": "Add a Custom Class to an Element",
+      "steps": [
+        "1. GET the document classes to find the element and its current classes",
+        "2. Prepare the new class list (existing + new classes)",
+        "3. PUT the updated classes to the element"
+      ],
+      "example": {
+        "description": "Add 'highlighted' class to an element that has 'btn-primary'",
+        "step1": "GET /oxybridge/v1/documents/280/classes?element_id=hero-button",
+        "step2": "Combine existing ['btn-primary'] with new ['highlighted']",
+        "step3": {
+          "method": "PUT",
+          "url": "/oxybridge/v1/documents/280/elements/hero-button/classes",
+          "body": {"classes": ["btn-primary", "highlighted"]}
+        }
+      }
+    },
+    "toggleClass": {
+      "title": "Toggle a Class On/Off",
+      "steps": [
+        "1. GET current classes for the element",
+        "2. Check if class exists in custom_classes",
+        "3. If exists: remove it using DELETE endpoint",
+        "4. If not exists: add it using PUT endpoint with merged list"
+      ]
+    },
+    "bulkClassUpdate": {
+      "title": "Update Multiple Elements' Classes",
+      "note": "Make individual PUT requests per element. No bulk endpoint currently available."
     }
   }
 }

@@ -95,6 +95,105 @@ class REST_Documents extends REST_Controller {
                 ),
             )
         );
+
+        // Class management endpoint - GET all element classes.
+        register_rest_route(
+            $this->get_namespace(),
+            '/documents/(?P<id>\d+)/classes',
+            array(
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_document_classes' ),
+                'permission_callback' => array( $this, 'check_read_permission' ),
+                'args'                => array(
+                    'id' => array(
+                        'description'       => __( 'Post ID.', 'oxybridge-wp' ),
+                        'type'              => 'integer',
+                        'required'          => true,
+                        'validate_callback' => array( $this, 'validate_post_id' ),
+                    ),
+                    'element_id' => array(
+                        'description' => __( 'Filter by specific element ID.', 'oxybridge-wp' ),
+                        'type'        => 'string',
+                        'required'    => false,
+                    ),
+                ),
+            )
+        );
+
+        // Class management endpoint - PUT to update element classes.
+        register_rest_route(
+            $this->get_namespace(),
+            '/documents/(?P<id>\d+)/elements/(?P<element_id>[a-zA-Z0-9_-]+)/classes',
+            array(
+                'methods'             => \WP_REST_Server::EDITABLE,
+                'callback'            => array( $this, 'update_element_classes' ),
+                'permission_callback' => array( $this, 'check_write_permission' ),
+                'args'                => array(
+                    'id' => array(
+                        'description'       => __( 'Post ID.', 'oxybridge-wp' ),
+                        'type'              => 'integer',
+                        'required'          => true,
+                        'validate_callback' => array( $this, 'validate_post_id' ),
+                    ),
+                    'element_id' => array(
+                        'description'       => __( 'Element ID within the document.', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'classes' => array(
+                        'description'       => __( 'Array of CSS class names to set on the element.', 'oxybridge-wp' ),
+                        'type'              => 'array',
+                        'required'          => true,
+                        'items'             => array(
+                            'type' => 'string',
+                        ),
+                        'validate_callback' => array( $this, 'validate_class_names' ),
+                    ),
+                    'regenerate_css' => array(
+                        'description' => __( 'Regenerate CSS cache after save.', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => true,
+                    ),
+                ),
+            )
+        );
+
+        // Class management endpoint - DELETE to remove a specific class from an element.
+        register_rest_route(
+            $this->get_namespace(),
+            '/documents/(?P<id>\d+)/elements/(?P<element_id>[a-zA-Z0-9_-]+)/classes/(?P<class_name>[a-zA-Z0-9_-]+)',
+            array(
+                'methods'             => \WP_REST_Server::DELETABLE,
+                'callback'            => array( $this, 'delete_element_class' ),
+                'permission_callback' => array( $this, 'check_write_permission' ),
+                'args'                => array(
+                    'id' => array(
+                        'description'       => __( 'Post ID.', 'oxybridge-wp' ),
+                        'type'              => 'integer',
+                        'required'          => true,
+                        'validate_callback' => array( $this, 'validate_post_id' ),
+                    ),
+                    'element_id' => array(
+                        'description'       => __( 'Element ID within the document.', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'class_name' => array(
+                        'description'       => __( 'CSS class name to remove.', 'oxybridge-wp' ),
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'regenerate_css' => array(
+                        'description' => __( 'Regenerate CSS cache after save.', 'oxybridge-wp' ),
+                        'type'        => 'boolean',
+                        'default'     => true,
+                    ),
+                ),
+            )
+        );
     }
 
     /**
@@ -154,8 +253,6 @@ class REST_Documents extends REST_Controller {
     /**
      * Update document endpoint callback.
      *
-     * Validates the tree structure and provides detailed error feedback for AI agents.
-     *
      * @since 1.1.0
      * @param \WP_REST_Request $request The request object.
      * @return \WP_REST_Response|\WP_Error
@@ -174,26 +271,14 @@ class REST_Documents extends REST_Controller {
             );
         }
 
-        // Validate tree structure with detailed feedback.
-        $validation = $this->validate_document_tree( $tree );
-        if ( ! $validation['valid'] ) {
-            return new \WP_REST_Response(
-                array(
-                    'code'          => 'rest_invalid_tree',
-                    'message'       => __( 'Invalid tree structure provided. See errors for details.', 'oxybridge-wp' ),
-                    'valid'         => false,
-                    'errors'        => $validation['errors'],
-                    'warnings'      => $validation['warnings'],
-                    'error_count'   => count( $validation['errors'] ),
-                    'warning_count' => count( $validation['warnings'] ),
-                    '_links'        => $this->get_response_links(),
-                ),
+        // Validate tree structure.
+        if ( ! is_array( $tree ) || ! $this->is_valid_tree_structure( $tree ) ) {
+            return $this->format_error(
+                'rest_invalid_tree',
+                __( 'Invalid tree structure provided.', 'oxybridge-wp' ),
                 400
             );
         }
-
-        // Include warnings in save response if any.
-        $warnings = $validation['warnings'];
 
         // Save the tree.
         $saved = $this->save_document_tree( $post_id, $tree );
@@ -214,481 +299,13 @@ class REST_Documents extends REST_Controller {
         // Return updated document.
         $updated_tree = $this->get_document_tree( $post_id );
 
-        $response_data = array(
-            'success'       => true,
-            'post_id'       => $post_id,
-            'tree'          => $updated_tree,
-            'element_count' => $this->count_document_elements( $updated_tree ),
-        );
-
-        // Include warnings if any were detected during validation.
-        if ( ! empty( $warnings ) ) {
-            $response_data['warnings']      = $warnings;
-            $response_data['warning_count'] = count( $warnings );
-        }
-
-        return $this->format_response( $response_data );
-    }
-
-    /**
-     * Validate document tree structure with detailed error feedback.
-     *
-     * Provides actionable error messages with property paths, expected types,
-     * and examples for AI agents to correct their requests.
-     *
-     * @since 1.1.0
-     * @param mixed $tree The tree to validate.
-     * @return array Validation result with 'valid', 'errors', and 'warnings'.
-     */
-    private function validate_document_tree( $tree ): array {
-        $errors   = array();
-        $warnings = array();
-
-        // Basic type validation.
-        if ( ! is_array( $tree ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_tree_type',
-                'tree',
-                'Tree must be an object/array.',
-                'object',
-                array(
-                    'root'   => array(
-                        'id'       => 1,
-                        'data'     => array( 'type' => 'root', 'properties' => null ),
-                        'children' => array(),
-                    ),
-                    'status' => 'exported',
-                )
-            );
-
-            return array(
-                'valid'    => false,
-                'errors'   => $errors,
-                'warnings' => $warnings,
-            );
-        }
-
-        // Check for root property.
-        if ( ! isset( $tree['root'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'missing_root',
-                'root',
-                'Tree must have a root property.',
-                'object',
-                array(
-                    'id'       => 1,
-                    'data'     => array( 'type' => 'root', 'properties' => null ),
-                    'children' => array(),
-                )
-            );
-        } elseif ( ! is_array( $tree['root'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_root_type',
-                'root',
-                'Root must be an object.',
-                'object',
-                array(
-                    'id'       => 1,
-                    'data'     => array( 'type' => 'root', 'properties' => null ),
-                    'children' => array(),
-                )
-            );
-        } else {
-            // Validate root structure.
-            $this->validate_document_root( $tree['root'], $errors, $warnings );
-        }
-
-        // Check for status field.
-        if ( ! isset( $tree['status'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'missing_status',
-                'status',
-                'Tree must have a status property set to "exported".',
-                'string',
-                'exported'
-            );
-        } elseif ( 'exported' !== $tree['status'] ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_status',
-                'status',
-                'Status must be "exported" for valid Oxygen trees.',
-                'string (literal "exported")',
-                'exported'
-            );
-        }
-
-        // Warn about fields that will be removed.
-        if ( isset( $tree['_nextNodeId'] ) ) {
-            $warnings[] = array(
-                'code'    => 'unnecessary_next_node_id',
-                'path'    => '_nextNodeId',
-                'message' => '_nextNodeId should NOT be included in the tree. It will be automatically removed during save.',
-                'action'  => 'Remove this property from your tree.',
-            );
-        }
-
-        if ( isset( $tree['exportedLookupTable'] ) ) {
-            $warnings[] = array(
-                'code'    => 'unnecessary_exported_lookup_table',
-                'path'    => 'exportedLookupTable',
-                'message' => 'exportedLookupTable should NOT be included in the tree. It will be automatically removed during save.',
-                'action'  => 'Remove this property from your tree.',
-            );
-        }
-
-        return array(
-            'valid'    => empty( $errors ),
-            'errors'   => $errors,
-            'warnings' => $warnings,
-        );
-    }
-
-    /**
-     * Validate the root element structure.
-     *
-     * @since 1.1.0
-     * @param array $root     Root element data.
-     * @param array $errors   Reference to errors array.
-     * @param array $warnings Reference to warnings array.
-     * @return void
-     */
-    private function validate_document_root( array $root, array &$errors, array &$warnings ): void {
-        // Validate root.id.
-        if ( ! isset( $root['id'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'missing_root_id',
-                'root.id',
-                'Root must have an id property.',
-                'integer',
-                1
-            );
-        } elseif ( ! is_int( $root['id'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_root_id_type',
-                'root.id',
-                'Root id must be an integer, not a string. Received: ' . gettype( $root['id'] ),
-                'integer',
-                1
-            );
-        }
-
-        // Validate root.data.
-        if ( ! isset( $root['data'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'missing_root_data',
-                'root.data',
-                'Root must have a data property.',
-                'object',
-                array( 'type' => 'root', 'properties' => null )
-            );
-        } elseif ( ! is_array( $root['data'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_root_data_type',
-                'root.data',
-                'Root data must be an object.',
-                'object',
-                array( 'type' => 'root', 'properties' => null )
-            );
-        } else {
-            // Validate root.data.type.
-            if ( ! isset( $root['data']['type'] ) ) {
-                $errors[] = $this->create_tree_validation_error(
-                    'missing_root_data_type',
-                    'root.data.type',
-                    'Root data must have a type property.',
-                    'string',
-                    'root'
-                );
-            } elseif ( 'root' !== $root['data']['type'] ) {
-                $errors[] = $this->create_tree_validation_error(
-                    'invalid_root_data_type_value',
-                    'root.data.type',
-                    'Root data type must be lowercase "root", not "' . $root['data']['type'] . '".',
-                    'string (literal "root")',
-                    'root'
-                );
-            }
-
-            // Validate root.data.properties.
-            if ( ! array_key_exists( 'properties', $root['data'] ) ) {
-                $errors[] = $this->create_tree_validation_error(
-                    'missing_root_data_properties',
-                    'root.data.properties',
-                    'Root data must have a properties property.',
-                    'null',
-                    null
-                );
-            } elseif ( null !== $root['data']['properties'] ) {
-                $warnings[] = array(
-                    'code'    => 'non_null_root_properties',
-                    'path'    => 'root.data.properties',
-                    'message' => 'Root data properties should be null for valid Oxygen trees. Found: ' . gettype( $root['data']['properties'] ),
-                    'action'  => 'Set root.data.properties to null.',
-                );
-            }
-        }
-
-        // Validate root.children.
-        if ( ! isset( $root['children'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'missing_root_children',
-                'root.children',
-                'Root must have a children array.',
-                'array',
-                array()
-            );
-        } elseif ( ! is_array( $root['children'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_root_children_type',
-                'root.children',
-                'Root children must be an array.',
-                'array',
-                array()
-            );
-        } else {
-            // Validate each child element.
-            $root_id = isset( $root['id'] ) && is_int( $root['id'] ) ? $root['id'] : 1;
-            foreach ( $root['children'] as $index => $child ) {
-                $this->validate_document_child( $child, "root.children[$index]", $root_id, $errors, $warnings );
-            }
-        }
-    }
-
-    /**
-     * Validate a child element structure.
-     *
-     * @since 1.1.0
-     * @param mixed  $element   Element to validate.
-     * @param string $path      Current property path.
-     * @param int    $parent_id Expected parent ID.
-     * @param array  $errors    Reference to errors array.
-     * @param array  $warnings  Reference to warnings array.
-     * @return void
-     */
-    private function validate_document_child( $element, string $path, int $parent_id, array &$errors, array &$warnings ): void {
-        if ( ! is_array( $element ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_element_type',
-                $path,
-                'Element must be an object.',
-                'object',
-                array(
-                    'id'        => 100,
-                    'data'      => array( 'type' => 'EssentialElements\\Heading', 'properties' => null ),
-                    'children'  => array(),
-                    '_parentId' => 1,
-                )
-            );
-            return;
-        }
-
-        // Validate element.id.
-        if ( ! isset( $element['id'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'missing_element_id',
-                "{$path}.id",
-                'Element must have an id property.',
-                'integer',
-                100
-            );
-        } elseif ( ! is_int( $element['id'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_element_id_type',
-                "{$path}.id",
-                'Element id must be an integer, not ' . gettype( $element['id'] ) . '.',
-                'integer',
-                100
-            );
-        }
-
-        // Validate element.data.
-        if ( ! isset( $element['data'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'missing_element_data',
-                "{$path}.data",
-                'Element must have a data property.',
-                'object',
-                array( 'type' => 'EssentialElements\\Heading', 'properties' => null )
-            );
-        } elseif ( ! is_array( $element['data'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_element_data_type',
-                "{$path}.data",
-                'Element data must be an object.',
-                'object',
-                array( 'type' => 'EssentialElements\\Heading', 'properties' => null )
-            );
-        } else {
-            // Validate element.data.type.
-            if ( ! isset( $element['data']['type'] ) ) {
-                $errors[] = $this->create_tree_validation_error(
-                    'missing_element_type',
-                    "{$path}.data.type",
-                    'Element data must have a type property.',
-                    'string',
-                    'EssentialElements\\Heading'
-                );
-            } elseif ( ! is_string( $element['data']['type'] ) ) {
-                $errors[] = $this->create_tree_validation_error(
-                    'invalid_element_type_type',
-                    "{$path}.data.type",
-                    'Element data type must be a string.',
-                    'string',
-                    'EssentialElements\\Heading'
-                );
-            } else {
-                // Validate element type has valid namespace.
-                $this->validate_document_element_type( $element['data']['type'], "{$path}.data.type", $errors, $warnings );
-            }
-
-            // Validate element.data.properties exists.
-            if ( ! array_key_exists( 'properties', $element['data'] ) ) {
-                $errors[] = $this->create_tree_validation_error(
-                    'missing_element_properties',
-                    "{$path}.data.properties",
-                    'Element data must have a properties property (can be null or object).',
-                    'object|null',
-                    null
-                );
-            }
-        }
-
-        // Validate element.children.
-        if ( ! isset( $element['children'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'missing_element_children',
-                "{$path}.children",
-                'Element must have a children array (use empty [] for leaf nodes).',
-                'array',
-                array()
-            );
-        } elseif ( ! is_array( $element['children'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_element_children_type',
-                "{$path}.children",
-                'Element children must be an array.',
-                'array',
-                array()
-            );
-        } else {
-            // Recursively validate child elements.
-            $element_id = isset( $element['id'] ) && is_int( $element['id'] ) ? $element['id'] : 0;
-            foreach ( $element['children'] as $child_index => $child ) {
-                $this->validate_document_child( $child, "{$path}.children[$child_index]", $element_id, $errors, $warnings );
-            }
-        }
-
-        // Validate element._parentId.
-        if ( ! isset( $element['_parentId'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'missing_parent_id',
-                "{$path}._parentId",
-                'Element must have a _parentId property referencing its parent.',
-                'integer',
-                $parent_id
-            );
-        } elseif ( ! is_int( $element['_parentId'] ) ) {
-            $errors[] = $this->create_tree_validation_error(
-                'invalid_parent_id_type',
-                "{$path}._parentId",
-                'Element _parentId must be an integer, not ' . gettype( $element['_parentId'] ) . '.',
-                'integer',
-                $parent_id
-            );
-        } elseif ( $element['_parentId'] !== $parent_id ) {
-            $warnings[] = array(
-                'code'     => 'parent_id_mismatch',
-                'path'     => "{$path}._parentId",
-                'message'  => "Element _parentId ({$element['_parentId']}) does not match expected parent ID ({$parent_id}).",
-                'expected' => $parent_id,
-                'actual'   => $element['_parentId'],
-                'action'   => "Set _parentId to {$parent_id}.",
-            );
-        }
-    }
-
-    /**
-     * Validate element type has valid namespace prefix.
-     *
-     * @since 1.1.0
-     * @param string $type     Element type string.
-     * @param string $path     Property path for error reporting.
-     * @param array  $errors   Reference to errors array.
-     * @param array  $warnings Reference to warnings array.
-     * @return void
-     */
-    private function validate_document_element_type( string $type, string $path, array &$errors, array &$warnings ): void {
-        $valid_namespaces = array(
-            'EssentialElements\\',
-            'OxygenElements\\',
-        );
-
-        $has_valid_namespace = false;
-        foreach ( $valid_namespaces as $namespace ) {
-            if ( 0 === strpos( $type, $namespace ) ) {
-                $has_valid_namespace = true;
-                break;
-            }
-        }
-
-        if ( ! $has_valid_namespace ) {
-            // Try to suggest a corrected type.
-            $common_types = array(
-                'heading'   => 'EssentialElements\\Heading',
-                'text'      => 'EssentialElements\\Text',
-                'button'    => 'EssentialElements\\Button',
-                'image'     => 'EssentialElements\\Image2',
-                'container' => 'OxygenElements\\Container',
-                'section'   => 'EssentialElements\\Section',
-                'div'       => 'EssentialElements\\Div',
-                'icon'      => 'EssentialElements\\Icon',
-                'link'      => 'EssentialElements\\Link',
-                'menu'      => 'EssentialElements\\WpMenu',
-            );
-
-            $type_lower  = strtolower( $type );
-            $suggestion  = $common_types[ $type_lower ] ?? null;
-
-            $error_data = array(
-                'code'     => 'invalid_element_namespace',
-                'path'     => $path,
-                'message'  => "Element type '{$type}' is missing a valid namespace prefix.",
-                'expected' => 'string with EssentialElements\\\\ or OxygenElements\\\\ prefix',
-                'example'  => 'EssentialElements\\Heading',
-            );
-
-            if ( $suggestion ) {
-                $error_data['suggestion'] = $suggestion;
-                $error_data['action']     = "Did you mean '{$suggestion}'?";
-            } else {
-                $error_data['action'] = 'Add EssentialElements\\\\ or OxygenElements\\\\ prefix to your element type.';
-            }
-
-            $error_data['valid_namespaces'] = $valid_namespaces;
-            $error_data['common_types']     = $common_types;
-
-            $errors[] = $error_data;
-        }
-    }
-
-    /**
-     * Create a validation error with detailed information.
-     *
-     * @since 1.1.0
-     * @param string $code     Error code.
-     * @param string $path     Property path where error occurred.
-     * @param string $message  Human-readable error message.
-     * @param string $expected Expected type or value.
-     * @param mixed  $example  Example of valid value.
-     * @return array Validation error array.
-     */
-    private function create_tree_validation_error( string $code, string $path, string $message, string $expected, $example ): array {
-        return array(
-            'code'     => $code,
-            'path'     => $path,
-            'message'  => $message,
-            'expected' => $expected,
-            'example'  => $example,
+        return $this->format_response(
+            array(
+                'success'       => true,
+                'post_id'       => $post_id,
+                'tree'          => $updated_tree,
+                'element_count' => $this->count_document_elements( $updated_tree ),
+            )
         );
     }
 
@@ -835,6 +452,674 @@ class REST_Documents extends REST_Controller {
         $types = array_column( $elements, 'type' );
 
         return array_values( array_unique( $types ) );
+    }
+
+    /**
+     * Get all element classes from a document.
+     *
+     * Returns an array of elements with their associated CSS classes,
+     * including both custom classes and built-in element classes.
+     *
+     * @since 1.1.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function get_document_classes( \WP_REST_Request $request ) {
+        $post_id    = (int) $request->get_param( 'id' );
+        $element_id = $request->get_param( 'element_id' );
+
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return $this->format_error(
+                'rest_post_not_found',
+                __( 'Post not found.', 'oxybridge-wp' ),
+                404
+            );
+        }
+
+        $tree = $this->get_document_tree( $post_id );
+
+        if ( $tree === false ) {
+            return $this->format_error(
+                'rest_tree_not_found',
+                __( 'Could not retrieve document tree for this post.', 'oxybridge-wp' ),
+                404
+            );
+        }
+
+        // Extract classes from all elements.
+        $elements_with_classes = $this->extract_element_classes( $tree );
+
+        // Filter by specific element if requested.
+        if ( ! empty( $element_id ) ) {
+            $elements_with_classes = array_filter(
+                $elements_with_classes,
+                function ( $element ) use ( $element_id ) {
+                    // Cast both to string for comparison (tree IDs may be int).
+                    return (string) $element['id'] === (string) $element_id;
+                }
+            );
+            $elements_with_classes = array_values( $elements_with_classes );
+
+            // Return 404 if specific element not found.
+            if ( empty( $elements_with_classes ) ) {
+                return $this->format_error(
+                    'rest_element_not_found',
+                    __( 'Element not found in document.', 'oxybridge-wp' ),
+                    404
+                );
+            }
+        }
+
+        // Calculate summary statistics.
+        $all_classes    = array();
+        $elements_count = 0;
+
+        foreach ( $elements_with_classes as $element ) {
+            $elements_count++;
+            $all_classes = array_merge( $all_classes, $element['classes'] );
+        }
+
+        $unique_classes = array_values( array_unique( $all_classes ) );
+
+        return $this->format_response(
+            array(
+                'post_id'        => $post_id,
+                'elements'       => $elements_with_classes,
+                'summary'        => array(
+                    'total_elements'     => $elements_count,
+                    'unique_classes'     => $unique_classes,
+                    'total_class_count'  => count( $unique_classes ),
+                ),
+            )
+        );
+    }
+
+    /**
+     * Update element classes endpoint callback.
+     *
+     * Sets the CSS classes for a specific element within a document tree.
+     *
+     * @since 1.1.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function update_element_classes( \WP_REST_Request $request ) {
+        $post_id        = (int) $request->get_param( 'id' );
+        $element_id     = $request->get_param( 'element_id' );
+        $classes        = $request->get_param( 'classes' );
+        $regenerate_css = $request->get_param( 'regenerate_css' );
+
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return $this->format_error(
+                'rest_post_not_found',
+                __( 'Post not found.', 'oxybridge-wp' ),
+                404
+            );
+        }
+
+        $tree = $this->get_document_tree( $post_id );
+
+        if ( $tree === false ) {
+            return $this->format_error(
+                'rest_tree_not_found',
+                __( 'Could not retrieve document tree for this post.', 'oxybridge-wp' ),
+                404
+            );
+        }
+
+        // Clean and deduplicate classes while preserving order.
+        $classes = array_values( array_unique( array_filter( array_map( 'trim', $classes ) ) ) );
+
+        // Find and update the element in the tree.
+        $updated_tree = $this->update_element_in_tree( $tree, $element_id, $classes );
+
+        if ( $updated_tree === false ) {
+            return $this->format_error(
+                'rest_element_not_found',
+                __( 'Element not found in document tree.', 'oxybridge-wp' ),
+                404
+            );
+        }
+
+        // Save the updated tree.
+        $saved = $this->save_document_tree( $post_id, $updated_tree );
+
+        if ( ! $saved ) {
+            return $this->format_error(
+                'rest_save_failed',
+                __( 'Failed to save document tree.', 'oxybridge-wp' ),
+                500
+            );
+        }
+
+        // Regenerate CSS if requested.
+        if ( $regenerate_css ) {
+            $this->regenerate_post_css( $post_id );
+        }
+
+        // Get the updated element's class info.
+        $updated_element = $this->find_element_in_tree( $updated_tree, $element_id );
+
+        return $this->format_response(
+            array(
+                'success'    => true,
+                'post_id'    => $post_id,
+                'element_id' => $element_id,
+                'classes'    => $classes,
+                'element'    => $updated_element ? array(
+                    'id'   => $updated_element['id'],
+                    'type' => $updated_element['data']['type'] ?? 'unknown',
+                ) : null,
+            )
+        );
+    }
+
+    /**
+     * Delete a specific class from an element.
+     *
+     * Removes a single CSS class from an element's class list.
+     *
+     * @since 1.1.0
+     * @param \WP_REST_Request $request The request object.
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function delete_element_class( \WP_REST_Request $request ) {
+        $post_id        = (int) $request->get_param( 'id' );
+        $element_id     = $request->get_param( 'element_id' );
+        $class_name     = $request->get_param( 'class_name' );
+        $regenerate_css = $request->get_param( 'regenerate_css' );
+
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return $this->format_error(
+                'rest_post_not_found',
+                __( 'Post not found.', 'oxybridge-wp' ),
+                404
+            );
+        }
+
+        $tree = $this->get_document_tree( $post_id );
+
+        if ( $tree === false ) {
+            return $this->format_error(
+                'rest_tree_not_found',
+                __( 'Could not retrieve document tree for this post.', 'oxybridge-wp' ),
+                404
+            );
+        }
+
+        // Find the element in the tree.
+        $element = $this->find_element_in_tree( $tree, $element_id );
+
+        if ( $element === null ) {
+            return $this->format_error(
+                'rest_element_not_found',
+                __( 'Element not found in document tree.', 'oxybridge-wp' ),
+                404
+            );
+        }
+
+        // Extract current classes from the element.
+        $element_type = $element['data']['type'] ?? 'unknown';
+        $properties   = $element['data']['properties'] ?? array();
+        $current_classes = $this->extract_classes_from_properties( $properties, $element_type );
+
+        // Filter out built-in classes - we only manage custom classes.
+        $custom_classes = $this->filter_custom_classes( $current_classes );
+
+        // Check if the class exists on the element.
+        if ( ! in_array( $class_name, $custom_classes, true ) ) {
+            return $this->format_error(
+                'rest_class_not_found',
+                sprintf(
+                    /* translators: %s: class name */
+                    __( 'Class "%s" not found on element.', 'oxybridge-wp' ),
+                    $class_name
+                ),
+                404
+            );
+        }
+
+        // Remove the class from the list.
+        $updated_classes = array_values( array_filter(
+            $custom_classes,
+            function ( $class ) use ( $class_name ) {
+                return $class !== $class_name;
+            }
+        ) );
+
+        // Update the element in the tree.
+        $updated_tree = $this->update_element_in_tree( $tree, $element_id, $updated_classes );
+
+        if ( $updated_tree === false ) {
+            return $this->format_error(
+                'rest_update_failed',
+                __( 'Failed to update element in document tree.', 'oxybridge-wp' ),
+                500
+            );
+        }
+
+        // Save the updated tree.
+        $saved = $this->save_document_tree( $post_id, $updated_tree );
+
+        if ( ! $saved ) {
+            return $this->format_error(
+                'rest_save_failed',
+                __( 'Failed to save document tree.', 'oxybridge-wp' ),
+                500
+            );
+        }
+
+        // Regenerate CSS if requested.
+        if ( $regenerate_css ) {
+            $this->regenerate_post_css( $post_id );
+        }
+
+        return $this->format_response(
+            array(
+                'success'       => true,
+                'post_id'       => $post_id,
+                'element_id'    => $element_id,
+                'removed_class' => $class_name,
+                'classes'       => $updated_classes,
+            )
+        );
+    }
+
+    /**
+     * Validate CSS class names.
+     *
+     * Ensures all class names follow valid CSS identifier syntax.
+     *
+     * @since 1.1.0
+     * @param array            $classes Array of class names.
+     * @param \WP_REST_Request $request The request object.
+     * @param string           $param   The parameter name.
+     * @return bool|\WP_Error True if valid, WP_Error otherwise.
+     */
+    public function validate_class_names( $classes, \WP_REST_Request $request, $param ) {
+        if ( ! is_array( $classes ) ) {
+            return new \WP_Error(
+                'rest_invalid_param',
+                __( 'Classes must be an array.', 'oxybridge-wp' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // CSS class name pattern: starts with letter, underscore, or hyphen,
+        // followed by letters, digits, underscores, or hyphens.
+        $pattern = '/^[a-zA-Z_-][a-zA-Z0-9_-]*$/';
+
+        foreach ( $classes as $class ) {
+            if ( ! is_string( $class ) ) {
+                return new \WP_Error(
+                    'rest_invalid_class',
+                    __( 'Each class must be a string.', 'oxybridge-wp' ),
+                    array( 'status' => 400 )
+                );
+            }
+
+            $trimmed = trim( $class );
+            if ( empty( $trimmed ) ) {
+                continue; // Skip empty strings.
+            }
+
+            if ( ! preg_match( $pattern, $trimmed ) ) {
+                return new \WP_Error(
+                    'rest_invalid_class',
+                    sprintf(
+                        /* translators: %s: class name */
+                        __( 'Invalid CSS class name: %s', 'oxybridge-wp' ),
+                        $trimmed
+                    ),
+                    array( 'status' => 400 )
+                );
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Update an element's classes in the document tree.
+     *
+     * @since 1.1.0
+     * @param array  $tree       The document tree.
+     * @param string $element_id The element ID to update.
+     * @param array  $classes    The new classes to set.
+     * @return array|false The updated tree or false if element not found.
+     */
+    private function update_element_in_tree( array $tree, string $element_id, array $classes ) {
+        $found = false;
+
+        if ( isset( $tree['root']['children'] ) ) {
+            $tree['root']['children'] = $this->update_element_classes_recursive(
+                $tree['root']['children'],
+                $element_id,
+                $classes,
+                $found
+            );
+        } elseif ( isset( $tree[0] ) ) {
+            $tree = $this->update_element_classes_recursive( $tree, $element_id, $classes, $found );
+        }
+
+        return $found ? $tree : false;
+    }
+
+    /**
+     * Recursively search and update element classes in children array.
+     *
+     * @since 1.1.0
+     * @param array  $children   Array of child elements.
+     * @param string $element_id The element ID to find.
+     * @param array  $classes    The new classes to set.
+     * @param bool   $found      Reference flag to indicate if element was found.
+     * @return array The updated children array.
+     */
+    private function update_element_classes_recursive( array $children, string $element_id, array $classes, bool &$found ): array {
+        foreach ( $children as $index => $child ) {
+            if ( ! is_array( $child ) ) {
+                continue;
+            }
+
+            // Check if this is the element we're looking for.
+            // Cast both to string for comparison (tree IDs may be int, route param is string).
+            if ( isset( $child['id'] ) && (string) $child['id'] === (string) $element_id ) {
+                $children[ $index ] = $this->set_element_classes( $child, $classes );
+                $found = true;
+                return $children;
+            }
+
+            // Recurse into children.
+            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
+                $children[ $index ]['children'] = $this->update_element_classes_recursive(
+                    $child['children'],
+                    $element_id,
+                    $classes,
+                    $found
+                );
+
+                if ( $found ) {
+                    return $children;
+                }
+            }
+        }
+
+        return $children;
+    }
+
+    /**
+     * Set classes on an element.
+     *
+     * Updates the element's properties to include the specified classes.
+     * Stores classes in the standard 'attributes.className' path.
+     *
+     * @since 1.1.0
+     * @param array $element The element to update.
+     * @param array $classes The classes to set.
+     * @return array The updated element.
+     */
+    private function set_element_classes( array $element, array $classes ): array {
+        // Ensure data and properties structure exists.
+        if ( ! isset( $element['data'] ) ) {
+            $element['data'] = array();
+        }
+        if ( ! isset( $element['data']['properties'] ) ) {
+            $element['data']['properties'] = array();
+        }
+        if ( ! isset( $element['data']['properties']['attributes'] ) ) {
+            $element['data']['properties']['attributes'] = array();
+        }
+
+        // Set the className as a space-separated string (CSS standard).
+        $element['data']['properties']['attributes']['className'] = implode( ' ', $classes );
+
+        return $element;
+    }
+
+    /**
+     * Find an element in the document tree by ID.
+     *
+     * @since 1.1.0
+     * @param array  $tree       The document tree.
+     * @param string $element_id The element ID to find.
+     * @return array|null The element or null if not found.
+     */
+    private function find_element_in_tree( array $tree, string $element_id ): ?array {
+        if ( isset( $tree['root']['children'] ) ) {
+            return $this->find_element_recursive( $tree['root']['children'], $element_id );
+        } elseif ( isset( $tree[0] ) ) {
+            return $this->find_element_recursive( $tree, $element_id );
+        }
+
+        return null;
+    }
+
+    /**
+     * Recursively find an element by ID.
+     *
+     * @since 1.1.0
+     * @param array  $children   Array of child elements.
+     * @param string $element_id The element ID to find.
+     * @return array|null The element or null if not found.
+     */
+    private function find_element_recursive( array $children, string $element_id ): ?array {
+        foreach ( $children as $child ) {
+            if ( ! is_array( $child ) ) {
+                continue;
+            }
+
+            // Cast both to string for comparison (tree IDs may be int, route param is string).
+            if ( isset( $child['id'] ) && (string) $child['id'] === (string) $element_id ) {
+                return $child;
+            }
+
+            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
+                $found = $this->find_element_recursive( $child['children'], $element_id );
+                if ( $found !== null ) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract CSS classes from all elements in a tree.
+     *
+     * @since 1.1.0
+     * @param array $tree The document tree.
+     * @return array Array of elements with their classes.
+     */
+    private function extract_element_classes( array $tree ): array {
+        $elements = array();
+
+        if ( isset( $tree['root']['children'] ) ) {
+            $elements = $this->extract_classes_recursive( $tree['root']['children'] );
+        } elseif ( isset( $tree[0] ) ) {
+            $elements = $this->extract_classes_recursive( $tree );
+        }
+
+        return $elements;
+    }
+
+    /**
+     * Recursively extract classes from children array.
+     *
+     * @since 1.1.0
+     * @param array $children Array of child elements.
+     * @return array Array of elements with their classes.
+     */
+    private function extract_classes_recursive( array $children ): array {
+        $elements = array();
+
+        foreach ( $children as $child ) {
+            if ( ! is_array( $child ) ) {
+                continue;
+            }
+
+            $element_id   = $child['id'] ?? null;
+            $element_type = $child['data']['type'] ?? 'unknown';
+            $properties   = $child['data']['properties'] ?? array();
+
+            // Extract classes from various property locations.
+            $classes = $this->extract_classes_from_properties( $properties, $element_type );
+
+            // Only include elements that have an ID.
+            if ( $element_id !== null ) {
+                $elements[] = array(
+                    'id'             => $element_id,
+                    'type'           => $element_type,
+                    'classes'        => $classes,
+                    'custom_classes' => $this->filter_custom_classes( $classes ),
+                    'builtin_classes' => $this->filter_builtin_classes( $classes ),
+                );
+            }
+
+            // Recurse into children.
+            if ( isset( $child['children'] ) && is_array( $child['children'] ) ) {
+                $elements = array_merge(
+                    $elements,
+                    $this->extract_classes_recursive( $child['children'] )
+                );
+            }
+        }
+
+        return $elements;
+    }
+
+    /**
+     * Extract CSS classes from element properties.
+     *
+     * Checks multiple common property paths where classes can be stored:
+     * - properties.attributes.className
+     * - properties.className
+     * - properties.settings.attributes.customCssClass
+     * - properties.content.attributes.className
+     *
+     * @since 1.1.0
+     * @param array  $properties  Element properties.
+     * @param string $element_type Element type for context.
+     * @return array Array of class names.
+     */
+    private function extract_classes_from_properties( array $properties, string $element_type ): array {
+        $classes = array();
+
+        // Common class property paths in Oxygen/Breakdance elements.
+        $class_paths = array(
+            array( 'attributes', 'className' ),
+            array( 'className' ),
+            array( 'settings', 'attributes', 'customCssClass' ),
+            array( 'settings', 'attributes', 'className' ),
+            array( 'content', 'attributes', 'className' ),
+            array( 'design', 'attributes', 'className' ),
+            array( 'advanced', 'attributes', 'className' ),
+            array( 'customCssClass' ),
+        );
+
+        foreach ( $class_paths as $path ) {
+            $value = $this->get_nested_value( $properties, $path );
+            if ( ! empty( $value ) ) {
+                // Handle both string and array formats.
+                if ( is_string( $value ) ) {
+                    $parsed = array_filter( array_map( 'trim', explode( ' ', $value ) ) );
+                    $classes = array_merge( $classes, $parsed );
+                } elseif ( is_array( $value ) ) {
+                    $classes = array_merge( $classes, $value );
+                }
+            }
+        }
+
+        // Add element-type-based built-in classes.
+        $builtin = $this->get_element_builtin_classes( $element_type );
+        $classes = array_merge( $builtin, $classes );
+
+        // Remove duplicates while preserving order.
+        return array_values( array_unique( $classes ) );
+    }
+
+    /**
+     * Get a nested value from an array using a path.
+     *
+     * @since 1.1.0
+     * @param array $array The array to search.
+     * @param array $path  The path as array of keys.
+     * @return mixed|null The value or null if not found.
+     */
+    private function get_nested_value( array $array, array $path ) {
+        $current = $array;
+
+        foreach ( $path as $key ) {
+            if ( ! is_array( $current ) || ! isset( $current[ $key ] ) ) {
+                return null;
+            }
+            $current = $current[ $key ];
+        }
+
+        return $current;
+    }
+
+    /**
+     * Get built-in CSS classes for an element type.
+     *
+     * @since 1.1.0
+     * @param string $element_type The element type.
+     * @return array Array of built-in class names.
+     */
+    private function get_element_builtin_classes( string $element_type ): array {
+        // Map of element types to their built-in classes.
+        $builtin_map = array(
+            'EssentialElements\\Button'         => array( 'bde-button' ),
+            'EssentialElements\\TextLink'       => array( 'breakdance-link' ),
+            'EssentialElements\\Link'           => array( 'breakdance-link' ),
+            'EssentialElements\\Heading'        => array( 'bde-heading' ),
+            'EssentialElements\\Text'           => array( 'bde-text' ),
+            'EssentialElements\\Image'          => array( 'bde-image' ),
+            'EssentialElements\\Section'        => array( 'bde-section' ),
+            'EssentialElements\\Div'            => array( 'bde-div' ),
+            'EssentialElements\\Container'      => array( 'bde-container' ),
+            'EssentialElements\\Column'         => array( 'bde-column' ),
+            'EssentialElements\\Columns'        => array( 'bde-columns' ),
+        );
+
+        return $builtin_map[ $element_type ] ?? array();
+    }
+
+    /**
+     * Filter to return only custom (non-built-in) classes.
+     *
+     * @since 1.1.0
+     * @param array $classes All classes.
+     * @return array Custom classes only.
+     */
+    private function filter_custom_classes( array $classes ): array {
+        return array_values( array_filter(
+            $classes,
+            function ( $class ) {
+                // Built-in classes typically start with bde-, breakdance-, or ee-.
+                return ! preg_match( '/^(bde-|breakdance-|ee-|oxy-)/', $class );
+            }
+        ) );
+    }
+
+    /**
+     * Filter to return only built-in classes.
+     *
+     * @since 1.1.0
+     * @param array $classes All classes.
+     * @return array Built-in classes only.
+     */
+    private function filter_builtin_classes( array $classes ): array {
+        return array_values( array_filter(
+            $classes,
+            function ( $class ) {
+                // Built-in classes typically start with bde-, breakdance-, or ee-.
+                return preg_match( '/^(bde-|breakdance-|ee-|oxy-)/', $class );
+            }
+        ) );
     }
 
     // regenerate_post_css() is inherited from REST_Controller

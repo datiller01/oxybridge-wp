@@ -56,10 +56,30 @@ class REST_API {
     /**
      * Constructor.
      *
-     * Registers the REST API routes on the rest_api_init hook.
+     * Registers element aliases and REST API routes.
      */
     public function __construct() {
+        $this->register_element_aliases();
         add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+    }
+
+    /**
+     * Register element type aliases for backwards compatibility.
+     *
+     * Maps legacy/missing element types to their equivalent implementations.
+     * This allows design trees that reference EssentialElements\Link to use
+     * the TextLink implementation from breakdance-elements-for-oxygen.
+     *
+     * @since 1.1.0
+     * @return void
+     */
+    private function register_element_aliases(): void {
+        // Link -> TextLink alias.
+        // EssentialElements\Link is referenced in 245+ design tree instances
+        // but the class doesn't exist. TextLink provides equivalent functionality.
+        if ( ! class_exists( 'EssentialElements\\Link' ) && class_exists( 'EssentialElements\\TextLink' ) ) {
+            class_alias( 'EssentialElements\\TextLink', 'EssentialElements\\Link' );
+        }
     }
 
     /**
