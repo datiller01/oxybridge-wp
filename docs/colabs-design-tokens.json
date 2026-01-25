@@ -1,0 +1,602 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "CoLabs Design Tokens",
+  "description": "Complete design system tokens extracted from colabs.com.au for pixel-accurate replication via OxyBridge API",
+  "version": "1.0.0",
+  "lastUpdated": "2026-01-25",
+  "source": "https://colabs.com.au",
+
+  "colors": {
+    "brand": {
+      "primary": {
+        "value": "#1a1a1a",
+        "description": "Primary brand color - dark charcoal for text and backgrounds"
+      },
+      "white": {
+        "value": "#ffffff",
+        "description": "White for backgrounds and light text"
+      }
+    },
+
+    "accent": {
+      "cobalt": {
+        "value": "#2c4bff",
+        "description": "Accent color for Lab Space service card",
+        "usage": "Services - Lab Space"
+      },
+      "clay": {
+        "value": "#c76b4a",
+        "description": "Accent color for Build a Lab service card",
+        "usage": "Services - Build a Lab"
+      },
+      "khaki": {
+        "value": "#b5a642",
+        "description": "Accent color for Innovation Facilitation service card",
+        "usage": "Services - Innovation Facilitation"
+      },
+      "lilac": {
+        "value": "#9c7eb8",
+        "description": "Accent color for Office Space service card",
+        "usage": "Services - Office Space"
+      }
+    },
+
+    "text": {
+      "primary": {
+        "value": "#1a1a1a",
+        "description": "Primary text color on light backgrounds"
+      },
+      "secondary": {
+        "value": "#666666",
+        "description": "Secondary/dropdown text on light backgrounds"
+      },
+      "muted": {
+        "value": "#999999",
+        "description": "Muted text for acknowledgments, copyright, footer"
+      },
+      "light": {
+        "value": "#cccccc",
+        "description": "Light text for links on dark backgrounds"
+      },
+      "inverted": {
+        "value": "#ffffff",
+        "description": "White text on dark backgrounds"
+      }
+    },
+
+    "text_hover": {
+      "light": {
+        "value": "#000000",
+        "description": "Hover state for links on light backgrounds"
+      },
+      "dark": {
+        "value": "#ffffff",
+        "description": "Hover state for links on dark backgrounds"
+      }
+    },
+
+    "background": {
+      "header": {
+        "value": "#ffffff",
+        "description": "Header background color"
+      },
+      "footer": {
+        "value": "#1a1a1a",
+        "description": "Footer background color - dark charcoal"
+      },
+      "dropdown": {
+        "value": "#ffffff",
+        "description": "Dropdown menu background"
+      },
+      "page": {
+        "value": "#ffffff",
+        "description": "Default page background"
+      }
+    },
+
+    "button": {
+      "primary": {
+        "background": {
+          "value": "#1a1a1a",
+          "description": "Primary button background"
+        },
+        "text": {
+          "value": "#ffffff",
+          "description": "Primary button text color"
+        },
+        "hover": {
+          "value": "#333333",
+          "description": "Primary button hover background"
+        }
+      }
+    },
+
+    "border": {
+      "light": {
+        "value": "#e5e5e5",
+        "description": "Light border/divider for light backgrounds"
+      },
+      "dark": {
+        "value": "#333333",
+        "description": "Dark border/divider for dark backgrounds (footer)"
+      }
+    },
+
+    "social": {
+      "default": {
+        "value": "#666666",
+        "description": "Default social icon color (header)"
+      },
+      "footer": {
+        "value": "#999999",
+        "description": "Social icon color in footer"
+      },
+      "hover": {
+        "value": "#1a1a1a",
+        "description": "Social icon hover color (header)"
+      },
+      "footerHover": {
+        "value": "#ffffff",
+        "description": "Social icon hover color (footer)"
+      }
+    }
+  },
+
+  "typography": {
+    "fontFamily": {
+      "primary": {
+        "value": "'Matter SQ', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        "description": "Primary font family with system fallbacks",
+        "fallbacks": ["Inter", "DM Sans", "Space Grotesk"],
+        "note": "Matter SQ is a licensed font - use fallbacks for development"
+      }
+    },
+
+    "fontSize": {
+      "logo": {
+        "desktop": {
+          "value": "24px",
+          "description": "Logo font size on desktop"
+        },
+        "mobile": {
+          "value": "20px",
+          "description": "Logo font size on mobile"
+        }
+      },
+      "nav": {
+        "value": "15px",
+        "description": "Navigation link font size"
+      },
+      "dropdown": {
+        "value": "14px",
+        "description": "Dropdown menu item font size"
+      },
+      "cta": {
+        "value": "14px",
+        "description": "CTA button font size"
+      },
+      "footer": {
+        "locationName": {
+          "value": "14px",
+          "description": "Footer location name font size"
+        },
+        "address": {
+          "value": "13px",
+          "description": "Footer address font size"
+        },
+        "phone": {
+          "value": "13px",
+          "description": "Footer phone number font size"
+        },
+        "nav": {
+          "value": "14px",
+          "description": "Footer navigation font size"
+        },
+        "acknowledgment": {
+          "value": "14px",
+          "description": "Footer acknowledgment text font size"
+        },
+        "copyright": {
+          "value": "13px",
+          "description": "Footer copyright font size"
+        },
+        "attribution": {
+          "value": "13px",
+          "description": "Footer brand attribution font size"
+        }
+      }
+    },
+
+    "fontWeight": {
+      "regular": {
+        "value": "400",
+        "description": "Regular weight for body text and navigation"
+      },
+      "medium": {
+        "value": "500",
+        "description": "Medium weight for CTA buttons and location names"
+      },
+      "semibold": {
+        "value": "600",
+        "description": "Semibold weight for logo"
+      }
+    },
+
+    "letterSpacing": {
+      "default": {
+        "value": "0.01em",
+        "description": "Default letter spacing for navigation"
+      }
+    },
+
+    "lineHeight": {
+      "default": {
+        "value": "1.5",
+        "description": "Default line height"
+      },
+      "relaxed": {
+        "value": "1.6",
+        "description": "Relaxed line height for acknowledgment text"
+      }
+    },
+
+    "textDecoration": {
+      "none": {
+        "value": "none",
+        "description": "No text decoration for links"
+      },
+      "underline": {
+        "value": "underline",
+        "description": "Underline on hover for some links"
+      }
+    }
+  },
+
+  "spacing": {
+    "header": {
+      "height": {
+        "desktop": {
+          "value": "80px",
+          "description": "Header height on desktop"
+        },
+        "mobile": {
+          "value": "64px",
+          "description": "Header height on mobile"
+        }
+      }
+    },
+
+    "container": {
+      "maxWidth": {
+        "value": "1440px",
+        "description": "Maximum container width"
+      },
+      "padding": {
+        "desktop": {
+          "value": "40px",
+          "description": "Container horizontal padding on desktop"
+        },
+        "mobile": {
+          "value": "20px",
+          "description": "Container horizontal padding on mobile"
+        }
+      }
+    },
+
+    "footer": {
+      "padding": {
+        "desktop": {
+          "value": "80px",
+          "description": "Footer vertical padding on desktop"
+        },
+        "mobile": {
+          "value": "48px",
+          "description": "Footer vertical padding on mobile"
+        }
+      },
+      "sectionGap": {
+        "desktop": {
+          "value": "48px",
+          "description": "Gap between footer sections on desktop"
+        },
+        "mobile": {
+          "value": "32px",
+          "description": "Gap between footer sections on mobile"
+        }
+      },
+      "dividerMargin": {
+        "desktop": {
+          "value": "48px",
+          "description": "Margin around horizontal dividers (desktop)"
+        },
+        "mobile": {
+          "value": "32px",
+          "description": "Margin around horizontal dividers (mobile)"
+        }
+      }
+    },
+
+    "gap": {
+      "nav": {
+        "value": "32px",
+        "description": "Gap between navigation items"
+      },
+      "social": {
+        "value": "16px",
+        "description": "Gap between social icons"
+      },
+      "footerNav": {
+        "desktop": {
+          "value": "24px",
+          "description": "Gap between footer navigation items (desktop)"
+        },
+        "mobile": {
+          "value": "16px",
+          "description": "Gap between footer navigation items (mobile)"
+        }
+      },
+      "location": {
+        "desktop": {
+          "value": "32px",
+          "description": "Gap between location cards (desktop)"
+        },
+        "mobile": {
+          "value": "24px",
+          "description": "Gap between location cards (mobile)"
+        }
+      },
+      "locationContent": {
+        "value": "8px",
+        "description": "Gap between elements within location card"
+      },
+      "actions": {
+        "value": "24px",
+        "description": "Gap between header action items"
+      },
+      "brandAttribution": {
+        "value": "8px",
+        "description": "Gap between brand attribution elements"
+      }
+    },
+
+    "dropdown": {
+      "padding": {
+        "value": "24px",
+        "description": "Dropdown panel padding"
+      },
+      "itemPadding": {
+        "value": "12px 0",
+        "description": "Dropdown item padding"
+      },
+      "minWidth": {
+        "value": "200px",
+        "description": "Minimum dropdown panel width"
+      }
+    },
+
+    "button": {
+      "padding": {
+        "vertical": {
+          "value": "12px",
+          "description": "Button vertical padding"
+        },
+        "horizontal": {
+          "value": "24px",
+          "description": "Button horizontal padding"
+        }
+      }
+    },
+
+    "acknowledgment": {
+      "maxWidth": {
+        "value": "400px",
+        "description": "Maximum width for acknowledgment column"
+      }
+    }
+  },
+
+  "borders": {
+    "radius": {
+      "button": {
+        "value": "24px",
+        "description": "CTA button border radius (pill shape)"
+      },
+      "dropdown": {
+        "value": "8px",
+        "description": "Dropdown panel border radius"
+      }
+    },
+
+    "divider": {
+      "height": {
+        "value": "1px",
+        "description": "Horizontal divider line thickness"
+      }
+    }
+  },
+
+  "effects": {
+    "transition": {
+      "fast": {
+        "duration": "150ms",
+        "timing": "ease-out",
+        "description": "Fast transition for quick interactions (hovers, links)"
+      },
+      "medium": {
+        "duration": "250ms",
+        "timing": "ease-out",
+        "description": "Medium transition for dropdown animations"
+      }
+    },
+
+    "shadow": {
+      "dropdown": {
+        "value": "0 10px 40px rgba(0,0,0,0.1)",
+        "description": "Dropdown panel box shadow"
+      }
+    },
+
+    "opacity": {
+      "socialDefault": {
+        "value": "0.8",
+        "description": "Default opacity for header social icons"
+      },
+      "socialHover": {
+        "value": "1",
+        "description": "Hover opacity for social icons"
+      }
+    },
+
+    "transform": {
+      "dropdownClosed": {
+        "value": "translateY(10px)",
+        "description": "Dropdown panel position when closed"
+      },
+      "dropdownOpen": {
+        "value": "translateY(0)",
+        "description": "Dropdown panel position when open"
+      }
+    }
+  },
+
+  "breakpoints": {
+    "desktop": {
+      "value": "1120px",
+      "key": "breakpoint_base",
+      "description": "Desktop breakpoint (default styles)"
+    },
+    "tabletLandscape": {
+      "value": "1024px",
+      "key": "breakpoint_tablet_landscape",
+      "description": "Tablet landscape breakpoint"
+    },
+    "tabletPortrait": {
+      "value": "768px",
+      "key": "breakpoint_tablet_portrait",
+      "description": "Tablet portrait breakpoint - mobile navigation mode"
+    },
+    "phoneLandscape": {
+      "value": "480px",
+      "key": "breakpoint_phone_landscape",
+      "description": "Phone landscape breakpoint"
+    },
+    "phonePortrait": {
+      "value": "320px",
+      "key": "breakpoint_phone_portrait",
+      "description": "Phone portrait breakpoint - minimal layout"
+    }
+  },
+
+  "zIndex": {
+    "header": {
+      "value": 1000,
+      "description": "Header z-index for fixed/sticky positioning"
+    },
+    "mobileMenu": {
+      "value": 999,
+      "description": "Mobile menu overlay z-index"
+    },
+    "dropdown": {
+      "value": 100,
+      "description": "Dropdown menu z-index"
+    }
+  },
+
+  "oxybridge": {
+    "elementIdRanges": {
+      "header": {
+        "start": 100,
+        "end": 199,
+        "description": "Element ID range for header elements"
+      },
+      "footer": {
+        "start": 200,
+        "end": 299,
+        "description": "Element ID range for footer elements"
+      }
+    },
+
+    "commonPaths": {
+      "backgroundColor": "design.background.color",
+      "textColor": "design.typography.color",
+      "fontSize": "design.typography.fontSize",
+      "fontWeight": "design.typography.fontWeight",
+      "fontFamily": "design.typography.fontFamily",
+      "padding": "design.spacing.padding",
+      "margin": "design.spacing.margin_top/bottom/left/right",
+      "display": "design.layout.display",
+      "flexDirection": "design.layout.flexDirection",
+      "alignItems": "design.layout.alignItems",
+      "justifyContent": "design.layout.justifyContent",
+      "gap": "design.layout.horizontalGap/verticalGap",
+      "width": "design.size.width",
+      "height": "design.size.height",
+      "maxWidth": "design.size.maxWidth",
+      "borderRadius": "design.borders.radius",
+      "transition": "design.effects.transition"
+    },
+
+    "breakpointKeyMapping": {
+      "desktop": "breakpoint_base",
+      "tabletLandscape": "breakpoint_tablet_landscape",
+      "tabletPortrait": "breakpoint_tablet_portrait",
+      "phoneLandscape": "breakpoint_phone_landscape",
+      "phonePortrait": "breakpoint_phone_portrait"
+    }
+  },
+
+  "cssVariables": {
+    "colors": {
+      "--colabs-primary": "#1a1a1a",
+      "--colabs-white": "#ffffff",
+      "--colabs-accent-cobalt": "#2c4bff",
+      "--colabs-accent-clay": "#c76b4a",
+      "--colabs-accent-khaki": "#b5a642",
+      "--colabs-accent-lilac": "#9c7eb8",
+      "--colabs-text-primary": "#1a1a1a",
+      "--colabs-text-secondary": "#666666",
+      "--colabs-text-muted": "#999999",
+      "--colabs-text-light": "#cccccc",
+      "--colabs-text-inverted": "#ffffff",
+      "--colabs-bg-header": "#ffffff",
+      "--colabs-bg-footer": "#1a1a1a",
+      "--colabs-border-light": "#e5e5e5",
+      "--colabs-border-dark": "#333333",
+      "--colabs-cta-bg": "#1a1a1a",
+      "--colabs-cta-text": "#ffffff",
+      "--colabs-cta-hover": "#333333"
+    },
+    "typography": {
+      "--colabs-font-family": "'Matter SQ', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "--colabs-font-size-logo": "24px",
+      "--colabs-font-size-nav": "15px",
+      "--colabs-font-size-dropdown": "14px",
+      "--colabs-font-size-cta": "14px",
+      "--colabs-font-weight-regular": "400",
+      "--colabs-font-weight-medium": "500",
+      "--colabs-font-weight-semibold": "600",
+      "--colabs-letter-spacing": "0.01em",
+      "--colabs-line-height": "1.5"
+    },
+    "spacing": {
+      "--colabs-header-height": "80px",
+      "--colabs-header-height-mobile": "64px",
+      "--colabs-container-max": "1440px",
+      "--colabs-container-padding": "40px",
+      "--colabs-container-padding-mobile": "20px",
+      "--colabs-nav-gap": "32px",
+      "--colabs-social-gap": "16px",
+      "--colabs-dropdown-padding": "24px",
+      "--colabs-footer-padding": "80px",
+      "--colabs-footer-padding-mobile": "48px"
+    },
+    "effects": {
+      "--colabs-transition-fast": "150ms",
+      "--colabs-transition-medium": "250ms",
+      "--colabs-transition-timing": "ease-out",
+      "--colabs-shadow-dropdown": "0 10px 40px rgba(0,0,0,0.1)",
+      "--colabs-radius-button": "24px",
+      "--colabs-radius-dropdown": "8px"
+    }
+  }
+}

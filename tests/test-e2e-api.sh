@@ -11,7 +11,7 @@
 #   ./test-e2e-api.sh http://localhost admin "xxxx xxxx xxxx xxxx xxxx xxxx"
 #
 
-set -e
+# Note: Don't use set -e as we want tests to continue on individual failures
 
 # Colors for output
 RED='\033[0;31m'
@@ -318,40 +318,50 @@ test_clone_page() {
     fi
 }
 
-# Test: Validate Tree
+# Test: Validate Tree (requires authentication)
 test_validate_tree() {
     echo ""
     echo "=== Test: Validate Tree ==="
 
+    if [ -z "$APP_PASSWORD" ]; then
+        log_warn "Skipping - authentication required"
+        return 0
+    fi
+
     VALID_TREE='{"tree": {"root": {"id": "test", "data": {"type": "EssentialElements\\Root"}, "children": []}}}'
 
-    RESPONSE=$(curl -s -X POST "${API_BASE}/validate" \
+    RESPONSE=$(curl -s -X POST "${API_BASE}/ai/validate" \
         $(get_auth) \
         -H "Content-Type: application/json" \
         -d "${VALID_TREE}")
 
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${API_BASE}/validate" \
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${API_BASE}/ai/validate" \
         $(get_auth) \
         -H "Content-Type: application/json" \
         -d "${VALID_TREE}")
 
     if [ "$HTTP_CODE" = "200" ]; then
-        log_pass "Validate endpoint returned 200"
+        log_pass "AI validate endpoint returned 200"
 
         if $HAS_JQ; then
             IS_VALID=$(echo "$RESPONSE" | jq -r '.valid // false')
             log_info "Tree valid: ${IS_VALID}"
         fi
     else
-        log_fail "Validate returned ${HTTP_CODE}"
+        log_fail "AI validate returned ${HTTP_CODE}"
         return 1
     fi
 }
 
-# Test: List Pages
+# Test: List Pages (requires authentication)
 test_list_pages() {
     echo ""
     echo "=== Test: List Pages ==="
+
+    if [ -z "$APP_PASSWORD" ]; then
+        log_warn "Skipping - authentication required"
+        return 0
+    fi
 
     RESPONSE=$(curl -s "${API_BASE}/pages?per_page=5&status=any" $(get_auth))
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${API_BASE}/pages?per_page=5&status=any" $(get_auth))
@@ -376,7 +386,7 @@ test_discovery_endpoints() {
     echo ""
     echo "=== Test: Discovery Endpoints ==="
 
-    ENDPOINTS=("breakpoints" "colors" "variables" "fonts" "classes" "schema")
+    ENDPOINTS=("breakpoints" "colors" "variables" "fonts" "css-classes" "ai/schema")
 
     for endpoint in "${ENDPOINTS[@]}"; do
         HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${API_BASE}/${endpoint}" $(get_auth))

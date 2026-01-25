@@ -920,5 +920,409 @@
         }
       ]
     }
+  },
+
+  "header-basic": {
+    "description": "Basic header with logo, navigation, and CTA button",
+    "category": "header",
+    "tree": {
+      "id": "header-basic",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#ffffff"},
+            "spacing": {
+              "padding": {
+                "top": {"breakpoint_base": "16px"},
+                "bottom": {"breakpoint_base": "16px"}
+              }
+            }
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "header-container",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "layout": {
+                  "display": {"breakpoint_base": "flex"},
+                  "justifyContent": {"breakpoint_base": "space-between"},
+                  "alignItems": {"breakpoint_base": "center"},
+                  "flexDirection": {"breakpoint_base": "row", "breakpoint_phone_portrait": "column"},
+                  "verticalGap": {"breakpoint_base": "16px"}
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "header-logo",
+              "data": {
+                "type": "EssentialElements\\Heading",
+                "properties": {
+                  "content": {"content": {"text": "YourBrand", "tags": "h1"}},
+                  "design": {
+                    "typography": {
+                      "color": {"breakpoint_base": "#1a1a2e"},
+                      "typography": {
+                        "custom": {
+                          "customTypography": {
+                            "fontSize": {"breakpoint_base": {"number": 24, "unit": "px"}},
+                            "fontWeight": {"breakpoint_base": "700"}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "children": []
+            },
+            {
+              "id": "header-nav",
+              "data": {
+                "type": "EssentialElements\\Div",
+                "properties": {
+                  "design": {
+                    "layout": {
+                      "display": {"breakpoint_base": "flex"},
+                      "horizontalGap": {"breakpoint_base": "32px"},
+                      "alignItems": {"breakpoint_base": "center"}
+                    }
+                  }
+                }
+              },
+              "children": [
+                {"id": "nav-link-1", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Features"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+                {"id": "nav-link-2", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Pricing"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+                {"id": "nav-link-3", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "About"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+                {"id": "nav-link-4", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Contact"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "header-cta",
+              "data": {
+                "type": "EssentialElements\\Button",
+                "properties": {
+                  "content": {"content": {"text": "Get Started", "link": {"url": "#", "type": "url"}}},
+                  "design": {
+                    "button": {
+                      "background": {"breakpoint_base": "#0066cc"},
+                      "typography": {"color": {"breakpoint_base": "#ffffff"}}
+                    }
+                  }
+                }
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "header_centered": {
+    "description": "Header with centered logo and navigation below",
+    "category": "header",
+    "tree": {
+      "id": "header-centered",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#ffffff"},
+            "spacing": {
+              "padding": {
+                "top": {"breakpoint_base": "24px"},
+                "bottom": {"breakpoint_base": "24px"}
+              }
+            }
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "header-centered-container",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "layout": {
+                  "display": {"breakpoint_base": "flex"},
+                  "flexDirection": {"breakpoint_base": "column"},
+                  "alignItems": {"breakpoint_base": "center"},
+                  "verticalGap": {"breakpoint_base": "16px"}
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "header-centered-logo",
+              "data": {
+                "type": "EssentialElements\\Image2",
+                "properties": {
+                  "content": {"image": {"from": "url", "url": "https://placehold.co/180x60?text=Logo", "alt": "Company logo"}},
+                  "design": {"image": {"width": {"breakpoint_base": "180px"}}}
+                }
+              },
+              "children": []
+            },
+            {
+              "id": "header-centered-nav",
+              "data": {
+                "type": "EssentialElements\\Div",
+                "properties": {
+                  "design": {
+                    "layout": {
+                      "display": {"breakpoint_base": "flex"},
+                      "horizontalGap": {"breakpoint_base": "40px"},
+                      "alignItems": {"breakpoint_base": "center"},
+                      "flexWrap": {"breakpoint_base": "wrap"},
+                      "justifyContent": {"breakpoint_base": "center"}
+                    }
+                  }
+                }
+              },
+              "children": [
+                {"id": "centered-nav-1", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Home"}}, "design": {"typography": {"color": {"breakpoint_base": "#1a1a2e"}}}}}, "children": []},
+                {"id": "centered-nav-2", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Services"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+                {"id": "centered-nav-3", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Portfolio"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+                {"id": "centered-nav-4", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Blog"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []},
+                {"id": "centered-nav-5", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Contact"}}, "design": {"typography": {"color": {"breakpoint_base": "#666666"}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "header_transparent": {
+    "description": "Transparent header overlay for hero sections",
+    "category": "header",
+    "tree": {
+      "id": "header-transparent",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "transparent"},
+            "spacing": {
+              "padding": {
+                "top": {"breakpoint_base": "20px"},
+                "bottom": {"breakpoint_base": "20px"}
+              }
+            },
+            "position": {
+              "position": {"breakpoint_base": "absolute"},
+              "top": {"breakpoint_base": "0"},
+              "left": {"breakpoint_base": "0"},
+              "right": {"breakpoint_base": "0"}
+            }
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "header-transparent-container",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "layout": {
+                  "display": {"breakpoint_base": "flex"},
+                  "justifyContent": {"breakpoint_base": "space-between"},
+                  "alignItems": {"breakpoint_base": "center"}
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "header-transparent-logo",
+              "data": {
+                "type": "EssentialElements\\Heading",
+                "properties": {
+                  "content": {"content": {"text": "BRAND", "tags": "h1"}},
+                  "design": {
+                    "typography": {
+                      "color": {"breakpoint_base": "#ffffff"},
+                      "typography": {
+                        "custom": {
+                          "customTypography": {
+                            "fontSize": {"breakpoint_base": {"number": 28, "unit": "px"}},
+                            "fontWeight": {"breakpoint_base": "700"},
+                            "letterSpacing": {"breakpoint_base": {"number": 2, "unit": "px"}}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "children": []
+            },
+            {
+              "id": "header-transparent-nav",
+              "data": {
+                "type": "EssentialElements\\Div",
+                "properties": {
+                  "design": {
+                    "layout": {
+                      "display": {"breakpoint_base": "flex", "breakpoint_phone_portrait": "none"},
+                      "horizontalGap": {"breakpoint_base": "32px"},
+                      "alignItems": {"breakpoint_base": "center"}
+                    }
+                  }
+                }
+              },
+              "children": [
+                {"id": "transparent-nav-1", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Home"}}, "design": {"typography": {"color": {"breakpoint_base": "#ffffff"}}}}}, "children": []},
+                {"id": "transparent-nav-2", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "About"}}, "design": {"typography": {"color": {"breakpoint_base": "rgba(255,255,255,0.8)"}}}}}, "children": []},
+                {"id": "transparent-nav-3", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Services"}}, "design": {"typography": {"color": {"breakpoint_base": "rgba(255,255,255,0.8)"}}}}}, "children": []},
+                {"id": "transparent-nav-4", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Contact"}}, "design": {"typography": {"color": {"breakpoint_base": "rgba(255,255,255,0.8)"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "header-transparent-cta",
+              "data": {
+                "type": "EssentialElements\\Button",
+                "properties": {
+                  "content": {"content": {"text": "Book Now", "link": {"url": "#", "type": "url"}}},
+                  "design": {
+                    "button": {
+                      "background": {"breakpoint_base": "transparent"},
+                      "typography": {"color": {"breakpoint_base": "#ffffff"}}
+                    },
+                    "borders": {
+                      "border": {
+                        "all": {
+                          "width": {"breakpoint_base": {"number": 2, "unit": "px"}},
+                          "style": "solid",
+                          "color": "#ffffff"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "header_sticky": {
+    "description": "Sticky header with shadow that appears on scroll",
+    "category": "header",
+    "tree": {
+      "id": "header-sticky",
+      "data": {
+        "type": "EssentialElements\\Section",
+        "properties": {
+          "design": {
+            "background": {"color": "#ffffff"},
+            "spacing": {
+              "padding": {
+                "top": {"breakpoint_base": "12px"},
+                "bottom": {"breakpoint_base": "12px"}
+              }
+            },
+            "position": {
+              "position": {"breakpoint_base": "sticky"},
+              "top": {"breakpoint_base": "0"}
+            },
+            "effects": {
+              "boxShadow": {
+                "boxShadow": {
+                  "breakpoint_base": {
+                    "layers": [
+                      {"x": 0, "y": 4, "blur": 12, "spread": 0, "color": "rgba(0,0,0,0.08)"}
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "children": [
+        {
+          "id": "header-sticky-container",
+          "data": {
+            "type": "EssentialElements\\Div",
+            "properties": {
+              "design": {
+                "layout": {
+                  "display": {"breakpoint_base": "flex"},
+                  "justifyContent": {"breakpoint_base": "space-between"},
+                  "alignItems": {"breakpoint_base": "center"}
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "header-sticky-logo",
+              "data": {
+                "type": "EssentialElements\\Image2",
+                "properties": {
+                  "content": {"image": {"from": "url", "url": "https://placehold.co/140x45?text=Logo", "alt": "Logo"}},
+                  "design": {"image": {"width": {"breakpoint_base": "140px"}}}
+                }
+              },
+              "children": []
+            },
+            {
+              "id": "header-sticky-nav",
+              "data": {
+                "type": "EssentialElements\\Div",
+                "properties": {
+                  "design": {
+                    "layout": {
+                      "display": {"breakpoint_base": "flex", "breakpoint_tablet_portrait": "none"},
+                      "horizontalGap": {"breakpoint_base": "28px"},
+                      "alignItems": {"breakpoint_base": "center"}
+                    }
+                  }
+                }
+              },
+              "children": [
+                {"id": "sticky-nav-1", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Products"}}, "design": {"typography": {"color": {"breakpoint_base": "#333333"}}}}}, "children": []},
+                {"id": "sticky-nav-2", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Solutions"}}, "design": {"typography": {"color": {"breakpoint_base": "#333333"}}}}}, "children": []},
+                {"id": "sticky-nav-3", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Resources"}}, "design": {"typography": {"color": {"breakpoint_base": "#333333"}}}}}, "children": []},
+                {"id": "sticky-nav-4", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Pricing"}}, "design": {"typography": {"color": {"breakpoint_base": "#333333"}}}}}, "children": []}
+              ]
+            },
+            {
+              "id": "header-sticky-actions",
+              "data": {
+                "type": "EssentialElements\\Div",
+                "properties": {
+                  "design": {
+                    "layout": {
+                      "display": {"breakpoint_base": "flex"},
+                      "horizontalGap": {"breakpoint_base": "12px"},
+                      "alignItems": {"breakpoint_base": "center"}
+                    }
+                  }
+                }
+              },
+              "children": [
+                {"id": "sticky-login", "data": {"type": "EssentialElements\\Text", "properties": {"content": {"content": {"text": "Sign In"}}, "design": {"typography": {"color": {"breakpoint_base": "#0066cc"}}}}}, "children": []},
+                {"id": "sticky-cta", "data": {"type": "EssentialElements\\Button", "properties": {"content": {"content": {"text": "Start Free", "link": {"url": "#", "type": "url"}}}, "design": {"button": {"background": {"breakpoint_base": "#0066cc"}, "typography": {"color": {"breakpoint_base": "#ffffff"}}}}}}, "children": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
   }
 }

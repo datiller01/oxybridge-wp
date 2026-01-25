@@ -237,22 +237,19 @@ class REST_Templates extends REST_Controller {
         }
 
         $template = $this->format_template( $post );
-        $tree = $this->get_document_tree( $template_id );
-
-        // Ensure tree is always a valid structure with required IO-TS properties.
-        // get_document_tree() already applies ensure_tree_integrity() which adds _nextNodeId.
-        // If no tree found, create empty tree and apply ensure_tree_integrity() for _nextNodeId.
-        if ( $tree === false ) {
-            $tree = $this->ensure_tree_integrity( $this->create_empty_tree() );
-        }
-
-        $template['tree'] = $tree;
+        $template['tree'] = $this->get_document_tree( $template_id );
 
         return $this->format_response( $template );
     }
 
     /**
      * Create template endpoint callback.
+     *
+     * Optimized to handle full tree in a single POST request with:
+     * - Comprehensive tree validation before saving
+     * - Detailed error feedback for invalid trees
+     * - Full tree returned in response for verification
+     * - Element count for tree size feedback
      *
      * @since 1.1.0
      * @param \WP_REST_Request $request The request object.
@@ -263,16 +260,54 @@ class REST_Templates extends REST_Controller {
         $type  = sanitize_key( $request->get_param( 'type' ) );
         $tree  = $request->get_param( 'tree' );
 
+        // Validate template type.
         $post_type = $this->get_post_type_for_template_type( $type );
 
         if ( ! $post_type ) {
             return $this->format_error(
                 'rest_invalid_template_type',
-                __( 'Invalid template type.', 'oxybridge-wp' ),
+                sprintf(
+                    /* translators: %s: invalid type value */
+                    __( 'Invalid template type: %s. Valid types: header, footer, global_block, popup, template.', 'oxybridge-wp' ),
+                    $type
+                ),
                 400
             );
         }
 
+        // Validate tree structure if provided.
+        $tree_to_save = null;
+        $element_count = 0;
+
+        if ( ! empty( $tree ) ) {
+            // Must be an array.
+            if ( ! is_array( $tree ) ) {
+                return $this->format_error(
+                    'rest_invalid_tree',
+                    __( 'Tree must be an object/array, not a scalar value.', 'oxybridge-wp' ),
+                    400
+                );
+            }
+
+            // Validate tree structure.
+            if ( ! $this->is_valid_tree_structure( $tree ) ) {
+                return $this->format_error_with_example(
+                    'rest_invalid_tree',
+                    __( 'Invalid tree structure. Tree must have root.id and root.children properties.', 'oxybridge-wp' ),
+                    400
+                );
+            }
+
+            $tree_to_save = $tree;
+            $element_count = isset( $tree['root']['children'] )
+                ? $this->count_elements_recursive( $tree['root']['children'] )
+                : 0;
+        } else {
+            // Create empty tree.
+            $tree_to_save = $this->create_empty_tree();
+        }
+
+        // Create the template post.
         $post_id = wp_insert_post(
             array(
                 'post_title'  => $title,
@@ -291,22 +326,69 @@ class REST_Templates extends REST_Controller {
             );
         }
 
-        // Save tree if provided or create empty tree.
-        if ( ! empty( $tree ) ) {
-            $this->save_document_tree( $post_id, $tree );
-        } else {
-            $empty_tree = $this->create_empty_tree();
-            $this->save_document_tree( $post_id, $empty_tree );
+        // Save tree and track success.
+        $tree_saved = $this->save_document_tree( $post_id, $tree_to_save );
+
+        if ( ! $tree_saved ) {
+            // Rollback: delete the post if tree save failed.
+            wp_delete_post( $post_id, true );
+
+            return $this->format_error(
+                'rest_tree_save_failed',
+                __( 'Failed to save tree data. Template creation rolled back.', 'oxybridge-wp' ),
+                500
+            );
         }
 
         $post = get_post( $post_id );
+        $template_data = $this->format_template( $post );
+
+        // Include tree in response for verification.
+        $template_data['tree'] = $this->get_document_tree( $post_id );
 
         return $this->format_response(
             array(
-                'success'  => true,
-                'template' => $this->format_template( $post ),
+                'success'         => true,
+                'template'        => $template_data,
+                'element_count'   => $element_count,
+                'tree_saved'      => true,
+                'css_regenerated' => true,
             ),
             201
+        );
+    }
+
+    /**
+     * Format tree validation error with example structure.
+     *
+     * Provides detailed feedback for invalid trees including
+     * an example of the expected structure.
+     *
+     * @since 1.1.0
+     * @param string $code    Error code.
+     * @param string $message Error message.
+     * @param int    $status  HTTP status code.
+     * @return \WP_Error
+     */
+    private function format_error_with_example( string $code, string $message, int $status = 400 ): \WP_Error {
+        return new \WP_Error(
+            $code,
+            $message,
+            array(
+                'status'  => $status,
+                'example' => array(
+                    'root' => array(
+                        'id'       => 1,
+                        'data'     => array(
+                            'type'       => 'root',
+                            'properties' => null,
+                        ),
+                        'children' => array(),
+                    ),
+                    'status' => 'exported',
+                ),
+                '_links'  => $this->get_response_links(),
+            )
         );
     }
 
@@ -341,6 +423,9 @@ class REST_Templates extends REST_Controller {
             );
         }
 
+        // Track whether CSS was regenerated (happens when tree is saved).
+        $css_regenerated = false;
+
         // Update tree if provided.
         if ( $tree !== null ) {
             if ( ! is_array( $tree ) || ! $this->is_valid_tree_structure( $tree ) ) {
@@ -351,15 +436,17 @@ class REST_Templates extends REST_Controller {
                 );
             }
 
-            $this->save_document_tree( $template_id, $tree );
+            $tree_saved = $this->save_document_tree( $template_id, $tree );
+            $css_regenerated = $tree_saved;
         }
 
         $post = get_post( $template_id );
 
         return $this->format_response(
             array(
-                'success'  => true,
-                'template' => $this->format_template( $post ),
+                'success'         => true,
+                'template'        => $this->format_template( $post ),
+                'css_regenerated' => $css_regenerated,
             )
         );
     }

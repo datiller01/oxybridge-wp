@@ -525,6 +525,134 @@
           ],
           "breakdancePath": "design.effects.filter[].type=sepia"
         },
+        "filterBlurHover": {
+          "title": "Blur Filter (Hover)",
+          "description": "Gaussian blur applied on hover state",
+          "type": "string",
+          "pattern": "^[\\d.]+(px)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Remove blur on hover",
+              "value": "0px"
+            },
+            {
+              "description": "Add blur on hover",
+              "value": "5px"
+            }
+          ],
+          "breakdancePath": "design.effects.filter_hover[].type=blur"
+        },
+        "filterBrightnessHover": {
+          "title": "Brightness Filter (Hover)",
+          "description": "Brightness adjustment on hover state",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Brighten on hover",
+              "value": "110%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter_hover[].type=brightness"
+        },
+        "filterContrastHover": {
+          "title": "Contrast Filter (Hover)",
+          "description": "Contrast adjustment on hover state",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Increase contrast on hover",
+              "value": "110%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter_hover[].type=contrast"
+        },
+        "filterGrayscaleHover": {
+          "title": "Grayscale Filter (Hover)",
+          "description": "Grayscale conversion on hover state. Common pattern: full grayscale normal, 0% on hover for color reveal.",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Reveal color on hover",
+              "value": "0%"
+            },
+            {
+              "description": "Convert to grayscale on hover",
+              "value": "100%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter_hover[].type=grayscale"
+        },
+        "filterHueRotateHover": {
+          "title": "Hue Rotate Filter (Hover)",
+          "description": "Hue rotation on hover state",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Shift hue on hover",
+              "value": "90deg"
+            }
+          ],
+          "breakdancePath": "design.effects.filter_hover[].type=hue-rotate"
+        },
+        "filterInvertHover": {
+          "title": "Invert Filter (Hover)",
+          "description": "Color inversion on hover state",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Invert colors on hover",
+              "value": "100%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter_hover[].type=invert"
+        },
+        "filterSaturateHover": {
+          "title": "Saturate Filter (Hover)",
+          "description": "Saturation adjustment on hover state",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Boost saturation on hover",
+              "value": "150%"
+            },
+            {
+              "description": "Desaturate on hover",
+              "value": "50%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter_hover[].type=saturate"
+        },
+        "filterSepiaHover": {
+          "title": "Sepia Filter (Hover)",
+          "description": "Sepia effect on hover state",
+          "type": "string",
+          "pattern": "^[\\d.]+%?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Add vintage effect on hover",
+              "value": "50%"
+            },
+            {
+              "description": "Remove sepia on hover",
+              "value": "0%"
+            }
+          ],
+          "breakdancePath": "design.effects.filter_hover[].type=sepia"
+        },
         "transition": {
           "title": "Transition",
           "description": "Array of CSS transition definitions for smooth property changes.",
@@ -1032,6 +1160,81 @@
           ],
           "breakdancePath": "design.effects.transform.transforms_hover[].rotate_z"
         },
+        "rotate3dX": {
+          "title": "Rotate 3D X Component",
+          "description": "X component of the 3D rotation axis vector (0-1). Used with rotate3dY, rotate3dZ, and rotate3dAngle for custom axis rotation.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Full X axis weight",
+              "value": 1
+            },
+            {
+              "description": "Half X axis weight",
+              "value": 0.5
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].rotate3d_x"
+        },
+        "rotate3dY": {
+          "title": "Rotate 3D Y Component",
+          "description": "Y component of the 3D rotation axis vector (0-1). Used with rotate3dX, rotate3dZ, and rotate3dAngle for custom axis rotation.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Full Y axis weight",
+              "value": 1
+            },
+            {
+              "description": "Half Y axis weight",
+              "value": 0.5
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].rotate3d_y"
+        },
+        "rotate3dZ": {
+          "title": "Rotate 3D Z Component",
+          "description": "Z component of the 3D rotation axis vector (0-1). Used with rotate3dX, rotate3dY, and rotate3dAngle for custom axis rotation.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Full Z axis weight",
+              "value": 1
+            },
+            {
+              "description": "Half Z axis weight",
+              "value": 0.5
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].rotate3d_z"
+        },
+        "rotate3dAngle": {
+          "title": "Rotate 3D Angle",
+          "description": "Rotation angle around the custom 3D axis defined by rotate3dX, rotate3dY, rotate3dZ.",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "45 degree rotation",
+              "value": "45deg"
+            },
+            {
+              "description": "90 degree rotation",
+              "value": "90deg"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].rotate3d_angle"
+        },
         "scale": {
           "title": "Scale",
           "description": "Uniform scaling factor. 1 is normal size.",
@@ -1375,6 +1578,24 @@
           ],
           "breakdancePath": "design.effects.transform.perspective"
         },
+        "perspectiveValue": {
+          "title": "Perspective Value (Inline)",
+          "description": "Inline perspective transform value. Applied directly to the element's transform property rather than the parent container.",
+          "type": "string",
+          "pattern": "^[\\d.]+(px)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Standard perspective",
+              "value": "1000px"
+            },
+            {
+              "description": "Close perspective for dramatic effect",
+              "value": "500px"
+            }
+          ],
+          "breakdancePath": "design.effects.transform.transforms[].perspective"
+        },
         "perspectiveHover": {
           "title": "Perspective (Hover)",
           "description": "Perspective distance on hover. Create depth-shifting effects.",
@@ -1560,6 +1781,775 @@
             }
           ],
           "breakdancePath": "design.effects.transform.perspective_origin.y"
+        }
+      }
+    },
+    "background": {
+      "type": "object",
+      "title": "Background Properties",
+      "description": "Background colors, images, gradients, and overlay effects",
+      "properties": {
+        "backgroundColor": {
+          "title": "Background Color",
+          "description": "Solid background color for the element",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "White background",
+              "value": "#ffffff"
+            },
+            {
+              "description": "Semi-transparent black",
+              "value": "rgba(0,0,0,0.5)"
+            },
+            {
+              "description": "Using CSS variable",
+              "value": "var(--primary-color)"
+            }
+          ],
+          "breakdancePath": "design.background.color"
+        },
+        "backgroundColorHover": {
+          "title": "Background Color (Hover)",
+          "description": "Background color on hover state",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Darken on hover",
+              "value": "#2563eb"
+            }
+          ],
+          "breakdancePath": "design.background.color_hover"
+        },
+        "backgroundImage": {
+          "title": "Background Image",
+          "description": "URL of background image",
+          "type": "string",
+          "pattern": "^(url\\(|https?://|/)",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "External image URL",
+              "value": "url(https://example.com/image.jpg)"
+            },
+            {
+              "description": "Relative path",
+              "value": "url(/wp-content/uploads/2024/hero.jpg)"
+            }
+          ],
+          "breakdancePath": "design.background.image"
+        },
+        "backgroundType": {
+          "title": "Background Type",
+          "description": "Type of background to apply",
+          "type": "string",
+          "enum": ["color", "image", "gradient", "none"],
+          "default": "color",
+          "responsive": true,
+          "breakdancePath": "design.background.type"
+        },
+        "backgroundPosition": {
+          "title": "Background Position",
+          "description": "Position of background image or gradient",
+          "type": "string",
+          "enum": ["top left", "top center", "top right", "center left", "center", "center right", "bottom left", "bottom center", "bottom right", "custom"],
+          "default": "center",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Centered background",
+              "value": "center"
+            },
+            {
+              "description": "Top of image visible",
+              "value": "top center"
+            }
+          ],
+          "breakdancePath": "design.background.position"
+        },
+        "backgroundSize": {
+          "title": "Background Size",
+          "description": "Size of background image",
+          "type": "string",
+          "enum": ["auto", "cover", "contain", "custom"],
+          "default": "cover",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Fill container (may crop)",
+              "value": "cover"
+            },
+            {
+              "description": "Fit within container",
+              "value": "contain"
+            }
+          ],
+          "breakdancePath": "design.background.size"
+        },
+        "backgroundRepeat": {
+          "title": "Background Repeat",
+          "description": "How background image repeats",
+          "type": "string",
+          "enum": ["repeat", "repeat-x", "repeat-y", "no-repeat", "space", "round"],
+          "default": "no-repeat",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "No repetition",
+              "value": "no-repeat"
+            },
+            {
+              "description": "Tile pattern",
+              "value": "repeat"
+            }
+          ],
+          "breakdancePath": "design.background.repeat"
+        },
+        "backgroundAttachment": {
+          "title": "Background Attachment",
+          "description": "Scroll behavior of background image",
+          "type": "string",
+          "enum": ["scroll", "fixed", "local"],
+          "default": "scroll",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Normal scrolling",
+              "value": "scroll"
+            },
+            {
+              "description": "Parallax effect (fixed)",
+              "value": "fixed"
+            }
+          ],
+          "breakdancePath": "design.background.attachment"
+        },
+        "gradient": {
+          "title": "Gradient",
+          "description": "Full gradient definition as CSS string or structured object",
+          "$ref": "#/definitions/gradientValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Linear gradient",
+              "value": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+            },
+            {
+              "description": "Radial gradient",
+              "value": "radial-gradient(circle at center, #ffffff 0%, #000000 100%)"
+            }
+          ],
+          "breakdancePath": "design.background.gradient"
+        },
+        "gradientHover": {
+          "title": "Gradient (Hover)",
+          "description": "Gradient on hover state",
+          "$ref": "#/definitions/gradientValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Reverse gradient on hover",
+              "value": "linear-gradient(315deg, #667eea 0%, #764ba2 100%)"
+            }
+          ],
+          "breakdancePath": "design.background.gradient_hover"
+        },
+        "gradientType": {
+          "title": "Gradient Type",
+          "description": "Type of gradient (linear, radial, or conic)",
+          "type": "string",
+          "enum": ["linear", "radial", "conic"],
+          "default": "linear",
+          "responsive": true,
+          "breakdancePath": "design.background.gradient_type"
+        },
+        "gradientAngle": {
+          "title": "Gradient Angle",
+          "description": "Angle for linear gradients in degrees",
+          "type": "string",
+          "pattern": "^-?[\\d.]+(deg)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Horizontal (left to right)",
+              "value": "90deg"
+            },
+            {
+              "description": "Diagonal",
+              "value": "135deg"
+            },
+            {
+              "description": "Vertical (top to bottom)",
+              "value": "180deg"
+            }
+          ],
+          "breakdancePath": "design.background.gradient_angle"
+        },
+        "gradientRadialPosition": {
+          "title": "Radial Gradient Position",
+          "description": "Center position for radial gradients",
+          "type": "string",
+          "enum": ["center", "top", "bottom", "left", "right", "top left", "top right", "bottom left", "bottom right", "custom"],
+          "default": "center",
+          "responsive": true,
+          "breakdancePath": "design.background.gradient_radial_position"
+        },
+        "gradientRadialShape": {
+          "title": "Radial Gradient Shape",
+          "description": "Shape of radial gradient",
+          "type": "string",
+          "enum": ["ellipse", "circle"],
+          "default": "ellipse",
+          "responsive": true,
+          "breakdancePath": "design.background.gradient_radial_shape"
+        },
+        "gradientRadialSize": {
+          "title": "Radial Gradient Size",
+          "description": "Size keyword for radial gradient",
+          "type": "string",
+          "enum": ["closest-side", "closest-corner", "farthest-side", "farthest-corner"],
+          "default": "farthest-corner",
+          "responsive": true,
+          "breakdancePath": "design.background.gradient_radial_size"
+        },
+        "overlayColor": {
+          "title": "Overlay Color",
+          "description": "Solid color overlay on top of background",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Dark overlay",
+              "value": "rgba(0,0,0,0.5)"
+            },
+            {
+              "description": "Brand color tint",
+              "value": "rgba(102,126,234,0.3)"
+            }
+          ],
+          "breakdancePath": "design.background.overlay.color"
+        },
+        "overlayColorHover": {
+          "title": "Overlay Color (Hover)",
+          "description": "Overlay color on hover state",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Lighter overlay on hover",
+              "value": "rgba(0,0,0,0.3)"
+            }
+          ],
+          "breakdancePath": "design.background.overlay.color_hover"
+        },
+        "overlayImage": {
+          "title": "Overlay Image",
+          "description": "Image overlay on top of background",
+          "type": "string",
+          "pattern": "^(url\\(|https?://|/)",
+          "responsive": true,
+          "breakdancePath": "design.background.overlay.image"
+        },
+        "overlayGradient": {
+          "title": "Overlay Gradient",
+          "description": "Gradient overlay on top of background. Ideal for hero sections.",
+          "$ref": "#/definitions/gradientValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Dark bottom overlay",
+              "value": "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%)"
+            },
+            {
+              "description": "Color tint overlay",
+              "value": "linear-gradient(135deg, rgba(102,126,234,0.8) 0%, rgba(118,75,162,0.8) 100%)"
+            }
+          ],
+          "breakdancePath": "design.background.overlay.gradient"
+        },
+        "overlayGradientHover": {
+          "title": "Overlay Gradient (Hover)",
+          "description": "Gradient overlay on hover state",
+          "$ref": "#/definitions/gradientValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Lighter overlay on hover",
+              "value": "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%)"
+            }
+          ],
+          "breakdancePath": "design.background.overlay.gradient_hover"
+        },
+        "overlayOpacity": {
+          "title": "Overlay Opacity",
+          "description": "Opacity of the overlay layer (0-1)",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Full opacity overlay",
+              "value": 1
+            },
+            {
+              "description": "Semi-transparent overlay",
+              "value": 0.5
+            }
+          ],
+          "breakdancePath": "design.background.overlay.opacity"
+        },
+        "overlayOpacityHover": {
+          "title": "Overlay Opacity (Hover)",
+          "description": "Overlay opacity on hover state",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Reduce overlay on hover",
+              "value": 0.3
+            }
+          ],
+          "breakdancePath": "design.background.overlay.opacity_hover"
+        },
+        "overlayBlendMode": {
+          "title": "Overlay Blend Mode",
+          "description": "How the overlay blends with the background",
+          "$ref": "#/definitions/blendModeValue",
+          "default": "normal",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Multiply for darkening",
+              "value": "multiply"
+            },
+            {
+              "description": "Color tint",
+              "value": "color"
+            }
+          ],
+          "breakdancePath": "design.background.overlay.blend_mode"
+        },
+        "blendMode": {
+          "title": "Blend Mode",
+          "description": "Alias for backgroundBlendMode. How background layers blend together.",
+          "$ref": "#/definitions/blendModeValue",
+          "default": "normal",
+          "responsive": true,
+          "breakdancePath": "design.background.blend_mode"
+        }
+      }
+    },
+    "border": {
+      "type": "object",
+      "title": "Border Properties",
+      "description": "Border radius, style, width, and color properties",
+      "properties": {
+        "borderRadiusAll": {
+          "title": "Border Radius (All Corners)",
+          "description": "Uniform border radius applied to all corners",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem|%)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Slightly rounded",
+              "value": "4px"
+            },
+            {
+              "description": "Medium rounded",
+              "value": "8px"
+            },
+            {
+              "description": "Pill shape",
+              "value": "9999px"
+            }
+          ],
+          "breakdancePath": "design.border.radius.all"
+        },
+        "borderRadiusAllHover": {
+          "title": "Border Radius (All Corners, Hover)",
+          "description": "Border radius on hover state",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem|%)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.radius.all_hover"
+        },
+        "radiusTopLeft": {
+          "title": "Border Radius Top Left",
+          "description": "Border radius for top-left corner",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem|%)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Rounded top-left",
+              "value": "20px"
+            }
+          ],
+          "breakdancePath": "design.border.radius.top_left"
+        },
+        "radiusTopLeftHover": {
+          "title": "Border Radius Top Left (Hover)",
+          "description": "Top-left border radius on hover",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem|%)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.radius.top_left_hover"
+        },
+        "radiusTopRight": {
+          "title": "Border Radius Top Right",
+          "description": "Border radius for top-right corner",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem|%)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Rounded top-right",
+              "value": "20px"
+            }
+          ],
+          "breakdancePath": "design.border.radius.top_right"
+        },
+        "radiusTopRightHover": {
+          "title": "Border Radius Top Right (Hover)",
+          "description": "Top-right border radius on hover",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem|%)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.radius.top_right_hover"
+        },
+        "radiusBottomLeft": {
+          "title": "Border Radius Bottom Left",
+          "description": "Border radius for bottom-left corner",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem|%)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Rounded bottom-left",
+              "value": "20px"
+            }
+          ],
+          "breakdancePath": "design.border.radius.bottom_left"
+        },
+        "radiusBottomLeftHover": {
+          "title": "Border Radius Bottom Left (Hover)",
+          "description": "Bottom-left border radius on hover",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem|%)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.radius.bottom_left_hover"
+        },
+        "radiusBottomRight": {
+          "title": "Border Radius Bottom Right",
+          "description": "Border radius for bottom-right corner",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem|%)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Rounded bottom-right",
+              "value": "20px"
+            }
+          ],
+          "breakdancePath": "design.border.radius.bottom_right"
+        },
+        "radiusBottomRightHover": {
+          "title": "Border Radius Bottom Right (Hover)",
+          "description": "Bottom-right border radius on hover",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem|%)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.radius.bottom_right_hover"
+        },
+        "borderAllStyle": {
+          "title": "Border Style (All Sides)",
+          "description": "Border style applied to all sides",
+          "type": "string",
+          "enum": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+          "default": "none",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Solid border",
+              "value": "solid"
+            },
+            {
+              "description": "Dashed border",
+              "value": "dashed"
+            }
+          ],
+          "breakdancePath": "design.border.style.all"
+        },
+        "borderAllStyleHover": {
+          "title": "Border Style (All Sides, Hover)",
+          "description": "Border style on hover state",
+          "type": "string",
+          "enum": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+          "responsive": true,
+          "breakdancePath": "design.border.style.all_hover"
+        },
+        "borderTopStyle": {
+          "title": "Border Top Style",
+          "description": "Border style for top side",
+          "type": "string",
+          "enum": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+          "responsive": true,
+          "breakdancePath": "design.border.style.top"
+        },
+        "borderTopStyleHover": {
+          "title": "Border Top Style (Hover)",
+          "description": "Top border style on hover",
+          "type": "string",
+          "enum": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+          "responsive": true,
+          "breakdancePath": "design.border.style.top_hover"
+        },
+        "borderRightStyle": {
+          "title": "Border Right Style",
+          "description": "Border style for right side",
+          "type": "string",
+          "enum": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+          "responsive": true,
+          "breakdancePath": "design.border.style.right"
+        },
+        "borderRightStyleHover": {
+          "title": "Border Right Style (Hover)",
+          "description": "Right border style on hover",
+          "type": "string",
+          "enum": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+          "responsive": true,
+          "breakdancePath": "design.border.style.right_hover"
+        },
+        "borderBottomStyle": {
+          "title": "Border Bottom Style",
+          "description": "Border style for bottom side",
+          "type": "string",
+          "enum": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+          "responsive": true,
+          "breakdancePath": "design.border.style.bottom"
+        },
+        "borderBottomStyleHover": {
+          "title": "Border Bottom Style (Hover)",
+          "description": "Bottom border style on hover",
+          "type": "string",
+          "enum": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+          "responsive": true,
+          "breakdancePath": "design.border.style.bottom_hover"
+        },
+        "borderLeftStyle": {
+          "title": "Border Left Style",
+          "description": "Border style for left side",
+          "type": "string",
+          "enum": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+          "responsive": true,
+          "breakdancePath": "design.border.style.left"
+        },
+        "borderLeftStyleHover": {
+          "title": "Border Left Style (Hover)",
+          "description": "Left border style on hover",
+          "type": "string",
+          "enum": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+          "responsive": true,
+          "breakdancePath": "design.border.style.left_hover"
+        },
+        "borderAllWidth": {
+          "title": "Border Width (All Sides)",
+          "description": "Border width applied to all sides",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Thin border",
+              "value": "1px"
+            },
+            {
+              "description": "Medium border",
+              "value": "2px"
+            },
+            {
+              "description": "Thick border",
+              "value": "4px"
+            }
+          ],
+          "breakdancePath": "design.border.width.all"
+        },
+        "borderAllWidthHover": {
+          "title": "Border Width (All Sides, Hover)",
+          "description": "Border width on hover state",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.width.all_hover"
+        },
+        "borderTopWidth": {
+          "title": "Border Top Width",
+          "description": "Border width for top side",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.width.top"
+        },
+        "borderTopWidthHover": {
+          "title": "Border Top Width (Hover)",
+          "description": "Top border width on hover",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.width.top_hover"
+        },
+        "borderRightWidth": {
+          "title": "Border Right Width",
+          "description": "Border width for right side",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.width.right"
+        },
+        "borderRightWidthHover": {
+          "title": "Border Right Width (Hover)",
+          "description": "Right border width on hover",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.width.right_hover"
+        },
+        "borderBottomWidth": {
+          "title": "Border Bottom Width",
+          "description": "Border width for bottom side",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem)?$",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Underline accent",
+              "value": "2px"
+            }
+          ],
+          "breakdancePath": "design.border.width.bottom"
+        },
+        "borderBottomWidthHover": {
+          "title": "Border Bottom Width (Hover)",
+          "description": "Bottom border width on hover",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.width.bottom_hover"
+        },
+        "borderLeftWidth": {
+          "title": "Border Left Width",
+          "description": "Border width for left side",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.width.left"
+        },
+        "borderLeftWidthHover": {
+          "title": "Border Left Width (Hover)",
+          "description": "Left border width on hover",
+          "type": "string",
+          "pattern": "^[\\d.]+(px|em|rem)?$",
+          "responsive": true,
+          "breakdancePath": "design.border.width.left_hover"
+        },
+        "borderAllColor": {
+          "title": "Border Color (All Sides)",
+          "description": "Border color applied to all sides",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Light gray border",
+              "value": "#e0e0e0"
+            },
+            {
+              "description": "Brand color border",
+              "value": "var(--primary-color)"
+            }
+          ],
+          "breakdancePath": "design.border.color.all"
+        },
+        "borderAllColorHover": {
+          "title": "Border Color (All Sides, Hover)",
+          "description": "Border color on hover state",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Accent on hover",
+              "value": "#3b82f6"
+            }
+          ],
+          "breakdancePath": "design.border.color.all_hover"
+        },
+        "borderTopColor": {
+          "title": "Border Top Color",
+          "description": "Border color for top side",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "breakdancePath": "design.border.color.top"
+        },
+        "borderTopColorHover": {
+          "title": "Border Top Color (Hover)",
+          "description": "Top border color on hover",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "breakdancePath": "design.border.color.top_hover"
+        },
+        "borderRightColor": {
+          "title": "Border Right Color",
+          "description": "Border color for right side",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "breakdancePath": "design.border.color.right"
+        },
+        "borderRightColorHover": {
+          "title": "Border Right Color (Hover)",
+          "description": "Right border color on hover",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "breakdancePath": "design.border.color.right_hover"
+        },
+        "borderBottomColor": {
+          "title": "Border Bottom Color",
+          "description": "Border color for bottom side",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "examples": [
+            {
+              "description": "Accent underline",
+              "value": "#3b82f6"
+            }
+          ],
+          "breakdancePath": "design.border.color.bottom"
+        },
+        "borderBottomColorHover": {
+          "title": "Border Bottom Color (Hover)",
+          "description": "Bottom border color on hover",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "breakdancePath": "design.border.color.bottom_hover"
+        },
+        "borderLeftColor": {
+          "title": "Border Left Color",
+          "description": "Border color for left side",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "breakdancePath": "design.border.color.left"
+        },
+        "borderLeftColorHover": {
+          "title": "Border Left Color (Hover)",
+          "description": "Left border color on hover",
+          "$ref": "#/definitions/colorValue",
+          "responsive": true,
+          "breakdancePath": "design.border.color.left_hover"
         }
       }
     }

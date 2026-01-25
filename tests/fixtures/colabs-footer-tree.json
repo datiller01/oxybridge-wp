@@ -1,0 +1,1102 @@
+{
+  "root": {
+    "id": 1,
+    "data": {
+      "type": "root",
+      "properties": null
+    },
+    "children": [
+      {
+        "id": 200,
+        "data": {
+          "type": "EssentialElements\\Section",
+          "properties": {
+            "design": {
+              "background": {
+                "color": "#1a1a1a"
+              },
+              "size": {
+                "width": {"breakpoint_base": "100%"}
+              },
+              "spacing": {
+                "padding": {
+                  "top": {"breakpoint_base": "80px", "breakpoint_tablet_portrait": "48px"},
+                  "bottom": {"breakpoint_base": "80px", "breakpoint_tablet_portrait": "48px"}
+                }
+              }
+            }
+          }
+        },
+        "children": [
+          {
+            "id": 201,
+            "data": {
+              "type": "EssentialElements\\Div",
+              "properties": {
+                "design": {
+                  "layout": {
+                    "display": {"breakpoint_base": "flex"},
+                    "flexDirection": {"breakpoint_base": "column"}
+                  },
+                  "size": {
+                    "width": {"breakpoint_base": "100%"},
+                    "maxWidth": {"breakpoint_base": {"number": 1440, "unit": "px"}}
+                  },
+                  "spacing": {
+                    "margin_left": {"breakpoint_base": "auto"},
+                    "margin_right": {"breakpoint_base": "auto"},
+                    "padding": {
+                      "left": {"breakpoint_base": "40px", "breakpoint_phone_portrait": "20px"},
+                      "right": {"breakpoint_base": "40px", "breakpoint_phone_portrait": "20px"}
+                    }
+                  }
+                }
+              }
+            },
+            "children": [
+              {
+                "id": 202,
+                "data": {
+                  "type": "EssentialElements\\Div",
+                  "properties": {
+                    "design": {
+                      "layout": {
+                        "display": {"breakpoint_base": "flex"},
+                        "flexDirection": {"breakpoint_base": "row", "breakpoint_tablet_portrait": "column"},
+                        "justifyContent": {"breakpoint_base": "space-between"},
+                        "horizontalGap": {"breakpoint_base": "48px", "breakpoint_tablet_portrait": "32px"}
+                      }
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "id": 203,
+                    "data": {
+                      "type": "EssentialElements\\Div",
+                      "properties": {
+                        "design": {
+                          "size": {
+                            "maxWidth": {"breakpoint_base": "400px", "breakpoint_tablet_portrait": "100%"}
+                          },
+                          "layout": {
+                            "flexShrink": {"breakpoint_base": "0"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "id": 204,
+                        "data": {
+                          "type": "EssentialElements\\Text",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "Co-Labs Melbourne respectfully acknowledges the Traditional Custodians of the land on which we operate our business \u2013 the Boon Wurrung and Wurundjeri peoples of the Kulin Nation."
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "fontFamily": {"breakpoint_base": "'Matter SQ', -apple-system, sans-serif"},
+                                "fontSize": {"breakpoint_base": "14px"},
+                                "fontWeight": {"breakpoint_base": "400"},
+                                "color": {"breakpoint_base": "#999999"},
+                                "lineHeight": {"breakpoint_base": "1.6"}
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 203
+                      }
+                    ],
+                    "_parentId": 202
+                  },
+                  {
+                    "id": 205,
+                    "data": {
+                      "type": "EssentialElements\\Div",
+                      "properties": {
+                        "design": {
+                          "layout": {
+                            "display": {"breakpoint_base": "grid"},
+                            "gridTemplateColumns": {"breakpoint_base": "repeat(2, 1fr)", "breakpoint_tablet_portrait": "1fr"},
+                            "horizontalGap": {"breakpoint_base": "32px", "breakpoint_tablet_portrait": "24px"},
+                            "verticalGap": {"breakpoint_base": "32px", "breakpoint_tablet_portrait": "24px"},
+                            "flex": {"breakpoint_base": "1"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "id": 206,
+                        "data": {
+                          "type": "EssentialElements\\Div",
+                          "properties": {
+                            "design": {
+                              "layout": {
+                                "display": {"breakpoint_base": "flex"},
+                                "flexDirection": {"breakpoint_base": "column"},
+                                "verticalGap": {"breakpoint_base": "8px"}
+                              }
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "id": 207,
+                            "data": {
+                              "type": "EssentialElements\\Heading",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "CoLabs Coworking",
+                                    "tags": "h4"
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "14px"},
+                                    "fontWeight": {"breakpoint_base": "500"},
+                                    "color": {"breakpoint_base": "#ffffff"}
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 206
+                          },
+                          {
+                            "id": 208,
+                            "data": {
+                              "type": "EssentialElements\\Text",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "1/306 Albert St, Brunswick"
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "13px"},
+                                    "fontWeight": {"breakpoint_base": "400"},
+                                    "color": {"breakpoint_base": "#999999"},
+                                    "lineHeight": {"breakpoint_base": "1.5"}
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 206
+                          },
+                          {
+                            "id": 209,
+                            "data": {
+                              "type": "EssentialElements\\Link",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "(03) 9111 2399",
+                                    "link": {"url": "tel:+61391112399", "type": "url"}
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "13px"},
+                                    "fontWeight": {"breakpoint_base": "400"},
+                                    "color": {"breakpoint_base": "#cccccc"},
+                                    "textDecoration": {"breakpoint_base": "none"}
+                                  },
+                                  "effects": {
+                                    "transition": {
+                                      "duration": {"breakpoint_base": "150ms"},
+                                      "timingFunction": {"breakpoint_base": "ease-out"}
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 206
+                          }
+                        ],
+                        "_parentId": 205
+                      },
+                      {
+                        "id": 210,
+                        "data": {
+                          "type": "EssentialElements\\Div",
+                          "properties": {
+                            "design": {
+                              "layout": {
+                                "display": {"breakpoint_base": "flex"},
+                                "flexDirection": {"breakpoint_base": "column"},
+                                "verticalGap": {"breakpoint_base": "8px"}
+                              }
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "id": 211,
+                            "data": {
+                              "type": "EssentialElements\\Heading",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "CoLabs Office",
+                                    "tags": "h4"
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "14px"},
+                                    "fontWeight": {"breakpoint_base": "500"},
+                                    "color": {"breakpoint_base": "#ffffff"}
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 210
+                          },
+                          {
+                            "id": 212,
+                            "data": {
+                              "type": "EssentialElements\\Text",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "17/306 Albert St, Brunswick"
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "13px"},
+                                    "fontWeight": {"breakpoint_base": "400"},
+                                    "color": {"breakpoint_base": "#999999"},
+                                    "lineHeight": {"breakpoint_base": "1.5"}
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 210
+                          },
+                          {
+                            "id": 213,
+                            "data": {
+                              "type": "EssentialElements\\Link",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "(03) 9111 2399",
+                                    "link": {"url": "tel:+61391112399", "type": "url"}
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "13px"},
+                                    "fontWeight": {"breakpoint_base": "400"},
+                                    "color": {"breakpoint_base": "#cccccc"},
+                                    "textDecoration": {"breakpoint_base": "none"}
+                                  },
+                                  "effects": {
+                                    "transition": {
+                                      "duration": {"breakpoint_base": "150ms"},
+                                      "timingFunction": {"breakpoint_base": "ease-out"}
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 210
+                          }
+                        ],
+                        "_parentId": 205
+                      },
+                      {
+                        "id": 214,
+                        "data": {
+                          "type": "EssentialElements\\Div",
+                          "properties": {
+                            "design": {
+                              "layout": {
+                                "display": {"breakpoint_base": "flex"},
+                                "flexDirection": {"breakpoint_base": "column"},
+                                "verticalGap": {"breakpoint_base": "8px"}
+                              }
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "id": 215,
+                            "data": {
+                              "type": "EssentialElements\\Heading",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "CoLabs Lab Space",
+                                    "tags": "h4"
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "14px"},
+                                    "fontWeight": {"breakpoint_base": "500"},
+                                    "color": {"breakpoint_base": "#ffffff"}
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 214
+                          },
+                          {
+                            "id": 216,
+                            "data": {
+                              "type": "EssentialElements\\Text",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "20/306 Albert St, Brunswick"
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "13px"},
+                                    "fontWeight": {"breakpoint_base": "400"},
+                                    "color": {"breakpoint_base": "#999999"},
+                                    "lineHeight": {"breakpoint_base": "1.5"}
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 214
+                          },
+                          {
+                            "id": 217,
+                            "data": {
+                              "type": "EssentialElements\\Link",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "(03) 9111 2399",
+                                    "link": {"url": "tel:+61391112399", "type": "url"}
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "13px"},
+                                    "fontWeight": {"breakpoint_base": "400"},
+                                    "color": {"breakpoint_base": "#cccccc"},
+                                    "textDecoration": {"breakpoint_base": "none"}
+                                  },
+                                  "effects": {
+                                    "transition": {
+                                      "duration": {"breakpoint_base": "150ms"},
+                                      "timingFunction": {"breakpoint_base": "ease-out"}
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 214
+                          }
+                        ],
+                        "_parentId": 205
+                      },
+                      {
+                        "id": 218,
+                        "data": {
+                          "type": "EssentialElements\\Div",
+                          "properties": {
+                            "design": {
+                              "layout": {
+                                "display": {"breakpoint_base": "flex"},
+                                "flexDirection": {"breakpoint_base": "column"},
+                                "verticalGap": {"breakpoint_base": "8px"}
+                              }
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "id": 219,
+                            "data": {
+                              "type": "EssentialElements\\Heading",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "CoLabs Notting Hill",
+                                    "tags": "h4"
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "14px"},
+                                    "fontWeight": {"breakpoint_base": "500"},
+                                    "color": {"breakpoint_base": "#ffffff"}
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 218
+                          },
+                          {
+                            "id": 220,
+                            "data": {
+                              "type": "EssentialElements\\Text",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "2 Acacia Place, Notting Hill"
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "13px"},
+                                    "fontWeight": {"breakpoint_base": "400"},
+                                    "color": {"breakpoint_base": "#999999"},
+                                    "lineHeight": {"breakpoint_base": "1.5"}
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 218
+                          },
+                          {
+                            "id": 221,
+                            "data": {
+                              "type": "EssentialElements\\Link",
+                              "properties": {
+                                "content": {
+                                  "content": {
+                                    "text": "(03) 9111 2399",
+                                    "link": {"url": "tel:+61391112399", "type": "url"}
+                                  }
+                                },
+                                "design": {
+                                  "typography": {
+                                    "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                    "fontSize": {"breakpoint_base": "13px"},
+                                    "fontWeight": {"breakpoint_base": "400"},
+                                    "color": {"breakpoint_base": "#cccccc"},
+                                    "textDecoration": {"breakpoint_base": "none"}
+                                  },
+                                  "effects": {
+                                    "transition": {
+                                      "duration": {"breakpoint_base": "150ms"},
+                                      "timingFunction": {"breakpoint_base": "ease-out"}
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "children": [],
+                            "_parentId": 218
+                          }
+                        ],
+                        "_parentId": 205
+                      }
+                    ],
+                    "_parentId": 202
+                  }
+                ],
+                "_parentId": 201
+              },
+              {
+                "id": 222,
+                "data": {
+                  "type": "EssentialElements\\Div",
+                  "properties": {
+                    "design": {
+                      "size": {
+                        "width": {"breakpoint_base": "100%"},
+                        "height": {"breakpoint_base": "1px"}
+                      },
+                      "background": {
+                        "color": "#333333"
+                      },
+                      "spacing": {
+                        "margin_top": {"breakpoint_base": "48px", "breakpoint_tablet_portrait": "32px"},
+                        "margin_bottom": {"breakpoint_base": "48px", "breakpoint_tablet_portrait": "32px"}
+                      }
+                    }
+                  }
+                },
+                "children": [],
+                "_parentId": 201
+              },
+              {
+                "id": 223,
+                "data": {
+                  "type": "EssentialElements\\Div",
+                  "properties": {
+                    "design": {
+                      "layout": {
+                        "display": {"breakpoint_base": "flex"},
+                        "flexDirection": {"breakpoint_base": "row", "breakpoint_tablet_portrait": "column"},
+                        "justifyContent": {"breakpoint_base": "space-between"},
+                        "alignItems": {"breakpoint_base": "center", "breakpoint_tablet_portrait": "flex-start"},
+                        "horizontalGap": {"breakpoint_base": "32px", "breakpoint_tablet_portrait": "24px"}
+                      }
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "id": 224,
+                    "data": {
+                      "type": "EssentialElements\\Div",
+                      "properties": {
+                        "design": {
+                          "layout": {
+                            "display": {"breakpoint_base": "flex"},
+                            "alignItems": {"breakpoint_base": "center"},
+                            "horizontalGap": {"breakpoint_base": "8px"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "id": 225,
+                        "data": {
+                          "type": "EssentialElements\\Text",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "Brand and website by"
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                "fontSize": {"breakpoint_base": "13px"},
+                                "fontWeight": {"breakpoint_base": "400"},
+                                "color": {"breakpoint_base": "#999999"}
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 224
+                      },
+                      {
+                        "id": 226,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "Your Creative",
+                                "link": {"url": "https://yourcreative.com.au", "type": "url", "openInNewTab": true}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                "fontSize": {"breakpoint_base": "13px"},
+                                "fontWeight": {"breakpoint_base": "500"},
+                                "color": {"breakpoint_base": "#cccccc"},
+                                "textDecoration": {"breakpoint_base": "none"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 224
+                      }
+                    ],
+                    "_parentId": 223
+                  },
+                  {
+                    "id": 227,
+                    "data": {
+                      "type": "EssentialElements\\Div",
+                      "properties": {
+                        "design": {
+                          "layout": {
+                            "display": {"breakpoint_base": "flex"},
+                            "flexWrap": {"breakpoint_base": "wrap"},
+                            "alignItems": {"breakpoint_base": "center"},
+                            "horizontalGap": {"breakpoint_base": "24px", "breakpoint_tablet_portrait": "16px"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "id": 228,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "Services",
+                                "link": {"url": "/services", "type": "url"}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                "fontSize": {"breakpoint_base": "14px"},
+                                "fontWeight": {"breakpoint_base": "400"},
+                                "color": {"breakpoint_base": "#cccccc"},
+                                "textDecoration": {"breakpoint_base": "none"},
+                                "letterSpacing": {"breakpoint_base": "0.01em"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 227
+                      },
+                      {
+                        "id": 229,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "Privacy Policy",
+                                "link": {"url": "/privacy-policy", "type": "url"}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                "fontSize": {"breakpoint_base": "14px"},
+                                "fontWeight": {"breakpoint_base": "400"},
+                                "color": {"breakpoint_base": "#cccccc"},
+                                "textDecoration": {"breakpoint_base": "none"},
+                                "letterSpacing": {"breakpoint_base": "0.01em"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 227
+                      },
+                      {
+                        "id": 230,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "Our Principles",
+                                "link": {"url": "/about/our-principles", "type": "url"}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                "fontSize": {"breakpoint_base": "14px"},
+                                "fontWeight": {"breakpoint_base": "400"},
+                                "color": {"breakpoint_base": "#cccccc"},
+                                "textDecoration": {"breakpoint_base": "none"},
+                                "letterSpacing": {"breakpoint_base": "0.01em"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 227
+                      },
+                      {
+                        "id": 231,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "Terms and Conditions",
+                                "link": {"url": "/terms-and-conditions", "type": "url"}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                "fontSize": {"breakpoint_base": "14px"},
+                                "fontWeight": {"breakpoint_base": "400"},
+                                "color": {"breakpoint_base": "#cccccc"},
+                                "textDecoration": {"breakpoint_base": "none"},
+                                "letterSpacing": {"breakpoint_base": "0.01em"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 227
+                      },
+                      {
+                        "id": 232,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "About",
+                                "link": {"url": "/about", "type": "url"}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                "fontSize": {"breakpoint_base": "14px"},
+                                "fontWeight": {"breakpoint_base": "400"},
+                                "color": {"breakpoint_base": "#cccccc"},
+                                "textDecoration": {"breakpoint_base": "none"},
+                                "letterSpacing": {"breakpoint_base": "0.01em"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 227
+                      },
+                      {
+                        "id": 233,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "Journal",
+                                "link": {"url": "/resources/journal", "type": "url"}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                "fontSize": {"breakpoint_base": "14px"},
+                                "fontWeight": {"breakpoint_base": "400"},
+                                "color": {"breakpoint_base": "#cccccc"},
+                                "textDecoration": {"breakpoint_base": "none"},
+                                "letterSpacing": {"breakpoint_base": "0.01em"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 227
+                      },
+                      {
+                        "id": 234,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "Contact",
+                                "link": {"url": "/contact", "type": "url"}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                                "fontSize": {"breakpoint_base": "14px"},
+                                "fontWeight": {"breakpoint_base": "400"},
+                                "color": {"breakpoint_base": "#cccccc"},
+                                "textDecoration": {"breakpoint_base": "none"},
+                                "letterSpacing": {"breakpoint_base": "0.01em"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 227
+                      }
+                    ],
+                    "_parentId": 223
+                  }
+                ],
+                "_parentId": 201
+              },
+              {
+                "id": 235,
+                "data": {
+                  "type": "EssentialElements\\Div",
+                  "properties": {
+                    "design": {
+                      "size": {
+                        "width": {"breakpoint_base": "100%"},
+                        "height": {"breakpoint_base": "1px"}
+                      },
+                      "background": {
+                        "color": "#333333"
+                      },
+                      "spacing": {
+                        "margin_top": {"breakpoint_base": "48px", "breakpoint_tablet_portrait": "32px"},
+                        "margin_bottom": {"breakpoint_base": "48px", "breakpoint_tablet_portrait": "32px"}
+                      }
+                    }
+                  }
+                },
+                "children": [],
+                "_parentId": 201
+              },
+              {
+                "id": 236,
+                "data": {
+                  "type": "EssentialElements\\Div",
+                  "properties": {
+                    "design": {
+                      "layout": {
+                        "display": {"breakpoint_base": "flex"},
+                        "flexDirection": {"breakpoint_base": "row", "breakpoint_tablet_portrait": "column-reverse"},
+                        "justifyContent": {"breakpoint_base": "space-between"},
+                        "alignItems": {"breakpoint_base": "center", "breakpoint_tablet_portrait": "flex-start"},
+                        "horizontalGap": {"breakpoint_base": "24px", "breakpoint_tablet_portrait": "16px"}
+                      }
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "id": 237,
+                    "data": {
+                      "type": "EssentialElements\\Text",
+                      "properties": {
+                        "content": {
+                          "content": {
+                            "text": "\u00a9 2026 CoLabs"
+                          }
+                        },
+                        "design": {
+                          "typography": {
+                            "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                            "fontSize": {"breakpoint_base": "13px"},
+                            "fontWeight": {"breakpoint_base": "400"},
+                            "color": {"breakpoint_base": "#999999"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [],
+                    "_parentId": 236
+                  },
+                  {
+                    "id": 238,
+                    "data": {
+                      "type": "EssentialElements\\Div",
+                      "properties": {
+                        "design": {
+                          "layout": {
+                            "display": {"breakpoint_base": "flex"},
+                            "alignItems": {"breakpoint_base": "center"},
+                            "horizontalGap": {"breakpoint_base": "16px"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "id": 239,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "",
+                                "link": {"url": "https://instagram.com/colabs.aus/", "type": "url", "openInNewTab": true}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "color": {"breakpoint_base": "#999999"}
+                              },
+                              "size": {
+                                "width": {"breakpoint_base": "20px"},
+                                "height": {"breakpoint_base": "20px"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 238
+                      },
+                      {
+                        "id": 240,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "",
+                                "link": {"url": "https://facebook.com/colabs.australia", "type": "url", "openInNewTab": true}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "color": {"breakpoint_base": "#999999"}
+                              },
+                              "size": {
+                                "width": {"breakpoint_base": "20px"},
+                                "height": {"breakpoint_base": "20px"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 238
+                      },
+                      {
+                        "id": 241,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "",
+                                "link": {"url": "https://linkedin.com/company/colabsaustralia/", "type": "url", "openInNewTab": true}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "color": {"breakpoint_base": "#999999"}
+                              },
+                              "size": {
+                                "width": {"breakpoint_base": "20px"},
+                                "height": {"breakpoint_base": "20px"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 238
+                      },
+                      {
+                        "id": 242,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "",
+                                "link": {"url": "https://twitter.com/CoLabsaus", "type": "url", "openInNewTab": true}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "color": {"breakpoint_base": "#999999"}
+                              },
+                              "size": {
+                                "width": {"breakpoint_base": "20px"},
+                                "height": {"breakpoint_base": "20px"}
+                              },
+                              "effects": {
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"},
+                                  "timingFunction": {"breakpoint_base": "ease-out"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 238
+                      }
+                    ],
+                    "_parentId": 236
+                  }
+                ],
+                "_parentId": 201
+              }
+            ],
+            "_parentId": 200
+          }
+        ],
+        "_parentId": 1
+      }
+    ]
+  },
+  "status": "exported"
+}

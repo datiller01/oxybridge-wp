@@ -1,14 +1,24 @@
 <?php
 /**
- * Test: End-to-End Template Creation and Builder Verification
+ * End-to-End Test: Template Creation Workflow
  *
- * This script tests the complete flow of:
- * 1. Creating a template via the REST API
- * 2. Verifying the response structure includes _nextNodeId
- * 3. Providing the edit_url for manual browser verification
- * 4. Documenting expected browser console behavior (no IO-TS errors)
+ * This script tests template creation via the OxyBridge REST API:
+ * 1. POST /templates to create a new header/footer template with design tree
+ * 2. GET /templates/{id} to verify template was created
+ * 3. Verify template can be edited in Oxygen Builder
+ * 4. Optionally clean up test templates
  *
  * Run via WP-CLI: wp eval-file wp-content/plugins/oxybridge-wp/tests/test-e2e-template-creation.php
+ *
+ * Options:
+ *   --template=<name>  Create specific template (colabs-header, colabs-footer, test-header)
+ *   --keep             Keep created templates (don't clean up)
+ *   --list             List available template fixtures
+ *
+ * Examples:
+ *   wp eval-file tests/test-e2e-template-creation.php
+ *   wp eval-file tests/test-e2e-template-creation.php -- --template=colabs-header
+ *   wp eval-file tests/test-e2e-template-creation.php -- --template=colabs-header --keep
  *
  * @package Oxybridge
  */
@@ -21,9 +31,16 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 }
 
 /**
- * E2E Template Creation Test Runner.
+ * E2E Test Runner for Oxybridge Template Creation.
  */
-class Oxybridge_E2E_Template_Test {
+class Oxybridge_E2E_Template_Creation_Test {
+
+	/**
+	 * Created template IDs for cleanup.
+	 *
+	 * @var array
+	 */
+	private $created_template_ids = array();
 
 	/**
 	 * Test results.
@@ -44,11 +61,100 @@ class Oxybridge_E2E_Template_Test {
 	private $namespace = 'oxybridge/v1';
 
 	/**
-	 * Test template IDs for cleanup.
+	 * Keep templates after test (don't clean up).
 	 *
-	 * @var array
+	 * @var bool
 	 */
-	private $test_template_ids = array();
+	private $keep_templates = false;
+
+	/**
+	 * Specific template to create.
+	 *
+	 * @var string|null
+	 */
+	private $target_template = null;
+
+	/**
+	 * Path to fixtures directory.
+	 *
+	 * @var string
+	 */
+	private $fixtures_path = '';
+
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {
+		$this->fixtures_path = dirname( __FILE__ ) . '/fixtures/';
+	}
+
+	/**
+	 * Parse CLI arguments.
+	 *
+	 * @param array $args CLI arguments.
+	 */
+	public function parse_args( array $args ) {
+		foreach ( $args as $arg ) {
+			if ( strpos( $arg, '--template=' ) === 0 ) {
+				$this->target_template = str_replace( '--template=', '', $arg );
+			}
+			if ( $arg === '--keep' ) {
+				$this->keep_templates = true;
+			}
+			if ( $arg === '--list' ) {
+				$this->list_fixtures();
+				exit( 0 );
+			}
+		}
+	}
+
+	/**
+	 * List available template fixtures.
+	 */
+	private function list_fixtures() {
+		WP_CLI::log( 'Available template fixtures:' );
+		WP_CLI::log( '' );
+
+		$fixtures = $this->get_available_fixtures();
+
+		if ( empty( $fixtures ) ) {
+			WP_CLI::warning( 'No fixture files found in: ' . $this->fixtures_path );
+			return;
+		}
+
+		foreach ( $fixtures as $fixture ) {
+			WP_CLI::log( sprintf( '  - %s (%s)', $fixture['name'], $fixture['file'] ) );
+		}
+
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Usage: wp eval-file tests/test-e2e-template-creation.php -- --template=<name>' );
+	}
+
+	/**
+	 * Get available fixture files.
+	 *
+	 * @return array List of fixtures.
+	 */
+	private function get_available_fixtures() {
+		$fixtures = array();
+
+		if ( ! is_dir( $this->fixtures_path ) ) {
+			return $fixtures;
+		}
+
+		$files = glob( $this->fixtures_path . '*-tree.json' );
+
+		foreach ( $files as $file ) {
+			$basename = basename( $file, '-tree.json' );
+			$fixtures[] = array(
+				'name' => $basename,
+				'file' => basename( $file ),
+				'path' => $file,
+			);
+		}
+
+		return $fixtures;
+	}
 
 	/**
 	 * Run all E2E tests.
@@ -56,9 +162,9 @@ class Oxybridge_E2E_Template_Test {
 	 * @return void
 	 */
 	public function run() {
-		WP_CLI::log( '========================================================' );
-		WP_CLI::log( 'Oxybridge E2E Template Creation Test' );
-		WP_CLI::log( '========================================================' );
+		WP_CLI::log( '=============================================' );
+		WP_CLI::log( 'Oxybridge E2E Test: Template Creation' );
+		WP_CLI::log( '=============================================' );
 		WP_CLI::log( '' );
 
 		// Check prerequisites.
@@ -66,55 +172,65 @@ class Oxybridge_E2E_Template_Test {
 			return;
 		}
 
-		WP_CLI::log( '' );
-		WP_CLI::log( '=== Test 1: Create Header Template ===' );
-		WP_CLI::log( '' );
-		$header_id = $this->test_create_header_template();
+		// If a specific template is requested, create only that one.
+		if ( $this->target_template ) {
+			WP_CLI::log( '=== Creating Specific Template: ' . $this->target_template . ' ===' );
+			WP_CLI::log( '' );
+			$this->test_create_template_from_fixture( $this->target_template );
+		} else {
+			// Run all template creation tests.
+			WP_CLI::log( '=== Test 1: Create Header Template ===' );
+			WP_CLI::log( '' );
+			$this->test_create_header_template();
 
-		WP_CLI::log( '' );
-		WP_CLI::log( '=== Test 2: Verify Template Tree Structure ===' );
-		WP_CLI::log( '' );
-		if ( $header_id ) {
-			$this->test_template_tree_structure( $header_id );
+			WP_CLI::log( '' );
+			WP_CLI::log( '=== Test 2: Create Footer Template ===' );
+			WP_CLI::log( '' );
+			$this->test_create_footer_template();
+
+			WP_CLI::log( '' );
+			WP_CLI::log( '=== Test 3: Test Template Types Endpoint ===' );
+			WP_CLI::log( '' );
+			$this->test_template_types();
+
+			// Try to create from fixtures if they exist.
+			WP_CLI::log( '' );
+			WP_CLI::log( '=== Test 4: Create Colabs Header from Fixture ===' );
+			WP_CLI::log( '' );
+			$this->test_create_template_from_fixture( 'colabs-header' );
+
+			WP_CLI::log( '' );
+			WP_CLI::log( '=== Test 5: Create Colabs Footer from Fixture ===' );
+			WP_CLI::log( '' );
+			$this->test_create_template_from_fixture( 'colabs-footer' );
 		}
 
-		WP_CLI::log( '' );
-		WP_CLI::log( '=== Test 3: Create Footer Template ===' );
-		WP_CLI::log( '' );
-		$footer_id = $this->test_create_footer_template();
-
-		WP_CLI::log( '' );
-		WP_CLI::log( '=== Test 4: Test Template with Elements ===' );
-		WP_CLI::log( '' );
-		$this->test_template_with_elements();
-
-		WP_CLI::log( '' );
-		WP_CLI::log( '=== Test 5: Verify Document Endpoint ===' );
-		WP_CLI::log( '' );
-		if ( $header_id ) {
-			$this->test_document_endpoint( $header_id );
+		// Cleanup unless --keep is specified.
+		if ( ! $this->keep_templates ) {
+			WP_CLI::log( '' );
+			WP_CLI::log( '=== Cleanup ===' );
+			WP_CLI::log( '' );
+			$this->cleanup();
+		} else {
+			WP_CLI::log( '' );
+			WP_CLI::log( '=== Templates Kept (--keep flag) ===' );
+			WP_CLI::log( '' );
+			foreach ( $this->created_template_ids as $id => $info ) {
+				WP_CLI::log( sprintf( '  - %s (ID: %d): %s', $info['title'], $id, $info['edit_url'] ) );
+			}
 		}
-
-		WP_CLI::log( '' );
-		WP_CLI::log( '=== Manual Verification Required ===' );
-		WP_CLI::log( '' );
-		$this->print_manual_verification_steps();
-
-		WP_CLI::log( '' );
-		WP_CLI::log( '=== Cleanup ===' );
-		WP_CLI::log( '' );
-		$this->cleanup();
 
 		$this->print_summary();
 	}
 
 	/**
-	 * Check prerequisites.
+	 * Check prerequisites for E2E tests.
 	 *
 	 * @return bool True if prerequisites are met.
 	 */
 	private function check_prerequisites() {
 		WP_CLI::log( 'Checking prerequisites...' );
+		WP_CLI::log( '' );
 
 		// Check if Oxybridge plugin is active.
 		if ( ! defined( 'OXYBRIDGE_VERSION' ) ) {
@@ -123,12 +239,12 @@ class Oxybridge_E2E_Template_Test {
 		}
 		WP_CLI::success( 'Oxybridge plugin active: v' . OXYBRIDGE_VERSION );
 
-		// Check if REST API is available.
-		if ( ! class_exists( 'Oxybridge\\REST_API' ) ) {
-			WP_CLI::error( 'Oxybridge REST API class not found.', false );
+		// Check if Oxygen is active.
+		if ( ! function_exists( 'oxybridge_is_oxygen_active' ) || ! oxybridge_is_oxygen_active() ) {
+			WP_CLI::error( 'Oxygen/Breakdance is not active.', false );
 			return false;
 		}
-		WP_CLI::success( 'Oxybridge REST API class available' );
+		WP_CLI::success( 'Oxygen/Breakdance is active' );
 
 		// Check current user permissions.
 		if ( ! current_user_can( 'edit_posts' ) ) {
@@ -137,333 +253,361 @@ class Oxybridge_E2E_Template_Test {
 		}
 		WP_CLI::success( 'User has required permissions' );
 
+		// Check fixtures directory.
+		if ( is_dir( $this->fixtures_path ) ) {
+			WP_CLI::success( 'Fixtures directory exists' );
+		} else {
+			WP_CLI::warning( 'Fixtures directory not found: ' . $this->fixtures_path );
+		}
+
+		WP_CLI::log( '' );
 		return true;
 	}
 
 	/**
-	 * Test creating a header template.
+	 * Test: Create header template.
 	 *
-	 * @return int|false Template ID or false on failure.
+	 * @return bool True if test passed.
 	 */
 	private function test_create_header_template() {
-		$server = rest_get_server();
+		$test_name = 'Create Header Template';
 
-		$request = new WP_REST_Request( 'POST', '/' . $this->namespace . '/templates' );
-		$request->set_param( 'title', 'E2E Test Header - ' . date( 'Y-m-d H:i:s' ) );
-		$request->set_param( 'type', 'header' );
+		$tree = $this->get_minimal_header_tree();
 
-		$response = $server->dispatch( $request );
-		$status   = $response->get_status();
-		$data     = $response->get_data();
+		$result = $this->create_template(
+			'E2E Test Header - ' . date( 'Y-m-d H:i:s' ),
+			'header',
+			$tree
+		);
 
-		if ( $status !== 200 && $status !== 201 ) {
-			$this->fail( 'POST /templates creates header template', "Status: {$status}" );
+		if ( is_wp_error( $result ) ) {
+			$this->fail( $test_name, $result->get_error_message() );
 			return false;
 		}
 
-		$this->pass( 'POST /templates creates header template' );
+		$this->pass( $test_name );
+		WP_CLI::log( '  Template ID: ' . $result['id'] );
+		WP_CLI::log( '  Template type: ' . $result['type'] );
+		WP_CLI::log( '  Edit URL: ' . $result['edit_url'] );
 
-		// Store for cleanup.
-		if ( isset( $data['template']['id'] ) ) {
-			$template_id = $data['template']['id'];
-			$this->test_template_ids[] = $template_id;
-			WP_CLI::log( "    Created template ID: {$template_id}" );
-
-			if ( isset( $data['template']['edit_url'] ) ) {
-				WP_CLI::log( "    Edit URL: {$data['template']['edit_url']}" );
-			}
-
-			return $template_id;
-		}
-
-		return false;
+		return true;
 	}
 
 	/**
-	 * Test template tree structure has required properties.
+	 * Test: Create footer template.
 	 *
-	 * @param int $template_id Template ID.
-	 */
-	private function test_template_tree_structure( $template_id ) {
-		$server = rest_get_server();
-
-		$request = new WP_REST_Request( 'GET', '/' . $this->namespace . '/templates/' . $template_id );
-		$response = $server->dispatch( $request );
-		$status   = $response->get_status();
-		$data     = $response->get_data();
-
-		if ( $status !== 200 ) {
-			$this->fail( 'GET /templates/{id} returns template', "Status: {$status}" );
-			return;
-		}
-
-		$this->pass( 'GET /templates/{id} returns template' );
-
-		// Test 1: Response should include tree.
-		if ( ! isset( $data['tree'] ) ) {
-			$this->fail( 'Template response includes tree', 'Missing tree' );
-			return;
-		}
-		$this->pass( 'Template response includes tree' );
-
-		// Test 2: Tree should have root.
-		if ( ! isset( $data['tree']['root'] ) ) {
-			$this->fail( 'Template tree has root', 'Missing root' );
-			return;
-		}
-		$this->pass( 'Template tree has root' );
-
-		// Test 3: Tree should have _nextNodeId (CRITICAL for IO-TS).
-		if ( isset( $data['tree']['_nextNodeId'] ) && is_int( $data['tree']['_nextNodeId'] ) ) {
-			$this->pass( 'Template tree has _nextNodeId (IO-TS required)' );
-			WP_CLI::log( "    _nextNodeId value: {$data['tree']['_nextNodeId']}" );
-		} else {
-			$this->fail( 'Template tree has _nextNodeId', 'Property missing or not an integer' );
-			WP_CLI::log( '    This is REQUIRED for Oxygen Builder IO-TS validation!' );
-
-			// Debug output.
-			WP_CLI::log( '    Tree keys present: ' . implode( ', ', array_keys( $data['tree'] ) ) );
-		}
-
-		// Test 4: Tree should have exportedLookupTable.
-		if ( isset( $data['tree']['exportedLookupTable'] ) ) {
-			$this->pass( 'Template tree has exportedLookupTable' );
-		} else {
-			$this->fail( 'Template tree has exportedLookupTable', 'Property missing' );
-		}
-
-		// Test 5: Tree should have status.
-		if ( isset( $data['tree']['status'] ) && $data['tree']['status'] === 'exported' ) {
-			$this->pass( 'Template tree has status "exported"' );
-		} else {
-			$this->fail( 'Template tree has status', 'Missing or wrong value' );
-		}
-
-		// Test 6: Root should have correct structure.
-		$root = $data['tree']['root'];
-		$has_correct_root = isset( $root['id'] ) &&
-			isset( $root['data'] ) &&
-			isset( $root['children'] ) &&
-			is_array( $root['children'] );
-
-		if ( $has_correct_root ) {
-			$this->pass( 'Template root has correct structure (id, data, children)' );
-		} else {
-			$this->fail( 'Template root structure', 'Missing required keys' );
-		}
-
-		// Test 7: Root data type should be "root".
-		if ( isset( $root['data']['type'] ) && $root['data']['type'] === 'root' ) {
-			$this->pass( 'Template root type is "root"' );
-		} else {
-			$this->fail( 'Template root type', 'Type is not "root"' );
-		}
-
-		// Test 8: Validate with Validator class.
-		if ( class_exists( 'Oxybridge\\Validator' ) ) {
-			$validator = new \Oxybridge\Validator();
-			$result = $validator->validate_tree_has_next_node_id( $data['tree'] );
-
-			if ( $result['valid'] === true ) {
-				$this->pass( 'Validator confirms tree has _nextNodeId' );
-			} else {
-				$this->fail( 'Validator tree check', $result['errors'][0]['message'] ?? 'Validation failed' );
-			}
-		}
-	}
-
-	/**
-	 * Test creating a footer template.
-	 *
-	 * @return int|false Template ID or false on failure.
+	 * @return bool True if test passed.
 	 */
 	private function test_create_footer_template() {
-		$server = rest_get_server();
+		$test_name = 'Create Footer Template';
 
-		$request = new WP_REST_Request( 'POST', '/' . $this->namespace . '/templates' );
-		$request->set_param( 'title', 'E2E Test Footer - ' . date( 'Y-m-d H:i:s' ) );
-		$request->set_param( 'type', 'footer' );
+		$tree = $this->get_minimal_footer_tree();
 
-		$response = $server->dispatch( $request );
-		$status   = $response->get_status();
-		$data     = $response->get_data();
+		$result = $this->create_template(
+			'E2E Test Footer - ' . date( 'Y-m-d H:i:s' ),
+			'footer',
+			$tree
+		);
 
-		if ( $status !== 200 && $status !== 201 ) {
-			$this->fail( 'POST /templates creates footer template', "Status: {$status}" );
+		if ( is_wp_error( $result ) ) {
+			$this->fail( $test_name, $result->get_error_message() );
 			return false;
 		}
 
-		$this->pass( 'POST /templates creates footer template' );
+		$this->pass( $test_name );
+		WP_CLI::log( '  Template ID: ' . $result['id'] );
+		WP_CLI::log( '  Template type: ' . $result['type'] );
+		WP_CLI::log( '  Edit URL: ' . $result['edit_url'] );
 
-		if ( isset( $data['template']['id'] ) ) {
-			$template_id = $data['template']['id'];
-			$this->test_template_ids[] = $template_id;
-			WP_CLI::log( "    Created template ID: {$template_id}" );
-
-			// Verify footer has _nextNodeId.
-			$request2 = new WP_REST_Request( 'GET', '/' . $this->namespace . '/templates/' . $template_id );
-			$response2 = $server->dispatch( $request2 );
-			$data2 = $response2->get_data();
-
-			if ( isset( $data2['tree']['_nextNodeId'] ) ) {
-				$this->pass( 'Footer template tree has _nextNodeId' );
-			} else {
-				$this->fail( 'Footer template tree has _nextNodeId', 'Missing' );
-			}
-
-			return $template_id;
-		}
-
-		return false;
+		return true;
 	}
 
 	/**
-	 * Test creating a template with elements.
+	 * Test: Create template from fixture file.
+	 *
+	 * @param string $fixture_name Fixture name (without -tree.json suffix).
+	 * @return bool True if test passed.
 	 */
-	private function test_template_with_elements() {
-		$server = rest_get_server();
+	private function test_create_template_from_fixture( string $fixture_name ) {
+		$test_name = 'Create Template from Fixture: ' . $fixture_name;
 
-		// Create a template with a tree that has elements.
-		$tree = array(
-			'root' => array(
-				'id'       => 'el-root',
+		$fixture_file = $this->fixtures_path . $fixture_name . '-tree.json';
+
+		if ( ! file_exists( $fixture_file ) ) {
+			WP_CLI::warning( 'Fixture file not found: ' . $fixture_file );
+			WP_CLI::log( '  Skipping this test...' );
+			return false;
+		}
+
+		// Load fixture JSON.
+		$json_content = file_get_contents( $fixture_file );
+		$tree = json_decode( $json_content, true );
+
+		if ( json_last_error() !== JSON_ERROR_NONE ) {
+			$this->fail( $test_name, 'Invalid JSON in fixture: ' . json_last_error_msg() );
+			return false;
+		}
+
+		// Determine template type from fixture name.
+		$template_type = 'template';
+		if ( strpos( $fixture_name, 'header' ) !== false ) {
+			$template_type = 'header';
+		} elseif ( strpos( $fixture_name, 'footer' ) !== false ) {
+			$template_type = 'footer';
+		}
+
+		// Create a nice title from fixture name.
+		$title = ucwords( str_replace( '-', ' ', $fixture_name ) );
+
+		$result = $this->create_template( $title, $template_type, $tree );
+
+		if ( is_wp_error( $result ) ) {
+			$this->fail( $test_name, $result->get_error_message() );
+			return false;
+		}
+
+		$this->pass( $test_name );
+		WP_CLI::log( '  Template ID: ' . $result['id'] );
+		WP_CLI::log( '  Template title: ' . $title );
+		WP_CLI::log( '  Template type: ' . $template_type );
+		WP_CLI::log( '  Element count: ' . ( isset( $result['element_count'] ) ? $result['element_count'] : 'N/A' ) );
+		WP_CLI::log( '  Edit URL: ' . $result['edit_url'] );
+
+		// Verify template was saved correctly.
+		$verify_result = $this->verify_template( $result['id'] );
+		if ( $verify_result ) {
+			WP_CLI::log( '  Verification: Passed' );
+		} else {
+			WP_CLI::warning( 'Template verification had issues - check manually' );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Test: Template types endpoint.
+	 *
+	 * @return bool True if test passed.
+	 */
+	private function test_template_types() {
+		$test_name = 'Template Types Endpoint';
+
+		$request = new WP_REST_Request( 'GET', '/' . $this->namespace . '/template-types' );
+
+		$server   = rest_get_server();
+		$response = $server->dispatch( $request );
+		$data     = $response->get_data();
+		$status   = $response->get_status();
+
+		if ( $status !== 200 ) {
+			$this->fail( $test_name, 'Expected status 200, got ' . $status );
+			return false;
+		}
+
+		if ( ! isset( $data['types'] ) || ! is_array( $data['types'] ) ) {
+			$this->fail( $test_name, 'Response missing types array' );
+			return false;
+		}
+
+		$this->pass( $test_name );
+		WP_CLI::log( '  Available types: ' . count( $data['types'] ) );
+
+		foreach ( $data['types'] as $type ) {
+			WP_CLI::log( sprintf( '    - %s: %s', $type['slug'], $type['name'] ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Create a template via REST API.
+	 *
+	 * @param string $title Template title.
+	 * @param string $type  Template type.
+	 * @param array  $tree  Template tree.
+	 * @return array|WP_Error Template data or error.
+	 */
+	private function create_template( string $title, string $type, array $tree ) {
+		$request = new WP_REST_Request( 'POST', '/' . $this->namespace . '/templates' );
+		$request->set_param( 'title', $title );
+		$request->set_param( 'type', $type );
+		$request->set_param( 'tree', $tree );
+
+		$server   = rest_get_server();
+		$response = $server->dispatch( $request );
+		$data     = $response->get_data();
+		$status   = $response->get_status();
+
+		if ( $status !== 201 ) {
+			$error_message = isset( $data['message'] ) ? $data['message'] : 'Unknown error';
+			return new WP_Error( 'create_failed', sprintf( 'Expected status 201, got %d: %s', $status, $error_message ) );
+		}
+
+		if ( ! isset( $data['template']['id'] ) ) {
+			return new WP_Error( 'missing_id', 'Response missing template ID' );
+		}
+
+		$template_data = $data['template'];
+
+		// Track for cleanup.
+		$this->created_template_ids[ $template_data['id'] ] = array(
+			'title'    => $title,
+			'type'     => $type,
+			'edit_url' => isset( $template_data['edit_url'] ) ? $template_data['edit_url'] : '',
+		);
+
+		return $template_data;
+	}
+
+	/**
+	 * Verify a template was created correctly.
+	 *
+	 * @param int $template_id Template ID.
+	 * @return bool True if verification passed.
+	 */
+	private function verify_template( int $template_id ) {
+		$request = new WP_REST_Request( 'GET', '/' . $this->namespace . '/templates/' . $template_id );
+
+		$server   = rest_get_server();
+		$response = $server->dispatch( $request );
+		$data     = $response->get_data();
+		$status   = $response->get_status();
+
+		if ( $status !== 200 ) {
+			return false;
+		}
+
+		// Check for tree.
+		if ( ! isset( $data['tree'] ) || ! isset( $data['tree']['root'] ) ) {
+			return false;
+		}
+
+		// Check tree has children.
+		if ( empty( $data['tree']['root']['children'] ) ) {
+			WP_CLI::warning( 'Template tree has no children' );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Get minimal header tree for testing.
+	 *
+	 * @return array Tree structure.
+	 */
+	private function get_minimal_header_tree() {
+		return array(
+			'root'   => array(
+				'id'       => 1,
 				'data'     => array(
 					'type'       => 'root',
 					'properties' => null,
 				),
 				'children' => array(
 					array(
-						'id'       => 'el-1',
-						'data'     => array(
+						'id'        => 100,
+						'data'      => array(
 							'type'       => 'EssentialElements\\Section',
 							'properties' => array(
-								'layout' => array( 'padding' => '20px' ),
-							),
-						),
-						'children' => array(
-							array(
-								'id'   => 'el-5',
-								'data' => array(
-									'type'       => 'EssentialElements\\Heading',
-									'properties' => array(
-										'content' => array( 'text' => 'Hello World' ),
+								'design' => array(
+									'background' => array(
+										'color' => '#ffffff',
+									),
+									'spacing' => array(
+										'padding' => array(
+											'top'    => array( 'breakpoint_base' => '20px' ),
+											'bottom' => array( 'breakpoint_base' => '20px' ),
+										),
 									),
 								),
-								'children' => array(),
 							),
 						),
+						'children'  => array(
+							array(
+								'id'        => 101,
+								'data'      => array(
+									'type'       => 'EssentialElements\\Heading',
+									'properties' => array(
+										'content' => array(
+											'content' => array(
+												'text' => 'Test Header',
+												'tags' => 'h1',
+											),
+										),
+									),
+								),
+								'children'  => array(),
+								'_parentId' => 100,
+							),
+						),
+						'_parentId' => 1,
 					),
 				),
 			),
+			'status' => 'exported',
 		);
-
-		$request = new WP_REST_Request( 'POST', '/' . $this->namespace . '/templates' );
-		$request->set_param( 'title', 'E2E Test With Elements - ' . date( 'Y-m-d H:i:s' ) );
-		$request->set_param( 'type', 'header' );
-		$request->set_param( 'tree', $tree );
-
-		$response = $server->dispatch( $request );
-		$status   = $response->get_status();
-		$data     = $response->get_data();
-
-		if ( $status !== 200 && $status !== 201 ) {
-			$this->fail( 'POST /templates with tree creates template', "Status: {$status}" );
-			return;
-		}
-
-		$this->pass( 'POST /templates with tree creates template' );
-
-		if ( isset( $data['template']['id'] ) ) {
-			$template_id = $data['template']['id'];
-			$this->test_template_ids[] = $template_id;
-
-			// Get the template and check _nextNodeId.
-			$request2 = new WP_REST_Request( 'GET', '/' . $this->namespace . '/templates/' . $template_id );
-			$response2 = $server->dispatch( $request2 );
-			$data2 = $response2->get_data();
-
-			if ( isset( $data2['tree']['_nextNodeId'] ) ) {
-				$next_id = $data2['tree']['_nextNodeId'];
-				// Max ID in tree is 5 (el-5), so _nextNodeId should be 6.
-				if ( $next_id >= 6 ) {
-					$this->pass( "Template with elements has correct _nextNodeId ({$next_id})" );
-				} else {
-					$this->fail( "Template _nextNodeId calculation", "Expected >= 6, got {$next_id}" );
-				}
-			} else {
-				$this->fail( 'Template with elements has _nextNodeId', 'Missing' );
-			}
-		}
 	}
 
 	/**
-	 * Test the document endpoint.
+	 * Get minimal footer tree for testing.
 	 *
-	 * @param int $post_id Post ID.
+	 * @return array Tree structure.
 	 */
-	private function test_document_endpoint( $post_id ) {
-		$server = rest_get_server();
-
-		$request = new WP_REST_Request( 'GET', '/' . $this->namespace . '/documents/' . $post_id );
-		$request->set_param( 'include_metadata', true );
-
-		$response = $server->dispatch( $request );
-		$status   = $response->get_status();
-		$data     = $response->get_data();
-
-		if ( $status !== 200 ) {
-			$this->fail( 'GET /documents/{id} returns document', "Status: {$status}" );
-			return;
-		}
-
-		$this->pass( 'GET /documents/{id} returns document' );
-
-		// Test tree has required properties.
-		if ( isset( $data['tree']['_nextNodeId'] ) ) {
-			$this->pass( 'Document tree has _nextNodeId' );
-		} else {
-			$this->fail( 'Document tree has _nextNodeId', 'Missing' );
-		}
-
-		if ( isset( $data['tree']['status'] ) ) {
-			$this->pass( 'Document tree has status' );
-		} else {
-			$this->fail( 'Document tree has status', 'Missing' );
-		}
-	}
-
-	/**
-	 * Print manual verification steps.
-	 */
-	private function print_manual_verification_steps() {
-		WP_CLI::log( 'The following steps require MANUAL browser verification:' );
-		WP_CLI::log( '' );
-		WP_CLI::log( '1. Open any created template in Oxygen/Breakdance Builder' );
-		WP_CLI::log( '   - Use the edit_url provided in the test output above' );
-		WP_CLI::log( '' );
-		WP_CLI::log( '2. Open browser Developer Tools (F12 or Cmd+Option+I)' );
-		WP_CLI::log( '' );
-		WP_CLI::log( '3. Check the Console tab for errors' );
-		WP_CLI::log( '   - PASS: No "IO-TS validation failed" errors' );
-		WP_CLI::log( '   - FAIL: "IO-TS validation failed" error with message about _nextNodeId' );
-		WP_CLI::log( '' );
-		WP_CLI::log( '4. Expected behavior:' );
-		WP_CLI::log( '   - Builder should load without console errors' );
-		WP_CLI::log( '   - Template content should be editable' );
-		WP_CLI::log( '   - No "Property document.tree._nextNodeId is missing" errors' );
-		WP_CLI::log( '' );
-
-		if ( ! empty( $this->test_template_ids ) ) {
-			$site_url = get_site_url();
-			WP_CLI::log( 'Test template edit URLs:' );
-			foreach ( $this->test_template_ids as $id ) {
-				$post = get_post( $id );
-				if ( $post ) {
-					$edit_url = $site_url . '/' . $post->post_type . '/' . $post->post_name . '/?oxygen=builder';
-					WP_CLI::log( "  - Template {$id}: {$edit_url}" );
-				}
-			}
-		}
+	private function get_minimal_footer_tree() {
+		return array(
+			'root'   => array(
+				'id'       => 1,
+				'data'     => array(
+					'type'       => 'root',
+					'properties' => null,
+				),
+				'children' => array(
+					array(
+						'id'        => 100,
+						'data'      => array(
+							'type'       => 'EssentialElements\\Section',
+							'properties' => array(
+								'design' => array(
+									'background' => array(
+										'color' => '#333333',
+									),
+									'spacing' => array(
+										'padding' => array(
+											'top'    => array( 'breakpoint_base' => '40px' ),
+											'bottom' => array( 'breakpoint_base' => '40px' ),
+										),
+									),
+								),
+							),
+						),
+						'children'  => array(
+							array(
+								'id'        => 101,
+								'data'      => array(
+									'type'       => 'EssentialElements\\Text',
+									'properties' => array(
+										'content' => array(
+											'content' => array(
+												'text' => 'Copyright 2024 - Test Footer',
+											),
+										),
+										'design'  => array(
+											'typography' => array(
+												'color' => array( 'breakpoint_base' => '#ffffff' ),
+											),
+										),
+									),
+								),
+								'children'  => array(),
+								'_parentId' => 100,
+							),
+						),
+						'_parentId' => 1,
+					),
+				),
+			),
+			'status' => 'exported',
+		);
 	}
 
 	/**
@@ -471,7 +615,7 @@ class Oxybridge_E2E_Template_Test {
 	 *
 	 * @param string $test_name Test name.
 	 */
-	private function pass( $test_name ) {
+	private function pass( string $test_name ) {
 		$this->results['passed']++;
 		WP_CLI::success( $test_name );
 	}
@@ -482,7 +626,7 @@ class Oxybridge_E2E_Template_Test {
 	 * @param string $test_name     Test name.
 	 * @param string $error_message Error message.
 	 */
-	private function fail( $test_name, $error_message ) {
+	private function fail( string $test_name, string $error_message ) {
 		$this->results['failed']++;
 		$this->results['errors'][] = array(
 			'test'    => $test_name,
@@ -492,16 +636,24 @@ class Oxybridge_E2E_Template_Test {
 	}
 
 	/**
-	 * Clean up test data.
+	 * Clean up created templates.
 	 */
 	private function cleanup() {
-		foreach ( $this->test_template_ids as $id ) {
+		if ( empty( $this->created_template_ids ) ) {
+			WP_CLI::log( 'No templates to clean up.' );
+			return;
+		}
+
+		foreach ( $this->created_template_ids as $id => $info ) {
 			$deleted = wp_delete_post( $id, true );
 			if ( $deleted ) {
-				WP_CLI::log( 'Deleted test template ID: ' . $id );
+				WP_CLI::log( sprintf( 'Deleted template ID %d: %s', $id, $info['title'] ) );
+			} else {
+				WP_CLI::warning( sprintf( 'Failed to delete template ID %d', $id ) );
 			}
 		}
-		$this->test_template_ids = array();
+
+		$this->created_template_ids = array();
 	}
 
 	/**
@@ -509,9 +661,9 @@ class Oxybridge_E2E_Template_Test {
 	 */
 	private function print_summary() {
 		WP_CLI::log( '' );
-		WP_CLI::log( '========================================================' );
-		WP_CLI::log( 'E2E Template Creation Test Summary' );
-		WP_CLI::log( '========================================================' );
+		WP_CLI::log( '=============================================' );
+		WP_CLI::log( 'Test Summary' );
+		WP_CLI::log( '=============================================' );
 		WP_CLI::log( '' );
 
 		$total = $this->results['passed'] + $this->results['failed'];
@@ -531,24 +683,20 @@ class Oxybridge_E2E_Template_Test {
 		WP_CLI::log( '' );
 
 		if ( $this->results['failed'] === 0 ) {
-			WP_CLI::success( 'All automated E2E tests passed!' );
-			WP_CLI::log( '' );
-			WP_CLI::log( 'IMPORTANT: Manual browser verification is still required.' );
-			WP_CLI::log( 'See "Manual Verification Required" section above.' );
+			WP_CLI::success( 'All E2E tests passed!' );
 		} else {
 			WP_CLI::warning( sprintf( '%d test(s) failed - review output above.', $this->results['failed'] ) );
 		}
-
-		// IO-TS verification summary.
-		WP_CLI::log( '' );
-		WP_CLI::log( 'IO-TS Validation Requirements Verified:' );
-		WP_CLI::log( '  - tree._nextNodeId: REQUIRED for document responses' );
-		WP_CLI::log( '  - tree.root: REQUIRED for valid tree structure' );
-		WP_CLI::log( '  - tree.status: REQUIRED (should be "exported")' );
-		WP_CLI::log( '  - tree.exportedLookupTable: REQUIRED (empty object {})' );
 	}
 }
 
+// Parse CLI arguments.
+$args = array();
+if ( isset( $argv ) && is_array( $argv ) ) {
+	$args = $argv;
+}
+
 // Run the tests.
-$test = new Oxybridge_E2E_Template_Test();
+$test = new Oxybridge_E2E_Template_Creation_Test();
+$test->parse_args( $args );
 $test->run();

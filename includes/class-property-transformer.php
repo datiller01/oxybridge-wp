@@ -54,6 +54,40 @@ class Property_Transformer {
     private string $default_breakpoint = 'breakpoint_base';
 
     /**
+     * Large tree threshold for batch processing optimization.
+     *
+     * Trees with more than this many elements will use iterative processing.
+     *
+     * @var int
+     */
+    private const LARGE_TREE_THRESHOLD = 50;
+
+    /**
+     * Maximum processing time in seconds before warning.
+     *
+     * @var int
+     */
+    private const MAX_PROCESSING_TIME = 30;
+
+    /**
+     * Batch size for processing children in chunks.
+     *
+     * @var int
+     */
+    private const BATCH_SIZE = 50;
+
+    /**
+     * Track processing statistics.
+     *
+     * @var array
+     */
+    private array $processing_stats = array(
+        'nodes_processed' => 0,
+        'start_time'      => 0,
+        'peak_memory'     => 0,
+    );
+
+    /**
      * Constructor.
      *
      * @since 1.0.0
@@ -3111,26 +3145,474 @@ class Property_Transformer {
      * tree structure with flat properties and converts it to the nested
      * Breakdance format with proper element IDs.
      *
+     * Handles multiple input formats:
+     * - `{ "root": { ... } }` - Standard tree format
+     * - `{ "elements": [ ... ] }` - Flat element array (auto-assigns parent IDs)
+     * - `{ "children": [ ... ] }` - Direct children array
+     *
+     * For large trees (100+ elements), uses optimized iterative processing
+     * to prevent timeout and reduce memory usage.
+     *
      * @since 1.0.0
      *
      * @param array $simplified_tree Simplified tree structure.
-     * @return array Breakdance-compatible tree.
+     * @return array Breakdance-compatible tree with optional stats.
      */
     public function transform_tree( array $simplified_tree ): array {
+        // Initialize processing stats.
+        $this->init_processing_stats();
+
+        // Reset ID counter for each tree transformation.
+        $this->reset_id_counter( 100 );
+
+        // Handle flat elements array format with auto-parent assignment.
+        if ( isset( $simplified_tree['elements'] ) && is_array( $simplified_tree['elements'] ) ) {
+            $simplified_tree = $this->build_tree_from_elements( $simplified_tree['elements'] );
+        }
+
         // Handle case where root is not explicitly defined.
         if ( ! isset( $simplified_tree['root'] ) ) {
             $simplified_tree = array(
                 'root' => array(
-                    'id'       => 'root',
+                    'id'       => 1,
                     'data'     => array( 'type' => 'root' ),
                     'children' => $simplified_tree['children'] ?? array( $simplified_tree ),
                 ),
             );
         }
 
-        return array(
-            'root' => $this->transform_node( $simplified_tree['root'], true ),
+        // Count elements to determine processing strategy.
+        $element_count = $this->count_tree_elements( $simplified_tree['root'] );
+
+        // Transform the root node, using integer ID 1 for root.
+        $root_id = isset( $simplified_tree['root']['id'] ) && is_int( $simplified_tree['root']['id'] )
+            ? $simplified_tree['root']['id']
+            : 1;
+
+        // Use optimized iterative processing for large trees.
+        if ( $element_count >= self::LARGE_TREE_THRESHOLD ) {
+            $transformed_root = $this->transform_tree_iterative( $simplified_tree['root'], $root_id );
+        } else {
+            $transformed_root = $this->transform_node( $simplified_tree['root'], true, $root_id );
+        }
+
+        // Build result with stats for large trees.
+        $result = array(
+            'root'   => $transformed_root,
+            'status' => 'exported',
         );
+
+        // Include processing stats for debugging/monitoring.
+        if ( $element_count >= self::LARGE_TREE_THRESHOLD ) {
+            $result['_processing'] = $this->get_processing_stats();
+        }
+
+        return $result;
+    }
+
+    /**
+     * Initialize processing statistics.
+     *
+     * @since 1.0.0
+     *
+     * @return void
+     */
+    private function init_processing_stats(): void {
+        $this->processing_stats = array(
+            'nodes_processed' => 0,
+            'start_time'      => microtime( true ),
+            'peak_memory'     => memory_get_usage( true ),
+        );
+    }
+
+    /**
+     * Get processing statistics.
+     *
+     * @since 1.0.0
+     *
+     * @return array Processing statistics.
+     */
+    public function get_processing_stats(): array {
+        $duration = microtime( true ) - $this->processing_stats['start_time'];
+        return array(
+            'nodes_processed' => $this->processing_stats['nodes_processed'],
+            'duration_ms'     => round( $duration * 1000, 2 ),
+            'peak_memory_mb'  => round( $this->processing_stats['peak_memory'] / 1024 / 1024, 2 ),
+            'optimized'       => true,
+        );
+    }
+
+    /**
+     * Count total elements in a tree.
+     *
+     * Fast counting without processing to determine optimization strategy.
+     *
+     * @since 1.0.0
+     *
+     * @param array $node Root node.
+     * @return int Total element count.
+     */
+    private function count_tree_elements( array $node ): int {
+        $count = 1; // Count current node.
+
+        if ( isset( $node['children'] ) && is_array( $node['children'] ) ) {
+            foreach ( $node['children'] as $child ) {
+                $count += $this->count_tree_elements( $child );
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Transform tree using iterative (stack-based) processing.
+     *
+     * Optimized for large trees (100+ elements) to prevent timeout and
+     * reduce memory usage by avoiding deep recursion.
+     *
+     * Uses a stack-based approach with post-order processing to build
+     * the tree bottom-up, which allows children to be processed before
+     * their parents need them.
+     *
+     * @since 1.0.0
+     *
+     * @param array $root_node Original root node.
+     * @param int   $root_id   Root node ID.
+     * @return array Transformed root node.
+     */
+    private function transform_tree_iterative( array $root_node, int $root_id ): array {
+        // Build a flat list of all nodes with their path info.
+        $work_queue = array();
+        $this->flatten_tree_for_processing( $root_node, $work_queue, array(), null, true );
+
+        // Reverse to process children before parents (post-order).
+        $work_queue = array_reverse( $work_queue );
+
+        // Store transformed nodes keyed by path for parent lookup.
+        $transformed_nodes = array();
+
+        // Process each node.
+        foreach ( $work_queue as $item ) {
+            $node       = $item['node'];
+            $path       = $item['path'];
+            $parent_id  = $item['parent_id'];
+            $is_root    = $item['is_root'];
+            $path_key   = implode( '.', $path );
+
+            // Update stats.
+            $this->processing_stats['nodes_processed']++;
+            $current_memory = memory_get_usage( true );
+            if ( $current_memory > $this->processing_stats['peak_memory'] ) {
+                $this->processing_stats['peak_memory'] = $current_memory;
+            }
+
+            if ( $is_root ) {
+                // Transform root node with collected children.
+                $children_key_prefix = $path_key . '.';
+                $children = $this->collect_transformed_children( $transformed_nodes, $children_key_prefix, $path );
+
+                $transformed_nodes[ $path_key ] = array(
+                    'id'       => $root_id,
+                    'data'     => array(
+                        'type'       => 'root',
+                        'properties' => null,
+                    ),
+                    'children' => $children,
+                );
+            } else {
+                // Get element type.
+                $type = $node['type'] ?? 'Div';
+                $breakdance_type = self::$element_type_map[ $type ] ?? 'EssentialElements\\Div';
+
+                // Generate unique integer ID if not provided.
+                $id = isset( $node['id'] ) && is_int( $node['id'] )
+                    ? $node['id']
+                    : $this->generate_integer_id();
+
+                // Normalize content input.
+                $node = $this->normalize_content_input( $node );
+
+                // Build properties with optimization.
+                $properties = $this->build_node_properties_optimized( $type, $node );
+
+                // Collect transformed children.
+                $children_key_prefix = $path_key . '.';
+                $children = $this->collect_transformed_children( $transformed_nodes, $children_key_prefix, $path );
+
+                // Build result node.
+                $result = array(
+                    'id'       => $id,
+                    'data'     => array(
+                        'type'       => $breakdance_type,
+                        'properties' => $properties,
+                    ),
+                    'children' => $children,
+                );
+
+                // Add _parentId for non-root elements.
+                if ( null !== $parent_id ) {
+                    $result['_parentId'] = $parent_id;
+                }
+
+                $transformed_nodes[ $path_key ] = $result;
+            }
+        }
+
+        // Return the root node (first in original order, stored at path '0' or 'root').
+        return $transformed_nodes['root'] ?? $transformed_nodes['0'] ?? array();
+    }
+
+    /**
+     * Flatten tree into a work queue for iterative processing.
+     *
+     * @since 1.0.0
+     *
+     * @param array    $node      Current node.
+     * @param array    &$queue    Work queue to populate.
+     * @param array    $path      Path to current node.
+     * @param int|null $parent_id Parent element ID.
+     * @param bool     $is_root   Whether this is the root node.
+     * @return void
+     */
+    private function flatten_tree_for_processing( array $node, array &$queue, array $path, ?int $parent_id, bool $is_root ): void {
+        $current_path = $is_root ? array( 'root' ) : $path;
+
+        // Add current node to queue.
+        $queue[] = array(
+            'node'      => $node,
+            'path'      => $current_path,
+            'parent_id' => $parent_id,
+            'is_root'   => $is_root,
+        );
+
+        // Get current node's ID for children.
+        $current_id = $is_root
+            ? ( isset( $node['id'] ) && is_int( $node['id'] ) ? $node['id'] : 1 )
+            : ( isset( $node['id'] ) && is_int( $node['id'] ) ? $node['id'] : $this->generate_integer_id() );
+
+        // Process children.
+        if ( isset( $node['children'] ) && is_array( $node['children'] ) ) {
+            foreach ( $node['children'] as $index => $child ) {
+                $child_path = array_merge( $current_path, array( (string) $index ) );
+                $this->flatten_tree_for_processing( $child, $queue, $child_path, $current_id, false );
+            }
+        }
+    }
+
+    /**
+     * Collect transformed children from the transformed nodes map.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $transformed_nodes All transformed nodes keyed by path.
+     * @param string $prefix            Path prefix for children.
+     * @param array  $parent_path       Parent path array.
+     * @return array Array of transformed child nodes.
+     */
+    private function collect_transformed_children( array $transformed_nodes, string $prefix, array $parent_path ): array {
+        $children = array();
+        $parent_key = implode( '.', $parent_path );
+
+        // Find all direct children (one level deeper).
+        foreach ( $transformed_nodes as $key => $node ) {
+            // Check if this is a direct child (key starts with prefix and has exactly one more segment).
+            if ( strpos( $key, $parent_key . '.' ) === 0 ) {
+                $relative_path = substr( $key, strlen( $parent_key ) + 1 );
+                // Direct children have no more dots in their relative path.
+                if ( strpos( $relative_path, '.' ) === false ) {
+                    $children[ (int) $relative_path ] = $node;
+                }
+            }
+        }
+
+        // Sort by index to maintain order.
+        ksort( $children );
+
+        return array_values( $children );
+    }
+
+    /**
+     * Optimized property building with early detection.
+     *
+     * Checks for presence of relevant properties before calling
+     * expensive build methods. This significantly reduces processing
+     * time for large trees where most nodes have minimal styling.
+     *
+     * @since 1.0.0
+     *
+     * @param string $type Element type (Section, Div, Heading, etc.).
+     * @param array  $node Simplified node properties.
+     * @return array Complete Breakdance properties structure.
+     */
+    private function build_node_properties_optimized( string $type, array $node ): array {
+        $properties = array();
+
+        // Build content properties (fast - usually present).
+        $content = $this->build_content_properties( $type, $node );
+        if ( ! empty( $content ) ) {
+            $properties['content'] = $content;
+        }
+
+        // Check if node has any design-related properties before building.
+        if ( $this->has_design_properties( $node ) ) {
+            $design = $this->build_full_design_properties( $type, $node );
+            if ( ! empty( $design ) ) {
+                $properties['design'] = $design;
+            }
+        }
+
+        return $properties;
+    }
+
+    /**
+     * Check if a node has any design-related properties.
+     *
+     * Quick check to avoid expensive design property building
+     * when a node has no styling.
+     *
+     * @since 1.0.0
+     *
+     * @param array $node Node to check.
+     * @return bool True if node has design properties.
+     */
+    private function has_design_properties( array $node ): bool {
+        // List of design-related property prefixes/keys.
+        static $design_keys = array(
+            // Typography.
+            'color', 'fontSize', 'fontWeight', 'fontFamily', 'lineHeight',
+            'textAlign', 'textTransform', 'letterSpacing',
+            // Layout.
+            'display', 'flexDirection', 'justifyContent', 'alignItems',
+            'gap', 'rowGap', 'columnGap', 'flexWrap',
+            // Spacing.
+            'padding', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+            'margin', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft',
+            // Background.
+            'backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition',
+            'gradient', 'gradientType', 'gradientColors',
+            // Effects.
+            'opacity', 'boxShadow', 'mixBlendMode', 'filter', 'filterBlur',
+            'transition', 'transitionDuration',
+            // Transforms.
+            'rotate', 'rotateX', 'rotateY', 'rotateZ', 'scale', 'scaleX', 'scaleY',
+            'translate', 'translateX', 'translateY', 'skew', 'skewX', 'skewY',
+            // Borders.
+            'border', 'borderWidth', 'borderColor', 'borderStyle', 'borderRadius',
+            // Size.
+            'width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight',
+            // Responsive.
+            'responsive',
+        );
+
+        foreach ( $design_keys as $key ) {
+            if ( isset( $node[ $key ] ) ) {
+                return true;
+            }
+        }
+
+        // Check for hover variants.
+        foreach ( $node as $key => $value ) {
+            if ( strpos( $key, 'Hover' ) !== false ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Build a hierarchical tree from a flat elements array.
+     *
+     * Elements can optionally specify `_parentId` to define hierarchy.
+     * Elements without `_parentId` are auto-assigned to root.
+     *
+     * @since 1.0.0
+     *
+     * @param array $elements Flat array of elements.
+     * @return array Hierarchical tree structure with root.
+     */
+    private function build_tree_from_elements( array $elements ): array {
+        if ( empty( $elements ) ) {
+            return array(
+                'root' => array(
+                    'id'       => 1,
+                    'data'     => array( 'type' => 'root' ),
+                    'children' => array(),
+                ),
+            );
+        }
+
+        // Index elements by ID for efficient lookup.
+        $elements_by_id = array();
+        foreach ( $elements as $index => $element ) {
+            // Ensure each element has an ID (use provided or auto-generate).
+            $id = $element['id'] ?? $this->generate_integer_id();
+            $element['id'] = $id;
+            $elements_by_id[ $id ] = $element;
+            $elements[ $index ] = $element;
+        }
+
+        // Build parent-child relationships.
+        // Elements with _parentId go under their parent.
+        // Elements without _parentId go directly under root.
+        $root_children = array();
+        $children_by_parent = array();
+
+        foreach ( $elements as $element ) {
+            $id = $element['id'];
+            $parent_id = $element['_parentId'] ?? null;
+
+            if ( null === $parent_id || ! isset( $elements_by_id[ $parent_id ] ) ) {
+                // No parent or invalid parent - attach to root.
+                $root_children[] = $element;
+            } else {
+                // Has a valid parent - group by parent.
+                if ( ! isset( $children_by_parent[ $parent_id ] ) ) {
+                    $children_by_parent[ $parent_id ] = array();
+                }
+                $children_by_parent[ $parent_id ][] = $element;
+            }
+        }
+
+        // Recursively attach children to their parents.
+        $root_children = $this->attach_children_to_parents( $root_children, $children_by_parent );
+
+        return array(
+            'root' => array(
+                'id'       => 1,
+                'data'     => array( 'type' => 'root' ),
+                'children' => $root_children,
+            ),
+        );
+    }
+
+    /**
+     * Recursively attach children to parent elements.
+     *
+     * @since 1.0.0
+     *
+     * @param array $elements         Elements at current level.
+     * @param array $children_by_parent Map of parent IDs to their children.
+     * @return array Elements with children attached.
+     */
+    private function attach_children_to_parents( array $elements, array $children_by_parent ): array {
+        $result = array();
+
+        foreach ( $elements as $element ) {
+            $id = $element['id'];
+
+            // Attach children if this element has any.
+            if ( isset( $children_by_parent[ $id ] ) ) {
+                $element['children'] = $this->attach_children_to_parents(
+                    $children_by_parent[ $id ],
+                    $children_by_parent
+                );
+            }
+
+            $result[] = $element;
+        }
+
+        return $result;
     }
 
     /**
@@ -3141,23 +3623,30 @@ class Property_Transformer {
      *
      * @since 1.0.0
      *
-     * @param array $node    Simplified node.
-     * @param bool  $is_root Whether this is the root node.
+     * @param array    $node      Simplified node.
+     * @param bool     $is_root   Whether this is the root node.
+     * @param int|null $parent_id The parent element's ID (for _parentId assignment).
      * @return array Breakdance-compatible node.
      */
-    public function transform_node( array $node, bool $is_root = false ): array {
+    public function transform_node( array $node, bool $is_root = false, ?int $parent_id = null ): array {
         // Handle root node specially.
         if ( $is_root ) {
+            // Use integer ID 1 for root if not specified.
+            $root_id = isset( $node['id'] ) && is_int( $node['id'] ) ? $node['id'] : 1;
+
             $children = array();
             if ( isset( $node['children'] ) ) {
                 foreach ( $node['children'] as $child ) {
-                    $children[] = $this->transform_node( $child );
+                    $children[] = $this->transform_node( $child, false, $root_id );
                 }
             }
 
             return array(
-                'id'       => $node['id'] ?? 'root',
-                'data'     => array( 'type' => 'root' ),
+                'id'       => $root_id,
+                'data'     => array(
+                    'type'       => 'root',
+                    'properties' => null,
+                ),
                 'children' => $children,
             );
         }
@@ -3166,21 +3655,27 @@ class Property_Transformer {
         $type = $node['type'] ?? 'Div';
         $breakdance_type = self::$element_type_map[ $type ] ?? 'EssentialElements\\Div';
 
-        // Generate unique ID.
-        $id = $node['id'] ?? $this->generate_element_id( $type );
+        // Generate unique integer ID if not provided.
+        $id = isset( $node['id'] ) && is_int( $node['id'] )
+            ? $node['id']
+            : $this->generate_integer_id();
+
+        // Normalize content input to handle multiple formats.
+        $node = $this->normalize_content_input( $node );
 
         // Build properties based on element type.
         $properties = $this->build_node_properties( $type, $node );
 
-        // Process children recursively.
+        // Process children recursively, passing current ID as parent.
         $children = array();
         if ( isset( $node['children'] ) ) {
             foreach ( $node['children'] as $child ) {
-                $children[] = $this->transform_node( $child );
+                $children[] = $this->transform_node( $child, false, $id );
             }
         }
 
-        return array(
+        // Build the result node.
+        $result = array(
             'id'       => $id,
             'data'     => array(
                 'type'       => $breakdance_type,
@@ -3188,6 +3683,137 @@ class Property_Transformer {
             ),
             'children' => $children,
         );
+
+        // Add _parentId for non-root elements (auto-assignment for missing parent IDs).
+        if ( null !== $parent_id ) {
+            $result['_parentId'] = $parent_id;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Normalize content input to handle multiple input formats.
+     *
+     * Supports three input formats for content properties:
+     * 1. Flat format: `{ "text": "Hello" }` - Already supported
+     * 2. Shorthand: `{ "content": { "text": "Hello" } }` - content.text
+     * 3. Full path: `{ "content": { "content": { "text": "Hello" } } }` - content.content.text
+     *
+     * All formats are normalized to flat properties for consistent processing.
+     *
+     * @since 1.0.0
+     *
+     * @param array $node The input node to normalize.
+     * @return array Node with normalized content properties.
+     */
+    private function normalize_content_input( array $node ): array {
+        // Check for content property in input.
+        if ( ! isset( $node['content'] ) || ! is_array( $node['content'] ) ) {
+            return $node;
+        }
+
+        $content = $node['content'];
+
+        // Check for full Breakdance path: content.content.text (content.content.*)
+        if ( isset( $content['content'] ) && is_array( $content['content'] ) ) {
+            $inner = $content['content'];
+
+            // Extract text content.
+            if ( isset( $inner['text'] ) && ! isset( $node['text'] ) ) {
+                $node['text'] = $inner['text'];
+            }
+
+            // Extract tag/tags for Heading elements.
+            if ( isset( $inner['tags'] ) && ! isset( $node['tag'] ) ) {
+                $node['tag'] = $inner['tags'];
+            }
+            if ( isset( $inner['tag'] ) && ! isset( $node['tag'] ) ) {
+                $node['tag'] = $inner['tag'];
+            }
+
+            // Extract link for Button elements.
+            if ( isset( $inner['link'] ) && ! isset( $node['url'] ) && ! isset( $node['link'] ) ) {
+                if ( is_array( $inner['link'] ) && isset( $inner['link']['url'] ) ) {
+                    $node['url'] = $inner['link']['url'];
+                } elseif ( is_string( $inner['link'] ) ) {
+                    $node['url'] = $inner['link'];
+                }
+            }
+
+            // Extract image for Image elements.
+            if ( isset( $inner['image'] ) && ! isset( $node['src'] ) && ! isset( $node['url'] ) ) {
+                if ( is_array( $inner['image'] ) && isset( $inner['image']['url'] ) ) {
+                    $node['src'] = $inner['image']['url'];
+                    if ( isset( $inner['image']['alt'] ) && ! isset( $node['alt'] ) ) {
+                        $node['alt'] = $inner['image']['alt'];
+                    }
+                } elseif ( is_string( $inner['image'] ) ) {
+                    $node['src'] = $inner['image'];
+                }
+            }
+
+            // Extract code content for code elements.
+            if ( isset( $inner['html_code'] ) && ! isset( $node['html'] ) ) {
+                $node['html'] = $inner['html_code'];
+            }
+            if ( isset( $inner['css_code'] ) && ! isset( $node['css'] ) ) {
+                $node['css'] = $inner['css_code'];
+            }
+            if ( isset( $inner['php_code'] ) && ! isset( $node['php'] ) ) {
+                $node['php'] = $inner['php_code'];
+            }
+
+            return $node;
+        }
+
+        // Check for shorthand path: content.text (content.*)
+        // Extract text content.
+        if ( isset( $content['text'] ) && ! isset( $node['text'] ) ) {
+            $node['text'] = $content['text'];
+        }
+
+        // Extract tag/tags for Heading elements.
+        if ( isset( $content['tags'] ) && ! isset( $node['tag'] ) ) {
+            $node['tag'] = $content['tags'];
+        }
+        if ( isset( $content['tag'] ) && ! isset( $node['tag'] ) ) {
+            $node['tag'] = $content['tag'];
+        }
+
+        // Extract link for Button elements.
+        if ( isset( $content['link'] ) && ! isset( $node['url'] ) && ! isset( $node['link'] ) ) {
+            if ( is_array( $content['link'] ) && isset( $content['link']['url'] ) ) {
+                $node['url'] = $content['link']['url'];
+            } elseif ( is_string( $content['link'] ) ) {
+                $node['url'] = $content['link'];
+            }
+        }
+
+        // Extract image for Image elements.
+        if ( isset( $content['image'] ) && ! isset( $node['src'] ) && ! isset( $node['url'] ) ) {
+            if ( is_array( $content['image'] ) && isset( $content['image']['url'] ) ) {
+                $node['src'] = $content['image']['url'];
+                if ( isset( $content['image']['alt'] ) && ! isset( $node['alt'] ) ) {
+                    $node['alt'] = $content['image']['alt'];
+                }
+            } elseif ( is_string( $content['image'] ) ) {
+                $node['src'] = $content['image'];
+            }
+        }
+
+        // Extract code content for code elements.
+        if ( isset( $content['html_code'] ) && ! isset( $node['html'] ) ) {
+            $node['html'] = $content['html_code'];
+        }
+        if ( isset( $content['css_code'] ) && ! isset( $node['css'] ) ) {
+            $node['css'] = $content['css_code'];
+        }
+        if ( isset( $content['php_code'] ) && ! isset( $node['php'] ) ) {
+            $node['php'] = $content['php_code'];
+        }
+
+        return $node;
     }
 
     /**
@@ -3773,19 +4399,47 @@ class Property_Transformer {
 
     /**
      * ID counter for generating unique element IDs.
+     * Starts at 100 for non-root elements per spec.
      *
      * @var int
      */
-    private static int $id_counter = 1;
+    private static int $id_counter = 100;
 
     /**
      * Generate a unique element ID.
      *
      * @param string $type Element type.
      * @return string Unique ID.
+     * @deprecated Use generate_integer_id() for Breakdance compatibility.
      */
     private function generate_element_id( string $type ): string {
         $prefix = strtolower( $type );
         return $prefix . '-' . ( self::$id_counter++ );
+    }
+
+    /**
+     * Generate a unique integer element ID.
+     *
+     * Breakdance requires integer IDs. Non-root elements should
+     * use IDs starting from 100.
+     *
+     * @since 1.0.0
+     *
+     * @return int Unique integer ID.
+     */
+    private function generate_integer_id(): int {
+        return self::$id_counter++;
+    }
+
+    /**
+     * Reset the ID counter for testing or new transformations.
+     *
+     * @since 1.0.0
+     *
+     * @param int $start Starting ID value. Default 100.
+     * @return void
+     */
+    public function reset_id_counter( int $start = 100 ): void {
+        self::$id_counter = $start;
     }
 }

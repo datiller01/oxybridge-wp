@@ -224,7 +224,7 @@ class REST_AI extends REST_Controller {
      * @return \WP_REST_Response
      */
     public function get_schema( \WP_REST_Request $request ) {
-        $schema_file = OXYBRIDGE_PLUGIN_DIR . 'ai/schema-simplified.json';
+        $schema_file = OXYBRIDGE_PLUGIN_DIR . '/ai/schema-simplified.json';
 
         if ( file_exists( $schema_file ) ) {
             $schema = json_decode( file_get_contents( $schema_file ), true );
@@ -327,6 +327,8 @@ class REST_AI extends REST_Controller {
     /**
      * Validate tree endpoint callback.
      *
+     * Provides detailed validation with property paths, expected types, and examples.
+     *
      * @since 1.1.0
      * @param \WP_REST_Request $request The request object.
      * @return \WP_REST_Response
@@ -339,9 +341,12 @@ class REST_AI extends REST_Controller {
 
         // Basic structure validation.
         if ( ! is_array( $tree ) ) {
-            $errors[] = array(
-                'code'    => 'invalid_type',
-                'message' => 'Tree must be an array.',
+            $errors[] = $this->create_validation_error(
+                'invalid_type',
+                'tree',
+                'Tree must be an object/array.',
+                'object',
+                array( 'root' => array( 'id' => 1, 'data' => array( 'type' => 'root', 'properties' => null ), 'children' => array() ), 'status' => 'exported' )
             );
 
             return $this->format_response(
@@ -353,47 +358,63 @@ class REST_AI extends REST_Controller {
             );
         }
 
-        // Check for root.
+        // Check for root property.
         if ( ! isset( $tree['root'] ) ) {
-            $errors[] = array(
-                'code'    => 'missing_root',
-                'message' => 'Tree must have a root property.',
+            $errors[] = $this->create_validation_error(
+                'missing_root',
+                'root',
+                'Tree must have a root property.',
+                'object',
+                array( 'id' => 1, 'data' => array( 'type' => 'root', 'properties' => null ), 'children' => array() )
+            );
+        } elseif ( ! is_array( $tree['root'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'invalid_root_type',
+                'root',
+                'Root must be an object.',
+                'object',
+                array( 'id' => 1, 'data' => array( 'type' => 'root', 'properties' => null ), 'children' => array() )
             );
         } else {
             // Validate root structure.
-            if ( ! isset( $tree['root']['id'] ) ) {
-                $errors[] = array(
-                    'code'    => 'missing_root_id',
-                    'message' => 'Root must have an id.',
-                );
-            }
+            $this->validate_root_element( $tree['root'], $errors, $warnings );
+        }
 
-            if ( ! isset( $tree['root']['children'] ) ) {
-                $errors[] = array(
-                    'code'    => 'missing_root_children',
-                    'message' => 'Root must have children array.',
-                );
-            } elseif ( ! is_array( $tree['root']['children'] ) ) {
-                $errors[] = array(
-                    'code'    => 'invalid_children',
-                    'message' => 'Root children must be an array.',
-                );
-            }
+        // Check for status field.
+        if ( ! isset( $tree['status'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'missing_status',
+                'status',
+                'Tree must have a status property.',
+                'string',
+                'exported'
+            );
+        } elseif ( 'exported' !== $tree['status'] ) {
+            $errors[] = $this->create_validation_error(
+                'invalid_status',
+                'status',
+                'Status must be "exported" for valid Oxygen trees.',
+                'string (literal "exported")',
+                'exported'
+            );
         }
 
         // Warn if _nextNodeId or exportedLookupTable are present.
-        // These fields should NOT be included - they can cause io-ts validation errors.
         if ( isset( $tree['_nextNodeId'] ) ) {
             $warnings[] = array(
                 'code'    => 'unnecessary_next_node_id',
+                'path'    => '_nextNodeId',
                 'message' => '_nextNodeId should NOT be included in the tree. It will be removed automatically. Working Oxygen documents do not have this field.',
+                'action'  => 'Remove this property from your tree.',
             );
         }
 
         if ( isset( $tree['exportedLookupTable'] ) ) {
             $warnings[] = array(
                 'code'    => 'unnecessary_exported_lookup_table',
+                'path'    => 'exportedLookupTable',
                 'message' => 'exportedLookupTable should NOT be included in the tree. It will be removed automatically. Working Oxygen documents do not have this field.',
+                'action'  => 'Remove this property from your tree.',
             );
         }
 
@@ -401,10 +422,526 @@ class REST_AI extends REST_Controller {
 
         return $this->format_response(
             array(
-                'valid'    => $valid,
-                'errors'   => $errors,
-                'warnings' => $warnings,
+                'valid'         => $valid,
+                'errors'        => $errors,
+                'warnings'      => $warnings,
+                'error_count'   => count( $errors ),
+                'warning_count' => count( $warnings ),
             )
+        );
+    }
+
+    /**
+     * Create a validation error with detailed information.
+     *
+     * @since 1.1.0
+     * @param string $code     Error code.
+     * @param string $path     Property path where error occurred.
+     * @param string $message  Human-readable error message.
+     * @param string $expected Expected type or value.
+     * @param mixed  $example  Example of valid value.
+     * @return array Validation error array.
+     */
+    private function create_validation_error( string $code, string $path, string $message, string $expected, $example ): array {
+        return array(
+            'code'     => $code,
+            'path'     => $path,
+            'message'  => $message,
+            'expected' => $expected,
+            'example'  => $example,
+        );
+    }
+
+    /**
+     * Validate the root element structure.
+     *
+     * @since 1.1.0
+     * @param array $root     Root element data.
+     * @param array $errors   Reference to errors array.
+     * @param array $warnings Reference to warnings array.
+     * @return void
+     */
+    private function validate_root_element( array $root, array &$errors, array &$warnings ): void {
+        // Validate root.id.
+        if ( ! isset( $root['id'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'missing_root_id',
+                'root.id',
+                'Root must have an id property.',
+                'integer',
+                1
+            );
+        } elseif ( ! is_int( $root['id'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'invalid_root_id_type',
+                'root.id',
+                'Root id must be an integer, not a string.',
+                'integer',
+                1
+            );
+        }
+
+        // Validate root.data.
+        if ( ! isset( $root['data'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'missing_root_data',
+                'root.data',
+                'Root must have a data property.',
+                'object',
+                array( 'type' => 'root', 'properties' => null )
+            );
+        } elseif ( ! is_array( $root['data'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'invalid_root_data_type',
+                'root.data',
+                'Root data must be an object.',
+                'object',
+                array( 'type' => 'root', 'properties' => null )
+            );
+        } else {
+            // Validate root.data.type.
+            if ( ! isset( $root['data']['type'] ) ) {
+                $errors[] = $this->create_validation_error(
+                    'missing_root_data_type',
+                    'root.data.type',
+                    'Root data must have a type property.',
+                    'string',
+                    'root'
+                );
+            } elseif ( 'root' !== $root['data']['type'] ) {
+                $errors[] = $this->create_validation_error(
+                    'invalid_root_data_type_value',
+                    'root.data.type',
+                    'Root data type must be lowercase "root".',
+                    'string (literal "root")',
+                    'root'
+                );
+            }
+
+            // Validate root.data.properties.
+            if ( ! array_key_exists( 'properties', $root['data'] ) ) {
+                $errors[] = $this->create_validation_error(
+                    'missing_root_data_properties',
+                    'root.data.properties',
+                    'Root data must have a properties property.',
+                    'null',
+                    null
+                );
+            } elseif ( null !== $root['data']['properties'] ) {
+                $warnings[] = array(
+                    'code'    => 'non_null_root_properties',
+                    'path'    => 'root.data.properties',
+                    'message' => 'Root data properties should be null for valid Oxygen trees.',
+                    'action'  => 'Set root.data.properties to null.',
+                );
+            }
+        }
+
+        // Validate root.children.
+        if ( ! isset( $root['children'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'missing_root_children',
+                'root.children',
+                'Root must have a children array.',
+                'array',
+                array()
+            );
+        } elseif ( ! is_array( $root['children'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'invalid_root_children_type',
+                'root.children',
+                'Root children must be an array.',
+                'array',
+                array()
+            );
+        } else {
+            // Validate each child element.
+            $root_id = isset( $root['id'] ) && is_int( $root['id'] ) ? $root['id'] : 1;
+            foreach ( $root['children'] as $index => $child ) {
+                $this->validate_child_element( $child, "root.children[$index]", $root_id, $errors, $warnings );
+            }
+        }
+    }
+
+    /**
+     * Validate a child element structure.
+     *
+     * @since 1.1.0
+     * @param mixed  $element   Element to validate.
+     * @param string $path      Current property path.
+     * @param int    $parent_id Expected parent ID.
+     * @param array  $errors    Reference to errors array.
+     * @param array  $warnings  Reference to warnings array.
+     * @return void
+     */
+    private function validate_child_element( $element, string $path, int $parent_id, array &$errors, array &$warnings ): void {
+        if ( ! is_array( $element ) ) {
+            $errors[] = $this->create_validation_error(
+                'invalid_element_type',
+                $path,
+                'Element must be an object.',
+                'object',
+                array( 'id' => 100, 'data' => array( 'type' => 'EssentialElements\\Heading', 'properties' => null ), 'children' => array(), '_parentId' => 1 )
+            );
+            return;
+        }
+
+        // Validate element.id.
+        if ( ! isset( $element['id'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'missing_element_id',
+                "{$path}.id",
+                'Element must have an id property.',
+                'integer',
+                100
+            );
+        } elseif ( ! is_int( $element['id'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'invalid_element_id_type',
+                "{$path}.id",
+                'Element id must be an integer, not a string. Found: ' . gettype( $element['id'] ),
+                'integer',
+                100
+            );
+        }
+
+        // Validate element.data.
+        if ( ! isset( $element['data'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'missing_element_data',
+                "{$path}.data",
+                'Element must have a data property.',
+                'object',
+                array( 'type' => 'EssentialElements\\Heading', 'properties' => null )
+            );
+        } elseif ( ! is_array( $element['data'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'invalid_element_data_type',
+                "{$path}.data",
+                'Element data must be an object.',
+                'object',
+                array( 'type' => 'EssentialElements\\Heading', 'properties' => null )
+            );
+        } else {
+            // Validate element.data.type.
+            if ( ! isset( $element['data']['type'] ) ) {
+                $errors[] = $this->create_validation_error(
+                    'missing_element_type',
+                    "{$path}.data.type",
+                    'Element data must have a type property.',
+                    'string',
+                    'EssentialElements\\Heading'
+                );
+            } elseif ( ! is_string( $element['data']['type'] ) ) {
+                $errors[] = $this->create_validation_error(
+                    'invalid_element_type_type',
+                    "{$path}.data.type",
+                    'Element data type must be a string.',
+                    'string',
+                    'EssentialElements\\Heading'
+                );
+            } else {
+                // Validate element type has valid namespace.
+                $this->validate_element_type( $element['data']['type'], "{$path}.data.type", $errors, $warnings );
+            }
+
+            // Validate element.data.properties exists (can be null or object).
+            if ( ! array_key_exists( 'properties', $element['data'] ) ) {
+                $errors[] = $this->create_validation_error(
+                    'missing_element_properties',
+                    "{$path}.data.properties",
+                    'Element data must have a properties property (can be null or object).',
+                    'object|null',
+                    null
+                );
+            }
+        }
+
+        // Validate element.children.
+        if ( ! isset( $element['children'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'missing_element_children',
+                "{$path}.children",
+                'Element must have a children array (use empty [] for leaf nodes).',
+                'array',
+                array()
+            );
+        } elseif ( ! is_array( $element['children'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'invalid_element_children_type',
+                "{$path}.children",
+                'Element children must be an array.',
+                'array',
+                array()
+            );
+        } else {
+            // Recursively validate child elements.
+            $element_id = isset( $element['id'] ) && is_int( $element['id'] ) ? $element['id'] : 0;
+            foreach ( $element['children'] as $child_index => $child ) {
+                $this->validate_child_element( $child, "{$path}.children[$child_index]", $element_id, $errors, $warnings );
+            }
+        }
+
+        // Validate element._parentId.
+        if ( ! isset( $element['_parentId'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'missing_parent_id',
+                "{$path}._parentId",
+                'Element must have a _parentId property referencing its parent.',
+                'integer',
+                $parent_id
+            );
+        } elseif ( ! is_int( $element['_parentId'] ) ) {
+            $errors[] = $this->create_validation_error(
+                'invalid_parent_id_type',
+                "{$path}._parentId",
+                'Element _parentId must be an integer, not a string.',
+                'integer',
+                $parent_id
+            );
+        } elseif ( $element['_parentId'] !== $parent_id ) {
+            $warnings[] = array(
+                'code'     => 'parent_id_mismatch',
+                'path'     => "{$path}._parentId",
+                'message'  => "Element _parentId ({$element['_parentId']}) does not match expected parent ID ({$parent_id}).",
+                'expected' => $parent_id,
+                'actual'   => $element['_parentId'],
+                'action'   => "Set _parentId to {$parent_id}.",
+            );
+        }
+    }
+
+    /**
+     * Validate element type has valid namespace prefix.
+     *
+     * Provides detailed validation with suggestions for invalid types.
+     *
+     * @since 1.1.0
+     * @param string $type     Element type string.
+     * @param string $path     Property path for error reporting.
+     * @param array  $errors   Reference to errors array.
+     * @param array  $warnings Reference to warnings array.
+     * @return void
+     */
+    private function validate_element_type( string $type, string $path, array &$errors, array &$warnings ): void {
+        $valid_types = $this->get_all_element_types();
+        $valid_namespaces = array(
+            'EssentialElements\\',
+            'OxygenElements\\',
+        );
+
+        // Check for exact match first.
+        if ( in_array( $type, $valid_types, true ) ) {
+            return; // Valid type, no error.
+        }
+
+        // Check if it has a valid namespace prefix.
+        $has_valid_namespace = false;
+        foreach ( $valid_namespaces as $namespace ) {
+            if ( 0 === strpos( $type, $namespace ) ) {
+                $has_valid_namespace = true;
+                break;
+            }
+        }
+
+        if ( $has_valid_namespace ) {
+            // Has namespace but is not a known type - find similar types.
+            $suggestions = $this->find_similar_element_types( $type, $valid_types, 3 );
+
+            $errors[] = array(
+                'code'        => 'invalid_element_type',
+                'path'        => $path,
+                'message'     => "Element type '{$type}' is not a recognized element type.",
+                'expected'    => 'Valid element type string',
+                'suggestions' => $suggestions,
+                'valid_types' => $valid_types,
+                'action'      => ! empty( $suggestions )
+                    ? "Did you mean one of: " . implode( ', ', $suggestions ) . '?'
+                    : 'Use one of the valid element types listed above.',
+            );
+            return;
+        }
+
+        // No namespace prefix - try to find a match.
+        $type_lower = strtolower( $type );
+        $suggested_type = null;
+
+        // First, check for exact short name match (case-insensitive).
+        foreach ( $valid_types as $valid_type ) {
+            $short_name = substr( $valid_type, strrpos( $valid_type, '\\' ) + 1 );
+            if ( strtolower( $short_name ) === $type_lower ) {
+                $suggested_type = $valid_type;
+                break;
+            }
+        }
+
+        if ( $suggested_type ) {
+            $errors[] = array(
+                'code'        => 'missing_element_namespace',
+                'path'        => $path,
+                'message'     => "Element type '{$type}' is missing namespace prefix. Did you mean '{$suggested_type}'?",
+                'expected'    => 'string with namespace prefix (EssentialElements\\\\ or OxygenElements\\\\)',
+                'example'     => $suggested_type,
+                'valid_types' => $valid_types,
+                'action'      => "Change '{$type}' to '{$suggested_type}'",
+            );
+            return;
+        }
+
+        // No exact match - try fuzzy matching.
+        $suggestions = $this->find_similar_element_types( $type, $valid_types, 3 );
+
+        $errors[] = array(
+            'code'        => 'invalid_element_type',
+            'path'        => $path,
+            'message'     => "Element type '{$type}' is not recognized and is missing a namespace prefix.",
+            'expected'    => 'Valid element type with EssentialElements\\\\ or OxygenElements\\\\ prefix',
+            'example'     => 'EssentialElements\\Heading',
+            'suggestions' => $suggestions,
+            'valid_types' => $valid_types,
+            'action'      => ! empty( $suggestions )
+                ? "Did you mean one of: " . implode( ', ', $suggestions ) . '?'
+                : 'Use one of the valid element types listed above.',
+        );
+    }
+
+    /**
+     * Find similar element types using string similarity.
+     *
+     * Uses Levenshtein distance to find the most similar valid element types.
+     *
+     * @since 1.1.0
+     * @param string $type        The invalid type to find matches for.
+     * @param array  $valid_types Array of valid element types.
+     * @param int    $limit       Maximum number of suggestions to return.
+     * @return array Array of suggested similar types.
+     */
+    private function find_similar_element_types( string $type, array $valid_types, int $limit = 3 ): array {
+        $type_lower = strtolower( $type );
+        $similarities = array();
+
+        foreach ( $valid_types as $valid_type ) {
+            // Compare against both full type and short name.
+            $short_name = substr( $valid_type, strrpos( $valid_type, '\\' ) + 1 );
+            $short_name_lower = strtolower( $short_name );
+            $full_type_lower = strtolower( $valid_type );
+
+            // Calculate similarity scores.
+            $short_distance = levenshtein( $type_lower, $short_name_lower );
+            $full_distance = levenshtein( $type_lower, $full_type_lower );
+
+            // Use the better (lower) distance.
+            $best_distance = min( $short_distance, $full_distance );
+
+            // Also check for substring match (type is contained in valid type or vice versa).
+            $contains_bonus = 0;
+            if ( strpos( $short_name_lower, $type_lower ) !== false || strpos( $type_lower, $short_name_lower ) !== false ) {
+                $contains_bonus = 10; // Significant bonus for substring matches.
+            }
+
+            // Calculate a similarity score (higher is better).
+            // Max length provides normalization.
+            $max_len = max( strlen( $type ), strlen( $short_name ) );
+            $score = ( $max_len - $best_distance + $contains_bonus ) / $max_len;
+
+            // Only include if reasonably similar (score > 0.3 or has substring match).
+            if ( $score > 0.3 || $contains_bonus > 0 ) {
+                $similarities[ $valid_type ] = $score;
+            }
+        }
+
+        // Sort by similarity score (highest first).
+        arsort( $similarities );
+
+        // Return top matches.
+        return array_slice( array_keys( $similarities ), 0, $limit );
+    }
+
+    /**
+     * Get all valid element types (comprehensive list).
+     *
+     * Returns the complete list of valid element types for validation.
+     *
+     * @since 1.1.0
+     * @return array Array of all valid element types.
+     */
+    private function get_all_element_types(): array {
+        return array(
+            // Essential Elements - Content.
+            'EssentialElements\\Heading',
+            'EssentialElements\\Text',
+            'EssentialElements\\RichText',
+            'EssentialElements\\Button',
+            'EssentialElements\\Image',
+            'EssentialElements\\Image2',
+            'EssentialElements\\Icon',
+            'EssentialElements\\Link',
+            'EssentialElements\\Video',
+            'EssentialElements\\Audio',
+            'EssentialElements\\Embed',
+
+            // Essential Elements - Layout.
+            'EssentialElements\\Section',
+            'EssentialElements\\Container',
+            'EssentialElements\\Div',
+            'EssentialElements\\Columns',
+            'EssentialElements\\Column',
+            'EssentialElements\\Grid',
+            'EssentialElements\\Slider',
+            'EssentialElements\\Tabs',
+            'EssentialElements\\Tab',
+            'EssentialElements\\Accordion',
+            'EssentialElements\\AccordionItem',
+            'EssentialElements\\Modal',
+
+            // Essential Elements - Navigation.
+            'EssentialElements\\WpMenu',
+            'EssentialElements\\Menu',
+            'EssentialElements\\MobileMenu',
+            'EssentialElements\\Breadcrumbs',
+
+            // Essential Elements - Forms.
+            'EssentialElements\\Form',
+            'EssentialElements\\FormInput',
+            'EssentialElements\\FormTextarea',
+            'EssentialElements\\FormSelect',
+            'EssentialElements\\FormCheckbox',
+            'EssentialElements\\FormRadio',
+            'EssentialElements\\FormSubmit',
+            'EssentialElements\\SearchForm',
+
+            // Essential Elements - Dynamic.
+            'EssentialElements\\PostTitle',
+            'EssentialElements\\PostContent',
+            'EssentialElements\\PostExcerpt',
+            'EssentialElements\\PostImage',
+            'EssentialElements\\PostMeta',
+            'EssentialElements\\PostDate',
+            'EssentialElements\\PostAuthor',
+            'EssentialElements\\PostCategories',
+            'EssentialElements\\PostTags',
+            'EssentialElements\\PostsLoop',
+            'EssentialElements\\Pagination',
+
+            // Essential Elements - Misc.
+            'EssentialElements\\Shortcode',
+            'EssentialElements\\Code',
+            'EssentialElements\\Html',
+            'EssentialElements\\Spacer',
+            'EssentialElements\\Divider',
+            'EssentialElements\\SocialIcons',
+            'EssentialElements\\CountDown',
+            'EssentialElements\\ProgressBar',
+            'EssentialElements\\StarRating',
+            'EssentialElements\\GoogleMaps',
+
+            // Oxygen Elements - Structure.
+            'OxygenElements\\Container',
+            'OxygenElements\\ContainerLink',
+            'OxygenElements\\Section',
+            'OxygenElements\\Div',
+            'OxygenElements\\Columns',
+            'OxygenElements\\Column',
         );
     }
 
@@ -419,7 +956,7 @@ class REST_AI extends REST_Controller {
             return $this->components;
         }
 
-        $components_file = OXYBRIDGE_PLUGIN_DIR . 'ai/components.json';
+        $components_file = OXYBRIDGE_PLUGIN_DIR . '/ai/components.json';
 
         if ( ! file_exists( $components_file ) ) {
             $this->components = array();
@@ -437,11 +974,15 @@ class REST_AI extends REST_Controller {
     /**
      * Get common element types.
      *
+     * Returns the most commonly used element types for quick reference.
+     * For full validation, use get_all_element_types() instead.
+     *
      * @since 1.1.0
-     * @return array Array of element types.
+     * @return array Array of common element types.
      */
     private function get_common_element_types(): array {
         return array(
+            // Essential Elements - Most used.
             'EssentialElements\\Section',
             'EssentialElements\\Container',
             'EssentialElements\\Div',
@@ -449,10 +990,15 @@ class REST_AI extends REST_Controller {
             'EssentialElements\\Text',
             'EssentialElements\\Button',
             'EssentialElements\\Image',
+            'EssentialElements\\Image2',
             'EssentialElements\\Icon',
             'EssentialElements\\Link',
             'EssentialElements\\Columns',
             'EssentialElements\\Column',
+            'EssentialElements\\WpMenu',
+            // Oxygen Elements - Structure.
+            'OxygenElements\\Container',
+            'OxygenElements\\ContainerLink',
         );
     }
 

@@ -1,0 +1,455 @@
+{
+  "root": {
+    "id": 1,
+    "data": {
+      "type": "root",
+      "properties": null
+    },
+    "children": [
+      {
+        "id": 100,
+        "data": {
+          "type": "EssentialElements\\Section",
+          "properties": {
+            "design": {
+              "background": {
+                "color": "#ffffff"
+              },
+              "size": {
+                "width": {"breakpoint_base": "100%"},
+                "minHeight": {"breakpoint_base": "80px", "breakpoint_tablet_portrait": "64px"}
+              },
+              "layout": {
+                "display": {"breakpoint_base": "flex"},
+                "alignItems": {"breakpoint_base": "center"},
+                "justifyContent": {"breakpoint_base": "center"}
+              }
+            }
+          }
+        },
+        "children": [
+          {
+            "id": 101,
+            "data": {
+              "type": "EssentialElements\\Div",
+              "properties": {
+                "design": {
+                  "layout": {
+                    "display": {"breakpoint_base": "flex"},
+                    "alignItems": {"breakpoint_base": "center"},
+                    "justifyContent": {"breakpoint_base": "space-between"},
+                    "horizontalGap": {"breakpoint_base": "32px"}
+                  },
+                  "size": {
+                    "width": {"breakpoint_base": "100%"},
+                    "maxWidth": {"breakpoint_base": {"number": 1440, "unit": "px"}}
+                  },
+                  "spacing": {
+                    "padding": {
+                      "left": {"breakpoint_base": "40px", "breakpoint_phone_portrait": "20px"},
+                      "right": {"breakpoint_base": "40px", "breakpoint_phone_portrait": "20px"}
+                    }
+                  }
+                }
+              }
+            },
+            "children": [
+              {
+                "id": 102,
+                "data": {
+                  "type": "EssentialElements\\Link",
+                  "properties": {
+                    "content": {
+                      "content": {
+                        "text": "Colabs",
+                        "link": {"url": "/", "type": "url"}
+                      }
+                    },
+                    "design": {
+                      "typography": {
+                        "fontFamily": {"breakpoint_base": "'Matter SQ', -apple-system, sans-serif"},
+                        "fontSize": {"breakpoint_base": "24px", "breakpoint_tablet_portrait": "20px"},
+                        "fontWeight": {"breakpoint_base": "600"},
+                        "color": {"breakpoint_base": "#1a1a1a"},
+                        "textDecoration": {"breakpoint_base": "none"}
+                      }
+                    }
+                  }
+                },
+                "children": [],
+                "_parentId": 101
+              },
+              {
+                "id": 103,
+                "data": {
+                  "type": "EssentialElements\\Div",
+                  "properties": {
+                    "design": {
+                      "layout": {
+                        "display": {"breakpoint_base": "flex", "breakpoint_tablet_portrait": "none"},
+                        "alignItems": {"breakpoint_base": "center"},
+                        "horizontalGap": {"breakpoint_base": "32px"}
+                      }
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "id": 104,
+                    "data": {
+                      "type": "EssentialElements\\Link",
+                      "properties": {
+                        "content": {
+                          "content": {
+                            "text": "Home",
+                            "link": {"url": "/", "type": "url"}
+                          }
+                        },
+                        "design": {
+                          "typography": {
+                            "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                            "fontSize": {"breakpoint_base": "15px"},
+                            "fontWeight": {"breakpoint_base": "400"},
+                            "color": {"breakpoint_base": "#1a1a1a"},
+                            "textDecoration": {"breakpoint_base": "none"},
+                            "letterSpacing": {"breakpoint_base": "0.01em"}
+                          },
+                          "effects": {
+                            "transition": {
+                              "duration": {"breakpoint_base": "150ms"},
+                              "timingFunction": {"breakpoint_base": "ease-out"}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "children": [],
+                    "_parentId": 103
+                  },
+                  {
+                    "id": 105,
+                    "data": {
+                      "type": "EssentialElements\\Link",
+                      "properties": {
+                        "content": {
+                          "content": {
+                            "text": "Services",
+                            "link": {"url": "/services", "type": "url"}
+                          }
+                        },
+                        "design": {
+                          "typography": {
+                            "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                            "fontSize": {"breakpoint_base": "15px"},
+                            "fontWeight": {"breakpoint_base": "400"},
+                            "color": {"breakpoint_base": "#1a1a1a"},
+                            "textDecoration": {"breakpoint_base": "none"},
+                            "letterSpacing": {"breakpoint_base": "0.01em"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [],
+                    "_parentId": 103
+                  },
+                  {
+                    "id": 106,
+                    "data": {
+                      "type": "EssentialElements\\Link",
+                      "properties": {
+                        "content": {
+                          "content": {
+                            "text": "Sites",
+                            "link": {"url": "/sites", "type": "url"}
+                          }
+                        },
+                        "design": {
+                          "typography": {
+                            "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                            "fontSize": {"breakpoint_base": "15px"},
+                            "fontWeight": {"breakpoint_base": "400"},
+                            "color": {"breakpoint_base": "#1a1a1a"},
+                            "textDecoration": {"breakpoint_base": "none"},
+                            "letterSpacing": {"breakpoint_base": "0.01em"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [],
+                    "_parentId": 103
+                  },
+                  {
+                    "id": 107,
+                    "data": {
+                      "type": "EssentialElements\\Link",
+                      "properties": {
+                        "content": {
+                          "content": {
+                            "text": "About",
+                            "link": {"url": "/about", "type": "url"}
+                          }
+                        },
+                        "design": {
+                          "typography": {
+                            "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                            "fontSize": {"breakpoint_base": "15px"},
+                            "fontWeight": {"breakpoint_base": "400"},
+                            "color": {"breakpoint_base": "#1a1a1a"},
+                            "textDecoration": {"breakpoint_base": "none"},
+                            "letterSpacing": {"breakpoint_base": "0.01em"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [],
+                    "_parentId": 103
+                  },
+                  {
+                    "id": 108,
+                    "data": {
+                      "type": "EssentialElements\\Link",
+                      "properties": {
+                        "content": {
+                          "content": {
+                            "text": "Resources",
+                            "link": {"url": "/resources", "type": "url"}
+                          }
+                        },
+                        "design": {
+                          "typography": {
+                            "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                            "fontSize": {"breakpoint_base": "15px"},
+                            "fontWeight": {"breakpoint_base": "400"},
+                            "color": {"breakpoint_base": "#1a1a1a"},
+                            "textDecoration": {"breakpoint_base": "none"},
+                            "letterSpacing": {"breakpoint_base": "0.01em"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [],
+                    "_parentId": 103
+                  },
+                  {
+                    "id": 109,
+                    "data": {
+                      "type": "EssentialElements\\Link",
+                      "properties": {
+                        "content": {
+                          "content": {
+                            "text": "Contact",
+                            "link": {"url": "/contact", "type": "url"}
+                          }
+                        },
+                        "design": {
+                          "typography": {
+                            "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                            "fontSize": {"breakpoint_base": "15px"},
+                            "fontWeight": {"breakpoint_base": "400"},
+                            "color": {"breakpoint_base": "#1a1a1a"},
+                            "textDecoration": {"breakpoint_base": "none"},
+                            "letterSpacing": {"breakpoint_base": "0.01em"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [],
+                    "_parentId": 103
+                  }
+                ],
+                "_parentId": 101
+              },
+              {
+                "id": 110,
+                "data": {
+                  "type": "EssentialElements\\Div",
+                  "properties": {
+                    "design": {
+                      "layout": {
+                        "display": {"breakpoint_base": "flex", "breakpoint_tablet_portrait": "none"},
+                        "alignItems": {"breakpoint_base": "center"},
+                        "horizontalGap": {"breakpoint_base": "24px"}
+                      }
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "id": 111,
+                    "data": {
+                      "type": "EssentialElements\\Div",
+                      "properties": {
+                        "design": {
+                          "layout": {
+                            "display": {"breakpoint_base": "flex"},
+                            "alignItems": {"breakpoint_base": "center"},
+                            "horizontalGap": {"breakpoint_base": "16px"}
+                          }
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "id": 112,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "",
+                                "link": {"url": "https://instagram.com/colabs", "type": "url", "openInNewTab": true}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "color": {"breakpoint_base": "#666666"}
+                              },
+                              "effects": {
+                                "opacity": {"breakpoint_base": 0.8},
+                                "opacityHover": 1,
+                                "transition": {
+                                  "duration": {"breakpoint_base": "150ms"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 111
+                      },
+                      {
+                        "id": 113,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "",
+                                "link": {"url": "https://facebook.com/colabs", "type": "url", "openInNewTab": true}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "color": {"breakpoint_base": "#666666"}
+                              },
+                              "effects": {
+                                "opacity": {"breakpoint_base": 0.8},
+                                "opacityHover": 1
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 111
+                      },
+                      {
+                        "id": 114,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "",
+                                "link": {"url": "https://linkedin.com/company/colabs", "type": "url", "openInNewTab": true}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "color": {"breakpoint_base": "#666666"}
+                              },
+                              "effects": {
+                                "opacity": {"breakpoint_base": 0.8},
+                                "opacityHover": 1
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 111
+                      },
+                      {
+                        "id": 115,
+                        "data": {
+                          "type": "EssentialElements\\Link",
+                          "properties": {
+                            "content": {
+                              "content": {
+                                "text": "",
+                                "link": {"url": "https://twitter.com/colabs", "type": "url", "openInNewTab": true}
+                              }
+                            },
+                            "design": {
+                              "typography": {
+                                "color": {"breakpoint_base": "#666666"}
+                              },
+                              "effects": {
+                                "opacity": {"breakpoint_base": 0.8},
+                                "opacityHover": 1
+                              }
+                            }
+                          }
+                        },
+                        "children": [],
+                        "_parentId": 111
+                      }
+                    ],
+                    "_parentId": 110
+                  },
+                  {
+                    "id": 116,
+                    "data": {
+                      "type": "EssentialElements\\Button",
+                      "properties": {
+                        "content": {
+                          "content": {
+                            "text": "Join the Lab",
+                            "link": {"url": "/contact", "type": "url"}
+                          }
+                        },
+                        "design": {
+                          "button": {
+                            "background": {"breakpoint_base": "#1a1a1a"},
+                            "backgroundHover": "#333333",
+                            "typography": {
+                              "fontFamily": {"breakpoint_base": "'Matter SQ', sans-serif"},
+                              "fontSize": {"breakpoint_base": "14px"},
+                              "fontWeight": {"breakpoint_base": "500"},
+                              "color": {"breakpoint_base": "#ffffff"}
+                            }
+                          },
+                          "spacing": {
+                            "padding": {
+                              "top": {"breakpoint_base": "12px"},
+                              "bottom": {"breakpoint_base": "12px"},
+                              "left": {"breakpoint_base": "24px"},
+                              "right": {"breakpoint_base": "24px"}
+                            }
+                          },
+                          "borders": {
+                            "radius": {"all": {"breakpoint_base": {"number": 24, "unit": "px"}}}
+                          },
+                          "effects": {
+                            "transition": {
+                              "duration": {"breakpoint_base": "150ms"},
+                              "timingFunction": {"breakpoint_base": "ease-out"}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "children": [],
+                    "_parentId": 110
+                  }
+                ],
+                "_parentId": 101
+              }
+            ],
+            "_parentId": 100
+          }
+        ],
+        "_parentId": 1
+      }
+    ]
+  },
+  "status": "exported"
+}

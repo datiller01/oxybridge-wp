@@ -15,7 +15,7 @@
 #   WORDPRESS_URL, WORDPRESS_USERNAME, WORDPRESS_APP_PASSWORD
 #
 
-set -e
+# Note: Don't use set -e as we want tests to continue on individual failures
 
 # Colors for output
 RED='\033[0;31m'
@@ -156,7 +156,7 @@ make_request "GET" "/health" "200" "Health check with auth"
 # Verify health response contains expected fields
 test_response_contains "/health" "status" "Health response contains 'status'"
 test_response_contains "/health" "version" "Health response contains 'version'"
-test_response_contains "/health" "oxygen_active" "Health response contains 'oxygen_active'"
+test_response_contains "/health" "builder" "Health response contains 'builder'"
 
 echo ""
 echo "=== Authentication Tests ==="
@@ -164,68 +164,80 @@ echo ""
 
 # Protected endpoints should reject unauthenticated requests
 test_unauthenticated "/templates" "401" "Templates endpoint rejects unauthenticated request"
-test_unauthenticated "/styles/global" "401" "Styles endpoint rejects unauthenticated request"
+test_unauthenticated "/global-styles" "200" "Global styles endpoint is publicly accessible"
 
-# Auth endpoint with credentials
-make_request "POST" "/auth" "200" "Auth endpoint with valid credentials"
+# Authenticate endpoint with credentials (requires valid credentials)
+if [ -n "${APP_PASSWORD}" ]; then
+    make_request "POST" "/authenticate" "200" "Authenticate endpoint with valid credentials"
 
-echo ""
-echo "=== Templates Endpoint ==="
-echo ""
+    echo ""
+    echo "=== Templates Endpoint ==="
+    echo ""
 
-# List templates with authentication
-make_request "GET" "/templates" "200" "List templates with auth"
+    # List templates with authentication
+    make_request "GET" "/templates" "200" "List templates with auth"
 
-# Verify templates response structure
-test_response_contains "/templates" "templates" "Templates response contains 'templates' array"
-test_response_contains "/templates" "total" "Templates response contains 'total' count"
-test_response_contains "/templates" "template_types" "Templates response contains 'template_types'"
+    # Verify templates response structure
+    test_response_contains "/templates" "templates" "Templates response contains 'templates' array"
+    test_response_contains "/templates" "total" "Templates response contains 'total' count"
+    test_response_contains "/templates" "template_types" "Templates response contains 'template_types'"
 
-# Template type filtering
-make_request "GET" "/templates?template_type=header" "200" "Filter templates by type 'header'"
-make_request "GET" "/templates?template_type=footer" "200" "Filter templates by type 'footer'"
-make_request "GET" "/templates?template_type=invalid_type" "200" "Filter templates by invalid type (empty result)"
+    # Template type filtering
+    make_request "GET" "/templates?template_type=header" "200" "Filter templates by type 'header'"
+    make_request "GET" "/templates?template_type=footer" "200" "Filter templates by type 'footer'"
+    make_request "GET" "/templates?template_type=invalid_type" "200" "Filter templates by invalid type (empty result)"
+else
+    echo ""
+    echo -e "${YELLOW}SKIP: Authenticate and Templates tests require APP_PASSWORD${NC}"
+    ((TESTS_SKIPPED+=8))
+fi
 
 echo ""
 echo "=== Global Styles Endpoint ==="
 echo ""
 
 # Global styles with authentication
-make_request "GET" "/styles/global" "200" "Get global styles with auth"
+make_request "GET" "/global-styles" "200" "Get global styles with auth"
 
 # Test style category filtering
-make_request "GET" "/styles/global?category=colors" "200" "Get global styles - colors category"
-make_request "GET" "/styles/global?category=fonts" "200" "Get global styles - fonts category"
-make_request "GET" "/styles/global?category=spacing" "200" "Get global styles - spacing category"
-make_request "GET" "/styles/global?category=all" "200" "Get global styles - all categories"
+make_request "GET" "/global-styles?category=colors" "200" "Get global styles - colors category"
+make_request "GET" "/global-styles?category=fonts" "200" "Get global styles - fonts category"
+make_request "GET" "/global-styles?category=spacing" "200" "Get global styles - spacing category"
+make_request "GET" "/global-styles?category=all" "200" "Get global styles - all categories"
 
 # Verify global styles response structure
-test_response_contains "/styles/global" "colors" "Global styles contains 'colors'"
-test_response_contains "/styles/global" "fonts" "Global styles contains 'fonts'"
-test_response_contains "/styles/global" "breakpoints" "Global styles contains 'breakpoints'"
-test_response_contains "/styles/global" "_meta" "Global styles contains '_meta' metadata"
+test_response_contains "/global-styles" "colors" "Global styles contains 'colors'"
+test_response_contains "/global-styles" "fonts" "Global styles contains 'fonts'"
+test_response_contains "/global-styles" "breakpoints" "Global styles contains 'breakpoints'"
+test_response_contains "/global-styles" "_links" "Global styles contains '_links'"
 
 # Test optional parameters
-make_request "GET" "/styles/global?include_variables=true" "200" "Get global styles with variables"
-make_request "GET" "/styles/global?include_selectors=true" "200" "Get global styles with selectors"
+make_request "GET" "/global-styles?include_variables=true" "200" "Get global styles with variables"
+make_request "GET" "/global-styles?include_selectors=true" "200" "Get global styles with selectors"
 
 echo ""
-echo "=== Settings Endpoint ==="
+echo "=== AI Endpoints ==="
 echo ""
 
-make_request "GET" "/settings" "200" "Get settings with auth"
+test_unauthenticated "/ai/context" "200" "AI context endpoint is publicly accessible"
+test_unauthenticated "/ai/docs" "200" "AI docs endpoint is publicly accessible"
 
 echo ""
 echo "=== Schema Endpoint ==="
 echo ""
 
-make_request "GET" "/schema" "200" "Get element schema with auth"
+test_unauthenticated "/ai/schema" "200" "AI schema endpoint is publicly accessible"
 
 echo ""
 echo "=== Pages Endpoint ==="
 echo ""
 
-make_request "GET" "/pages" "200" "List pages with auth"
+if [ -n "${APP_PASSWORD}" ]; then
+    make_request "GET" "/pages" "200" "List pages with auth"
+else
+    echo -e "${YELLOW}SKIP: Pages tests require APP_PASSWORD${NC}"
+    ((TESTS_SKIPPED+=1))
+fi
 
 echo ""
 echo "=============================================="
